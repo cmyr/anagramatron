@@ -5,47 +5,67 @@ import re
 import time
 import string
 import cPickle as pickle
-import shutil
 
-from twitterhandler import TwitterHandler, TwitterRateLimitError, TweetUnavailableError
-from comptests import compare
+from twitterhandler import TwitterHandler
 from twitter.api import TwitterHTTPError
+
+import comptests
 
 VERSION_NUMBER = 0.54
 DATA_FILE_NAME = 'data/data' + str(VERSION_NUMBER) + '.p'
-BACKUP_FILE_NAME = 'data/databackup' + str(VERSION_NUMBER) + '.p'
 BLACKLIST_FILE_NAME = 'data/blacklist.p'
 
+# possible database sources:
+# http://yserial.sourceforge.net/
+# http://buzhug.sourceforge.net/
+
+class AnagramStats(object):
+    """
+    keeps track of stats for us
+    """
+
+    def __init__(self):
+        self.tweets_seen = 0
+        self.passed_filter = 0
+        self.possible_hits = 0
+        self.hits = 0
+        self.start_time = 0
 
 class Anagramer(object):
     """
-    Anagramer hunts for anagrams on twitter. A TwitterHandler object handles
-    interactions with the twitter API.
+    Anagramer hunts for anagrams on twitter. 
     """
+
     def __init__(self):
-        self.twitter_handler = TwitterHandler()
+        self.twitter_handler = None
+        self.stats = AnagramStats()
         self.data = {}
         self.hits = []
         self.black_list = set()
-        self.load()
         self.activity_time = 0
-        self.http_connection_attempts = 0
-        self.http_420_attempts = 0
-        # below is for logging stats. is this the best way?
-        self.stat_start_time = time.time()
-        self.stat_in_total = 0
-        self.stat_in_has_text = 0
-        self.stat_in_nonascii = 0
-        self.stat_in_has_text = 0
-        self.stat_in_has_url = 0
-        self.stat_in_has_mention = 0
-        self.stat_in_is_retweet = 0
-        self.stat_in_low_chars = 0
-        self.stat_in_low_unique_chars = 0
-        self.stat_in_on_blacklist = 0
-        self.stat_in_passed_filter = 0
-        self.stat_hit_possible = 0
-        self.stat_hit_confirmed = 0
+
+    def run(self, source=None):
+        """
+        starts the program's main run-loop
+        """
+        if not source:
+            while 1:
+                try:
+                    print('entering run loop')
+                    self.load()
+                    if self.hits:
+                        self.print_hits()
+                    self.twitter_handler = TwitterHandler()
+                    self.start_stream()
+                except KeyboardInterrupt:
+                    self.save()
+                    break
+                except TwitterHTTPError as e:
+                    print('\n', e)
+                    # handle errors probably?
+        else:
+            # means we're running from local data
+            self.run_with_data(source)
 
     def load(self):
         """
@@ -88,94 +108,71 @@ class Anagramer(object):
             }
             pickle.dump(tosave, open(DATA_FILE_NAME, 'wb'))
             pickle.dump(self.black_list, open(BLACKLIST_FILE_NAME, 'wb'))
-            shutil.copy(DATA_FILE_NAME, BACKUP_FILE_NAME)
+            # shutil.copy(DATA_FILE_NAME, BACKUP_FILE_NAME)
             print("\nsaved data with:", len(self.data), "entries")
         except IOError:
             print("unable to save file, debug me plz")
             sys.exit(1)
 
-        # print some stats for the kids
-        print('total tweets seen: ', str(self.stat_in_total))
-        txtperc = int(100*(float(
-            self.stat_in_has_text)/self.stat_in_total))
-        print('had text: ', str(self.stat_in_has_text), ' (', txtperc,'%)')
-        asciiperc = int(100*(float(
-            self.stat_in_nonascii)/self.stat_in_has_text))
-        print('non ascii:', str(self.stat_in_nonascii), ' (,', asciiperc, '%)')
-        urlperc = int(100*(float(
-            self.stat_in_has_url)/self.stat_in_has_text))
-        print('had url:', str(self.stat_in_has_url), ' (,', urlperc, '%)')
-        mentionperc = int(100*(float(
-        self.stat_in_has_mention)/self.stat_in_has_text))
-        print('has mention:', str(self.stat_in_has_mention), ' (,', mentionperc, '%)')
-        rtperc = int(100*(float(
-        self.stat_in_is_retweet)/self.stat_in_has_text))
-        print('is retweet:', str(self.stat_in_is_retweet), ' (,', rtperc, '%)')
-        shortperc = int(100*(float(
-        self.stat_in_low_chars)/self.stat_in_has_text))
-        print('too short:', str(self.stat_in_low_chars), ' (,', shortperc, '%)')
-        lowuniqperc = int(100*(float(
-        self.stat_in_low_unique_chars)/self.stat_in_has_text))
-        print('few unique chars:', str(self.stat_in_low_unique_chars), ' (,', lowuniqperc, '%)')
-
-    def run(self):
-        """
-        starts the program's main run-loop
-        """
-        # review previous hits before beginning:
-        HTTP_COOLDOWN = 5
-        HTTP_420_COOLDOWN = 60
-        if len(self.hits):
-            self.review_hits()
-        while 1:
-            try:
-                print('entering run loop')
-                self.start_stream()
-            except KeyboardInterrupt:
-                self.save()
-                break
-            except TwitterHTTPError as e:
-                print('\n', e)
-                # begin back off strategy specified in streaming API Docs
-                if e.e.code == 420:
-                    self.http_420_attempts += 1
-                    cooldown = HTTP_420_COOLDOWN ^ self.http_420_attempts
-                    time.sleep(cooldown)
-                else:
-                    self.http_connection_attempts += 1
-                    cooldown = HTTP_COOLDOWN ^ self.http_connection_attempts
-                    if cooldown > 320:
-                        cooldown = 320
-                    self.sleep(cooldown)
-                # wait before attempting reconnect, double each time
 
     def start_stream(self):
         """
         main run loop
         """
-        # how long do we stay alive without getting a new tweet?
-        # TIMEOUT = 90
-
+        self.stats.start_time = time.time()
         stream_iterator = self.twitter_handler.stream_iter()
-        # if the connection is succesful recount our attempt tallies
-        self.http_connection_attempts = 0
-        self.http_420_attempts = 0
         for tweet in stream_iterator:
             self.activity_time = time.time()
-            self.stat_in_total += 1
             if tweet.get('text'):
-                self.stat_in_has_text += 1
+                self.stats.tweets_seen += 1
                 if self.filter_tweet(tweet):
-                    self.stat_in_passed_filter += 1
+                    self.stats.passed_filter += 1
                     self.update_console()
-                    self.process_input(tweet)
-            # time.sleep(1)
-            # print(time.time() - self.activity_time)
-            # if (time.time() - self.activity_time) > 90:
-            #     print('timeout, exiting run loop')
-            #     break
+                    self.process_input(self.format_tweet(tweet))
 
-    def process_input(self, tweet):
+    def run_with_data(self, data):
+        """
+        uses a supplied data source instead of a twitter connection (debug)
+        """
+        for tweet in data:
+            self.process_input(tweet)
+
+    def filter_tweet(self, tweet):
+        """
+        filter out anagram-inappropriate tweets
+        """
+        LOW_CHAR_CUTOFF = 10
+        MIN_UNIQUE_CHARS = 7
+        # pass_flag = True
+        
+        # filter non-english tweets
+        if tweet.get('lang') != 'en':
+            return False
+        #check for mentions
+        if len(tweet.get('entities').get('user_mentions')) is not 0:
+            return False
+        #check for retweets
+        if tweet.get('retweeted_status'):
+            return False
+        # ignore tweets w/ non-ascii characters
+        try:
+            tweet['text'].decode('ascii')
+        except UnicodeEncodeError:
+            return False
+        # check for links:
+        if len(tweet.get('entities').get('urls')) is not 0:
+            return False
+        # ignore short tweets
+        t = self.stripped_string(tweet['text'])
+        if len(t) <= LOW_CHAR_CUTOFF:
+            return False
+        # ignore tweets with few characters
+        st = set(t)
+        if len(st) < MIN_UNIQUE_CHARS:
+            return False
+        return True
+
+    def format_tweet(self, tweet):
         """
         takes a tweet, generates a hash and checks for a double in
         our data. if a double is found begin analyzing the match.
@@ -184,134 +181,70 @@ class Anagramer(object):
 
         tweet_id = long(tweet['id_str'])
         tweet_hash = self.make_hash(tweet['text'])
-        tweet_text = tweet['text']
-        tweet_time = time.time()
+        tweet_text = str(tweet['text'])
         hashed_tweet = {
             'id': tweet_id,
             'hash': tweet_hash,
             'text': tweet_text,
-            'time': tweet_time
         }
-
+        return hashed_tweet
         # uniqueness checking:
 
-        if tweet_hash in self.black_list:
+    def process_input(self, hashed_tweet):
+        if hashed_tweet['hash'] in self.black_list:
             pass
-        elif tweet_hash in self.data:
+        elif hashed_tweet['hash'] in self.data:
             self.process_hit(hashed_tweet)
         else:
             self.add_to_data(hashed_tweet)
 
-    def update_console(self):
+    def compare(self, tweet_one, tweet_two):
         """
-        prints various bits of status information to the console.
+        most basic test, finds if tweets are just identical
         """
-        # what all do we want to have, here? let's blueprint:
-        # tweets seen: $IN_HAS_TEXT passed filter: $PASSED_F% Hits: $HITS
-        seen_percent = int(100*(float(
-            self.stat_in_passed_filter)/self.stat_in_has_text))
-        runtime = int(time.time()-self.stat_start_time)
-        # save every ten minutes
-        if not runtime % 600:
-            self.save()
-
-        status = (
-            'tweets seen: ' + str(self.stat_in_has_text) +
-            " passed filter: " + str(self.stat_in_passed_filter) +
-            # " ({0:.2f}%)".format(seen_percent)
-            " ({0}%)".format(seen_percent) +
-            " hits " + str(self.stat_hit_possible) +
-            " agrams: " + str(self.stat_hit_confirmed) +
-            " runtime: " + self.format_seconds(runtime)
-        )
-
-        sys.stdout.write(status + '\r')
-        sys.stdout.flush()
-
-    def review_hits(self):
-        hit_count = len(self.hits)
-        print('recorded ' + str(hit_count) + ' hits in need of review')
-
-        while len(self.hits):
-            hit = self.hits.pop()
-            print(hit['tweet_one']['id'], hit['tweet_two']['id'])
-            print(hit['tweet_one']['text'])
-            print(hit['tweet_two']['text'])
-
-            while 1:
-                inp = raw_input("(a)ccept, (r)eject, keep (1)st, keep (2)nd, (s)kip review?:")
-                if inp not in ['a', 'r', '1', '2', ' s']:
-                    print("invalid input. Please enter 'a', 'r', '1', '2' or 's'.")
-                else:
-                    break
-            if inp == 'a':
-                flag = self.post_hit(hit)
-                if not flag:
-                    print('retweet failed, sorry bud')
-                else:
-                    print('post successful')
-                    self.black_list.add(hit['tweet_one']['hash'])
-            if inp == 'r':
-                # ignore & add to blacklist
-                self.black_list.add(hit['tweet_one']['hash'])
-            if inp == '1':
-                #reject, but keep first tweet in data:
-                self.add_to_data(hit['tweet_one'])
-            if inp == '2':
-                #reject, but keep first tweet in data:
-                self.add_to_data(hit['tweet_two'])
-            if inp == 's':
-                self.hits.append(hit)
-                break
-
-    def filter_tweet(self, tweet):
-        """
-        filter out anagram-inappropriate tweets
-        """
-        LOW_CHAR_CUTOFF = 10
-        MIN_UNIQUE_CHARS = 5
-        # pass_flag = True
-        # ignore tweets w/ non-ascii characters
-        #check for retweets
-        if tweet.get('retweeted_status'):
+        if not compare_chars(tweet_one, tweet_two):
             return False
-            self.stat_in_is_retweet += 1
-        #check for mentions
-        if len(tweet.get('entities').get('user_mentions')) is not 0:
+        if not compare_words(tweet_one, tweet_two):
             return False
-            self.stat_in_has_mention += 1        
-        try:
-            tweet['text'].decode('ascii')
-        except UnicodeEncodeError:
-            return False
-            self.stat_in_nonascii += 1
-        # check for links:
-        if len(tweet.get('entities').get('urls')) is not 0:
-            return False
-            self.stat_in_has_url += 1
-        # ignore short tweets
-        t = str(re.sub(r'[^a-zA-Z]', '', tweet['text']).lower())
-        if len(t) <= LOW_CHAR_CUTOFF:
-            return False
-            self.stat_in_low_chars += 1
-        # ignore tweets with few characters
-        st = set(t)
-        if len(st) < MIN_UNIQUE_CHARS:
-            return False
-            self.stat_in_low_unique_chars += 1
         return True
 
-# some sample data from when we weren't returning on False
-# total tweets seen:  127707
-# had text:  111669  ( 0 %)
-# non ascii: 47269  (, 42 %)
-# had url: 12242  (, 10 %)
-# has mention: 61852  (, 55 %)
-# is retweet: 26174  (, 23 %)
-# too short: 17409  (, 15 %)
-# few unique chars: 11187  (, 10 %)
+    def compare_chars(self, tweet_one, tweet_two, cutoff=0.5):
+        """
+        basic test, looks for similarity on a char by char basis
+        """
+        stripped_one = self.stripped_string(tweet_one)
+        stripped_two = self.stripped_string(tweet_two)
 
+        total_chars = len(stripped_two)
+        same_chars = 0
+        for i in range(total_chars):
+            if stripped_one[i] == stripped_two[i]:
+                same_chars += 1
+        
+        if (float(same_chars) / total_chars) < cutoff:
+            return True
+        return False
 
+    def compare_words(self, tweet_one, tweet_two, cutoff=0.5):
+        """
+        looks for tweets containing the same words in different orders
+        """
+        words_one = stripped_string(tweet_one, spaces=True).split()
+        words_two = stripped_string(tweet_two, spaces=True).split()
+           
+        word_count = len(words_one)
+        if len(words_two) < len(words_one): word_count = len(words_two)
+
+        same_words = 0
+        # compare words to each other:
+        for word in words_one:
+            if word in words_two:
+                same_words += 1
+        # if more then $CUTOFF words are the same, fail test
+        if (float(same_words) / word_count) < cutoff:
+            return True
+        else:
+            return False
 
     def add_to_data(self, hashed_tweet):
         self.data[hashed_tweet['hash']] = hashed_tweet
@@ -331,77 +264,70 @@ class Anagramer(object):
         does some sanity checking. If that passes sends a msg to
         the boss for final human evaluation.
         """
-        # tweet = hit = tweet_text = hit_text = None
-        self.stat_hit_possible += 1
+
         hit_tweet = self.data.pop(new_tweet['hash'])
+        self.stats.possible_hits += 1
         # print("possible hit:", hashed_tweet['ID'], hit_id)
         if not hit_tweet:
             print('error retrieving hit')
             return
 
         if self.compare(new_tweet['text'], hit_tweet['text']):
-            self.stat_hit_confirmed += 1
             hit = {
                 "tweet_one": new_tweet,
                 "tweet_two": hit_tweet,
             }
             self.hits.append(hit)
+            self.stats.hits += 1
         else:
             self.add_to_data(new_tweet)
 
-    def compare(self, tweet_one, tweet_two):
+# displaying data while we run:
+
+    def update_console(self):
         """
-        most basic test, finds if tweets are just identical
+        prints various bits of status information to the console.
         """
-        stripped_one = str(re.sub(r'[^a-zA-Z]', '', tweet_one).lower())
-        stripped_two = str(re.sub(r'[^a-zA-Z]', '', tweet_two).lower())
+        # what all do we want to have, here? let's blueprint:
+        # tweets seen: $IN_HAS_TEXT passed filter: $PASSED_F% Hits: $HITS
+        seen_percent = int(100*(float(
+            self.stats.passed_filter)/self.stats.tweets_seen))
+        runtime = int(time.time()-self.stats.start_time)
+        # save every ten minutes
+        if not runtime % 1800:
+            self.save()
 
-        # cull identical tweets:
-        for i in range(len(stripped_one)):
-                if stripped_one[i] != stripped_two[i]:
-                    return True
-        return False
+        status = (
+            'tweets seen: ' + str(self.stats.tweets_seen) +
+            " passed filter: " + str(self.stats.passed_filter) +
+            # " ({0:.2f}%)".format(seen_percent)
+            " ({0}%)".format(seen_percent) +
+            " hits " + str(self.stats.possible_hits) +
+            " agrams: " + str(self.stats.hits) +
+            " runtime: " + self.format_seconds(runtime)
+        )
+        sys.stdout.write(status + '\r')
+        sys.stdout.flush()
 
-    def post_hit(self, hit):
-        # check that the tweets still exist:
-        try:
-            self.twitter_handler.fetch_tweet(hit['tweet_one']['id'])
-            self.twitter_handler.fetch_tweet(hit['tweet_two']['id'])
-        except TweetUnavailableError:
-            return
+    def print_hits(self):
+        for hit in self.hits:
+            print(hit['tweet_one']['text'], ['tweet_one']['id'])
+            print(hit['tweet_two']['text'], ['tweet_two']['id'])
 
-        # try to retweet:
-        flag = self.twitter_handler.retweet(hit['tweet_one']['id'])
-        if not flag:
-            return False
-        else:
-            flag = self.twitter_handler.retweet(hit['tweet_two']['id'])
-        if not flag:
-            # if the first passes but the second does not delete the first
-            self.twitter_handler.delete_last_tweet()
-            return False
-        return True
+# helper methods
 
-    def confirmed_hit(self, tweet1, tweet2):
+    def stripped_string(self, text, spaces=False):
         """
-        called when we have a likely match that we want to send for
-        review.
+        returns lower case string with all non alpha chars removed
         """
-        self.stat_hit_confirmed += 1
-        # try:
-        #     url_one = (r'http://twitter.com/' + tweet1['user']['screen_name']
-        #                + r'/status/' + tweet1['id_str'])
-        #     url_two = (r'http://twitter.com/' + tweet2['user']['screen_name']
-        #                + r'/status/' + tweet2['id_str'])
-
-        #     # msg_text = "possible match?: \n" + url_one + '\n' + url_two
-        #     # self.twitter_handler.send_msg(msg_text)
-        # except KeyError:
-        #     print("ERR: KEY ERROR")
-        #     print(tweet1)
-        #     print(tweet2)
+        if spaces:
+            return re.sub(r'[^a-zA-Z]', ' ', text).lower()
+        return re.sub(r'[^a-zA-Z]', '', text).lower()
 
     def format_seconds(self, seconds):
+        """
+        yea fine this is bad deal with it
+        """
         DAYSECS = 86400
         HOURSECS = 3600
         MINSECS = 60
@@ -421,7 +347,6 @@ class Anagramer(object):
         if dd:
             time_string = str(dd) + 'd ' + time_string
         return time_string
-
 
 def main():
     anagramer = Anagramer()
