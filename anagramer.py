@@ -202,9 +202,9 @@ class Anagramer(object):
         """
         most basic test, finds if tweets are just identical
         """
-        if not compare_chars(tweet_one, tweet_two):
+        if not self.compare_chars(tweet_one, tweet_two):
             return False
-        if not compare_words(tweet_one, tweet_two):
+        if not self.compare_words(tweet_one, tweet_two):
             return False
         return True
 
