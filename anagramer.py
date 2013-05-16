@@ -5,19 +5,28 @@ import re
 import time
 import string
 import cPickle as pickle
+import logging
 
 from twitterhandler import TwitterHandler
 from twitter.api import TwitterHTTPError
 
-import comptests
+# import comptests
 
 VERSION_NUMBER = 0.54
 DATA_FILE_NAME = 'data/data' + str(VERSION_NUMBER) + '.p'
 BLACKLIST_FILE_NAME = 'data/blacklist.p'
+LOG_FILE_NAME = 'data/anagramer.log'
 
 # possible database sources:
 # http://yserial.sourceforge.net/
 # http://buzhug.sourceforge.net/
+
+# set up logging:
+logging.basicConfig(
+    filename=LOG_FILE_NAME,
+    format='%(levelname)s:%(message)s',
+    level=logging.debug
+    )
 
 class AnagramStats(object):
     """
@@ -229,8 +238,8 @@ class Anagramer(object):
         """
         looks for tweets containing the same words in different orders
         """
-        words_one = stripped_string(tweet_one, spaces=True).split()
-        words_two = stripped_string(tweet_two, spaces=True).split()
+        words_one = self.stripped_string(tweet_one, spaces=True).split()
+        words_two = self.stripped_string(tweet_two, spaces=True).split()
            
         word_count = len(words_one)
         if len(words_two) < len(words_one): word_count = len(words_two)
@@ -267,7 +276,13 @@ class Anagramer(object):
 
         hit_tweet = self.data.pop(new_tweet['hash'])
         self.stats.possible_hits += 1
-        # print("possible hit:", hashed_tweet['ID'], hit_id)
+        # logging:
+        logging.info(
+            'possible hit: \n %s %f \n %s %f',
+            hit_tweet['text'],
+            hit_tweet['id'],
+            new_tweet['text'],
+            new_tweet['id'])
         if not hit_tweet:
             print('error retrieving hit')
             return
@@ -311,8 +326,8 @@ class Anagramer(object):
 
     def print_hits(self):
         for hit in self.hits:
-            print(hit['tweet_one']['text'], ['tweet_one']['id'])
-            print(hit['tweet_two']['text'], ['tweet_two']['id'])
+            print(hit['tweet_one']['text'], hit['tweet_one']['id'])
+            print(hit['tweet_two']['text'], hit['tweet_two']['id'])
 
 # helper methods
 
