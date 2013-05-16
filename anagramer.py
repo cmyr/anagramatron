@@ -60,9 +60,10 @@ class Anagramer(object):
         if not source:
             while 1:
                 try:
-                    print('entering run loop')
+                        logging.info('entering run loop')
                     self.load()
                     if self.hits:
+                        logging.info('printing %g hits', len(self.hits))
                         self.print_hits()
                     self.twitter_handler = TwitterHandler()
                     self.start_stream()
@@ -99,8 +100,9 @@ class Anagramer(object):
             self.data = saved_data['data']
             self.hits = saved_data['hits']
             self.black_list = pickle.load(open(BLACKLIST_FILE_NAME, 'rb'))
-            print("loaded data file with:", len(self.data), "entries.")
-            print("loaded blacklist with:", len(self.black_list), "entries.")
+            # print("loaded data file with:", len(self.data), "entries.")
+            logging.info('loaded data file with %g entries', len(self.data))
+            # print("loaded blacklist with:", len(self.black_list), "entries.")
         except (pickle.UnpicklingError, EOFError) as e:
             print("error loading data \n")
             print(e)
@@ -278,7 +280,7 @@ class Anagramer(object):
         self.stats.possible_hits += 1
         # logging:
         logging.info(
-            'possible hit: \n %s %f \n %s %f',
+            'possible hit: \n %s %g \n %s %g',
             hit_tweet['text'],
             hit_tweet['id'],
             new_tweet['text'],
