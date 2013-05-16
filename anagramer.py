@@ -272,9 +272,9 @@ class Anagramer(object):
 
         hit_tweet = self.data.pop(new_tweet['hash'])
         self.stats.possible_hits += 1
-        # logging:
+        # logging: 
         logging.info(
-            'possible hit: \n %s %g \n %s %g',
+            'possible hit: \n %s %d \n %s %d',
             hit_tweet['text'],
             hit_tweet['id'],
             new_tweet['text'],
