@@ -60,7 +60,7 @@ class Anagramer(object):
         if not source:
             while 1:
                 try:
-                        logging.info('entering run loop')
+                    logging.info('entering run loop')
                     self.load()
                     if self.hits:
                         logging.info('printing %g hits', len(self.hits))
