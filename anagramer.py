@@ -21,12 +21,6 @@ LOG_FILE_NAME = 'data/anagramer.log'
 # http://yserial.sourceforge.net/
 # http://buzhug.sourceforge.net/
 
-# set up logging:
-logging.basicConfig(
-    filename=LOG_FILE_NAME,
-    format='%(levelname)s:%(message)s',
-    level=logging.debug
-    )
 
 class AnagramStats(object):
     """
@@ -366,6 +360,12 @@ class Anagramer(object):
         return time_string
 
 def main():
+    # set up logging:
+    logging.basicConfig(
+    filename=LOG_FILE_NAME,
+    format='%(levelname)s:%(message)s',
+    level=logging.debug
+    )
     anagramer = Anagramer()
     return anagramer.run()
 
