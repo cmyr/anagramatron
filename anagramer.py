@@ -14,6 +14,7 @@ from twitter.api import TwitterHTTPError
 
 VERSION_NUMBER = 0.54
 DATA_FILE_NAME = 'data/data' + str(VERSION_NUMBER) + '.p'
+HITS_FILE_NAME = 'data/hits' + str(VERSION_NUMBER) + '.p'
 BLACKLIST_FILE_NAME = 'data/blacklist.p'
 LOG_FILE_NAME = 'data/anagramer.log'
 
@@ -84,15 +85,20 @@ class Anagramer(object):
             open(DATA_FILE_NAME, 'r')
         except IOError:
             # create a new pickle file if it isn't here
-            tosave = {
-                'data': {},
-                'hits': [],
-            }
-            pickle.dump(tosave, open(DATA_FILE_NAME, 'wb'))
+            pickle.dump(self.data, open(DATA_FILE_NAME, 'wb'))
         try:
+            open(HITS_FILE_NAME, 'r')
+        except IOError:
+            pickle.dump(self.hits, open(HITS_FILE_NAME, 'wb'))
+        try:
+            # legacy from old storage scheme
             saved_data = pickle.load(open(DATA_FILE_NAME, 'rb'))
-            self.data = saved_data['data']
-            self.hits = saved_data['hits']
+            if saved_data.get('data'):
+                self.data = saved_data['data']
+                self.hits = saved_data['hits']
+            else:
+                self.data = saved_data
+                self.hits = pickle.load(open(HITS_FILE_NAME, 'rb'))
             self.black_list = pickle.load(open(BLACKLIST_FILE_NAME, 'rb'))
             # print("loaded data file with:", len(self.data), "entries.")
             logging.info('loaded data file with %g entries', len(self.data))
@@ -107,11 +113,8 @@ class Anagramer(object):
         saves a list of fetched tweets & possible matches
         """
         try:
-            tosave = {
-                'data': self.data,
-                'hits': self.hits,
-            }
-            pickle.dump(tosave, open(DATA_FILE_NAME, 'wb'))
+            pickle.dump(self.data, open(DATA_FILE_NAME, 'wb'))
+            pickle.dump(self.hits, open(HITS_FILE_NAME, 'wb'))
             pickle.dump(self.black_list, open(BLACKLIST_FILE_NAME, 'wb'))
             # shutil.copy(DATA_FILE_NAME, BACKUP_FILE_NAME)
             print("\nsaved data with:", len(self.data), "entries")
