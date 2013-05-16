@@ -364,7 +364,7 @@ def main():
     logging.basicConfig(
     filename=LOG_FILE_NAME,
     format='%(levelname)s:%(message)s',
-    level=logging.debug
+    level=logging.DEBUG
     )
     anagramer = Anagramer()
     return anagramer.run()
