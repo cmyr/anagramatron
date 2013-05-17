@@ -146,8 +146,9 @@ class Anagramer(object):
         for tweet in data:
             self.process_input(tweet)
             time.sleep(0.001)
-        self.stats.tweets_seen = self.stats.passed_filter = len(data)
-        self.update_console()
+            self.stats.tweets_seen += 1
+            self.stats.passed_filter += 1
+            self.update_console()
 
     def filter_tweet(self, tweet):
         """
@@ -373,7 +374,9 @@ def main():
     level=logging.DEBUG
     )
     anagramer = Anagramer()
-    return anagramer.run()
+    
+    # testdata = pickle.load(open('testdata/tst10000.p', 'r'))
+    # return anagramer.run(source=testdata)
 
 
 if __name__ == "__main__":

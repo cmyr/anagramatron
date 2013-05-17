@@ -18,7 +18,7 @@ class DataHandler(object):
         creates database if it doesn't already exist
         """
         if not os.path.exists(TWEET_DB_PATH):
-            self.data = sqlite3.connect(TWEET_DB_PATH)
+            self.data = lite.connect(TWEET_DB_PATH)
             cursor = self.data.cursor()
             print('db not found, creating')
             cursor.execute("CREATE TABLE tweets(id_str text, hash text, text text)")
@@ -26,7 +26,7 @@ class DataHandler(object):
                 (hit_id_str text, one_id text, two_id text, one_text text, two_text text)""")
             self.data.commit()
         else:
-            self.data = sqlite3.connect(TWEET_DB_PATH)
+            self.data = lite.connect(TWEET_DB_PATH)
 
     def add(self, tweet):
         cursor = self.data.cursor()
@@ -40,7 +40,17 @@ class DataHandler(object):
         result = cursor.fetchone()
         if result:
             return {'id': long(result[0]), 'hash': str(result[1]), 'text': str(result[2])}
-        return None
+        return False
+
+    def pop(self, tweet_hash):
+        result = self.get(tweet_hash)
+        cursor = self.data.cursor()
+        cursor.execute("DELETE FROM tweets WHERE hash=:hash",
+        {"hash":tweet_hash})
+        self.data.commit()
+        if result:
+            return result
+        return False
 
 
     def add_hit(self, hit):
