@@ -288,6 +288,7 @@ class Anagramer(object):
 
         if self.compare(new_tweet['text'], hit_tweet['text']):
             hit = {
+                "id": int(time.time()*1000)
                 "tweet_one": new_tweet,
                 "tweet_two": hit_tweet,
             }
@@ -354,7 +355,6 @@ class Anagramer(object):
         mm = seconds / MINSECS
         seconds = seconds % MINSECS
         ss = seconds
-
         time_string = str(mm)+'m ' + str(ss) + 's'
         if hh or dd:
             time_string = str(hh) + 'h ' + time_string
