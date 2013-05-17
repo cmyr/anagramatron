@@ -8,6 +8,7 @@ import cPickle as pickle
 import logging
 
 from twitterhandler import TwitterHandler
+from datahandler import DataHandler
 from twitter.api import TwitterHTTPError
 
 # import comptests
@@ -43,9 +44,8 @@ class Anagramer(object):
     def __init__(self):
         self.twitter_handler = None
         self.stats = AnagramStats()
-        self.data = {}
+        self.data = DataHandler()
         self.hits = []
-        self.black_list = set()
         self.activity_time = 0
 
     def run(self, source=None):
@@ -56,13 +56,14 @@ class Anagramer(object):
             while 1:
                 try:
                     logging.info('entering run loop')
-                    self.load()
+                    # self.load()
                     if self.hits:
                         logging.info('printing %g hits', len(self.hits))
                         self.print_hits()
                     self.twitter_handler = TwitterHandler()
                     self.start_stream()
                 except KeyboardInterrupt:
+                    self.data.finish()
                     self.save()
                     break
                 except TwitterHTTPError as e:
@@ -72,55 +73,55 @@ class Anagramer(object):
             # means we're running from local data
             self.run_with_data(source)
 
-    def load(self):
-        """
-        loads state from a data file, if present
-        """
-        try:
-            open(BLACKLIST_FILE_NAME, 'r')
-        except IOError:
-            print('no data file present. creating new data file.')
-            pickle.dump(self.black_list, open(BLACKLIST_FILE_NAME, 'wb'))
-        try:
-            open(DATA_FILE_NAME, 'r')
-        except IOError:
-            # create a new pickle file if it isn't here
-            pickle.dump(self.data, open(DATA_FILE_NAME, 'wb'))
-        try:
-            open(HITS_FILE_NAME, 'r')
-        except IOError:
-            pickle.dump(self.hits, open(HITS_FILE_NAME, 'wb'))
-        try:
-            # legacy from old storage scheme
-            saved_data = pickle.load(open(DATA_FILE_NAME, 'rb'))
-            if saved_data.get('data'):
-                self.data = saved_data['data']
-                self.hits = saved_data['hits']
-            else:
-                self.data = saved_data
-                self.hits = pickle.load(open(HITS_FILE_NAME, 'rb'))
-            self.black_list = pickle.load(open(BLACKLIST_FILE_NAME, 'rb'))
-            # print("loaded data file with:", len(self.data), "entries.")
-            logging.info('loaded data file with %g entries', len(self.data))
-            # print("loaded blacklist with:", len(self.black_list), "entries.")
-        except (pickle.UnpicklingError, EOFError) as e:
-            print("error loading data \n")
-            print(e)
-            sys.exit(1)
+    # def load(self):
+    #     """
+    #     loads state from a data file, if present
+    #     """
+    #     try:
+    #         open(BLACKLIST_FILE_NAME, 'r')
+    #     except IOError:
+    #         print('no data file present. creating new data file.')
+    #         pickle.dump(self.black_list, open(BLACKLIST_FILE_NAME, 'wb'))
+    #     try:
+    #         open(DATA_FILE_NAME, 'r')
+    #     except IOError:
+    #         # create a new pickle file if it isn't here
+    #         pickle.dump(self.data, open(DATA_FILE_NAME, 'wb'))
+    #     try:
+    #         open(HITS_FILE_NAME, 'r')
+    #     except IOError:
+    #         pickle.dump(self.hits, open(HITS_FILE_NAME, 'wb'))
+    #     try:
+    #         # legacy from old storage scheme
+    #         saved_data = pickle.load(open(DATA_FILE_NAME, 'rb'))
+    #         if saved_data.get('data'):
+    #             self.data = saved_data['data']
+    #             self.hits = saved_data['hits']
+    #         else:
+    #             self.data = saved_data
+    #             self.hits = pickle.load(open(HITS_FILE_NAME, 'rb'))
+    #         self.black_list = pickle.load(open(BLACKLIST_FILE_NAME, 'rb'))
+    #         # print("loaded data file with:", len(self.data), "entries.")
+    #         logging.info('loaded data file with %g entries', len(self.data))
+    #         # print("loaded blacklist with:", len(self.black_list), "entries.")
+    #     except (pickle.UnpicklingError, EOFError) as e:
+    #         print("error loading data \n")
+    #         print(e)
+    #         sys.exit(1)
 
-    def save(self):
-        """
-        saves a list of fetched tweets & possible matches
-        """
-        try:
-            pickle.dump(self.data, open(DATA_FILE_NAME, 'wb'))
-            pickle.dump(self.hits, open(HITS_FILE_NAME, 'wb'))
-            pickle.dump(self.black_list, open(BLACKLIST_FILE_NAME, 'wb'))
-            # shutil.copy(DATA_FILE_NAME, BACKUP_FILE_NAME)
-            print("\nsaved data with:", len(self.data), "entries")
-        except IOError:
-            print("unable to save file, debug me plz")
-            sys.exit(1)
+    # def save(self):
+    #     """
+    #     saves a list of fetched tweets & possible matches
+    #     """
+    #     try:
+    #         pickle.dump(self.data, open(DATA_FILE_NAME, 'wb'))
+    #         pickle.dump(self.hits, open(HITS_FILE_NAME, 'wb'))
+    #         pickle.dump(self.black_list, open(BLACKLIST_FILE_NAME, 'wb'))
+    #         # shutil.copy(DATA_FILE_NAME, BACKUP_FILE_NAME)
+    #         print("\nsaved data with:", len(self.data), "entries")
+    #     except IOError:
+    #         print("unable to save file, debug me plz")
+    #         sys.exit(1)
 
 
     def start_stream(self):
@@ -144,6 +145,9 @@ class Anagramer(object):
         """
         for tweet in data:
             self.process_input(tweet)
+            time.sleep(0.001)
+        self.stats.tweets_seen = self.stats.passed_filter = len(data)
+        self.update_console()
 
     def filter_tweet(self, tweet):
         """
@@ -182,9 +186,7 @@ class Anagramer(object):
 
     def format_tweet(self, tweet):
         """
-        takes a tweet, generates a hash and checks for a double in
-        our data. if a double is found begin analyzing the match.
-        else add the input hash to the data store.
+        makes a dict from the JSON properties we need
         """
 
         tweet_id = long(tweet['id_str'])
@@ -199,12 +201,42 @@ class Anagramer(object):
         # uniqueness checking:
 
     def process_input(self, hashed_tweet):
-        if hashed_tweet['hash'] in self.black_list:
-            pass
-        elif hashed_tweet['hash'] in self.data:
+        if self.data.get(hashed_tweet['hash']):
             self.process_hit(hashed_tweet)
         else:
             self.add_to_data(hashed_tweet)
+
+    def add_to_data(self, hashed_tweet):
+        self.data.add(hashed_tweet)
+
+    def process_hit(self, new_tweet):
+        """
+        called when a duplicate is found, & does difference checking
+        """
+
+        hit_tweet = self.data.pop(new_tweet['hash'])
+        self.stats.possible_hits += 1
+        # logging: 
+        logging.info(
+            'possible hit: \n %s %d \n %s %d',
+            hit_tweet['text'],
+            hit_tweet['id'],
+            new_tweet['text'],
+            new_tweet['id'])
+        if not hit_tweet:
+            print('error retrieving hit')
+            return
+
+        if self.compare(new_tweet['text'], hit_tweet['text']):
+            hit = {
+                "id": int(time.time()*1000),
+                "tweet_one": new_tweet,
+                "tweet_two": hit_tweet,
+            }
+            self.data.add_hit(hit)
+            self.stats.hits += 1
+        else:
+            self.add_to_data(new_tweet)
 
     def compare(self, tweet_one, tweet_two):
         """
@@ -254,8 +286,7 @@ class Anagramer(object):
         else:
             return False
 
-    def add_to_data(self, hashed_tweet):
-        self.data[hashed_tweet['hash']] = hashed_tweet
+    
 
     def make_hash(self, text):
         """
@@ -266,36 +297,7 @@ class Anagramer(object):
         t_hash = ''.join(sorted(t_text, key=str.lower))
         return t_hash
 
-    def process_hit(self, new_tweet):
-        """
-        called when a duplicate is found.
-        does some sanity checking. If that passes sends a msg to
-        the boss for final human evaluation.
-        """
 
-        hit_tweet = self.data.pop(new_tweet['hash'])
-        self.stats.possible_hits += 1
-        # logging: 
-        logging.info(
-            'possible hit: \n %s %d \n %s %d',
-            hit_tweet['text'],
-            hit_tweet['id'],
-            new_tweet['text'],
-            new_tweet['id'])
-        if not hit_tweet:
-            print('error retrieving hit')
-            return
-
-        if self.compare(new_tweet['text'], hit_tweet['text']):
-            hit = {
-                "id": int(time.time()*1000),
-                "tweet_one": new_tweet,
-                "tweet_two": hit_tweet,
-            }
-            self.hits.append(hit)
-            self.stats.hits += 1
-        else:
-            self.add_to_data(new_tweet)
 
 # displaying data while we run:
 
@@ -325,7 +327,8 @@ class Anagramer(object):
         sys.stdout.flush()
 
     def print_hits(self):
-        for hit in self.hits:
+        hits = self.data.get_all_hits()
+        for hit in hits:
             print(hit['tweet_one']['text'], hit['tweet_one']['id'])
             print(hit['tweet_two']['text'], hit['tweet_two']['id'])
 
