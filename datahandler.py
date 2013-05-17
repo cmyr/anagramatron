@@ -33,13 +33,56 @@ class DataHandler(object):
         cursor.execute("INSERT INTO tweets VALUES (?,?,?)", (str(tweet['id']), tweet['hash'], tweet['text']))
         self.data.commit()
 
-    def get(self, tweet):
+    def get(self, tweet_hash):
         cursor = self.data.cursor()
         cursor.execute("SELECT id_str, hash, text FROM tweets WHERE hash=:hash",
-            {"hash":tweet['hash']})
-        return cursor.fetchone()
+            {"hash":tweet_hash})
+        result = cursor.fetchone()
+        if result:
+            return {'id': long(result[0]), 'hash': str(result[1]), 'text': str(result[2])}
+        return None
+
+
+    def add_hit(self, hit):
+        cursor = self.data.cursor()
+        cursor.execute("INSERT INTO hits VALUES (?,?,?,?,?)",
+            (str(hit['id']), str(hit['tweet_one']['id']), str(hit['tweet_two']['id']),
+            hit['tweet_one']['text'], hit['tweet_two']['text'])
+            )
+        self.data.commit()
+
+    def get_hit(self, hit_id):
+        cursor = self.data.cursor()
+        cursor.execute("SELECT hit_id_str one_id, two_id, one_text, two_text FROM hits WHERE hit_id_str=:id",
+            {"id": hit_id})
+        result = cursor.fetchone()
+        return self.hit_from_sql(result)
+
+    def get_all_hits(self):
+        cursor = self.data.cursor()
+        cursor.execute("SELECT * FROM hits")
+        results = cursor.fetchall()
+        hits = []
+        for item in results:
+            hits.append(self.hit_from_sql(item))
+        return hits
+
+    def hit_from_sql(self, item):
+        """
+        convenience method for converting the result of an sql query
+        into a python dictionary compatable with anagramer
+        """
+        return {'id': long(item[0]), 
+            'tweet_one':{'id': long(item[1]), 'text': str(item[3])},
+            'tweet_two':{'id': long(item[2]), 'text': str(item[4])}}
+
+
+
+
+    def remove_hit(self, hit):
+        pass
 
     def finish(self):
-        if con:
-            con.close()
+        if self.data:
+            data.close()
 
