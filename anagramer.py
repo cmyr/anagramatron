@@ -288,7 +288,7 @@ class Anagramer(object):
 
         if self.compare(new_tweet['text'], hit_tweet['text']):
             hit = {
-                "id": int(time.time()*1000)
+                "id": int(time.time()*1000),
                 "tweet_one": new_tweet,
                 "tweet_two": hit_tweet,
             }
