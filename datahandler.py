@@ -105,3 +105,6 @@ class DataHandler(object):
         if self.data:
             data.close()
 
+if __name__ == "__main__":
+    dh = DataHandler()
+    dh.add_from_file('data/data0.54.p')
