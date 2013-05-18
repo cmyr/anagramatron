@@ -2,8 +2,10 @@ from __future__ import print_function
 import sqlite3 as lite
 import os
 import shutil
+import logging
 
-TWEET_DB_PATH = 'data/tweetcache.db'
+# TWEET_DB_PATH = 'data/tweetcache.db'
+TWEET_DB_PATH = 'data/testdb.db'
 
 class DataHandler(object):
     """
@@ -11,12 +13,13 @@ class DataHandler(object):
     """
     def __init__(self):
         self.data = None
-        self.lookup_table = None
+        self.cache = None
         self.setup()
 
     def setup(self):
         """
         creates database if it doesn't already exist
+        populates hash table
         """
         if not os.path.exists(TWEET_DB_PATH):
             self.data = lite.connect(TWEET_DB_PATH)
@@ -32,16 +35,19 @@ class DataHandler(object):
         cursor = self.data.cursor()
         cursor.execute("SELECT hash FROM tweets")
         hashes = cursor.fetchall()
-        print(hashes)
-
+        logging.debug('loaded %d hashes' % (len(hashes)))
         # setup the lookup table;
-        self.lookup_table = lite.connect(:memory:)
-        lookup_cursor = self.lookup_table.cursor()
-        lookup_cursor.execute("CREATE TABLE hashes(hash text)")
-        lookup_cursor.cursor.executemany("INSERT INTO hashes VALUES (?)", hashes)
+        self.cache = lite.connect(':memory:')
+        cache_cursor = self.cache.cursor()
+        cache_cursor.execute("CREATE TABLE hashes(hash text)")
+        cache_cursor.executemany("INSERT INTO hashes VALUES (?)", hashes)
+        self.cache.commit()
+        # setup the cache
+        cache_cursor.execute("CREATE TABLE cache(id_str text, hash text, text text)")
+        self.cache.commit()
 
     def contains(self, tweet_hash):
-        cursor = self.lookup_table.cursor()
+        cursor = self.cache.cursor()
         cursor.execute("SELECT hash FROM hashes WHERE hash=:hash",
             {"hash":tweet_hash})
         if cursor.fetchone():
@@ -50,28 +56,38 @@ class DataHandler(object):
             return False
 
     def add(self, tweet):
-        cursor = self.data.cursor()
-        cursor.execute("INSERT INTO tweets VALUES (?,?,?)", (str(tweet['id']), tweet['hash'], tweet['text']))
-        self.data.commit()
+        cursor = self.cache.cursor()
+        cursor.execute("INSERT INTO cache VALUES (?,?,?)", (str(tweet['id']), tweet['hash'], tweet['text']))
+        cursor.execute("INSERT INTO hashes VALUES (?)", tweet['hash'])
+        self.cache.commit()
 
     def get(self, tweet_hash):
         cursor = self.data.cursor()
         cursor.execute("SELECT id_str, hash, text FROM tweets WHERE hash=:hash",
             {"hash":tweet_hash})
         result = cursor.fetchone()
+        if not result:  
+            # if hit isn't in data, check if it's still in the cache
+            cache_cursor = self.cache.cursor()
+            cache_cursor.execute("SELECT id_str, hash, text FROM cache WHERE hash=:hash",
+            {"hash":tweet_hash})
+            result = cache_cursor.fetchone()
         if result:
             return {'id': long(result[0]), 'hash': str(result[1]), 'text': str(result[2])}
         return None
 
     def pop(self, tweet_hash):
         result = self.get(tweet_hash)
+        # delete any entries in data & cache
         cursor = self.data.cursor()
         cursor.execute("DELETE FROM tweets WHERE hash=:hash",
         {"hash":tweet_hash})
         self.data.commit()
-        if result:
-            return result
-        return None
+        cache_cursor = self.cache.cursor()
+        cursor.execute("DELETE FROM cache WHERE hash=:hash",
+        {"hash":tweet_hash})
+        self.cache.commit()
+        return result
 
     def add_hit(self, hit):
         cursor = self.data.cursor()
@@ -122,7 +138,21 @@ class DataHandler(object):
     def remove_hit(self, hit):
         pass
 
+    def write_cache(self):
+        """
+        write the cache to disk
+        """
+        cache_cursor = self.cache.cursor()
+        cache_cursor.execute("SELECT * FROM cache")
+        results = cache_cursor.fetchall()
+        cursor = self.data.cursor()
+        cursor.executemany("INSERT INTO tweets VALUES (?, ?, ?)", results)
+        self.data.commit()
+        cache_cursor.executemany("DELETE * FROM cache")
+        self.cache.commit()
+
     def finish(self):
+        self.write_cache()
         if self.data:
             self.data.close()
         if self.lookup_table:

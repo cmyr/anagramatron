@@ -11,12 +11,9 @@ from twitterhandler import TwitterHandler
 from datahandler import DataHandler
 from twitter.api import TwitterHTTPError
 
-# import comptests
-
-VERSION_NUMBER = 0.54
-DATA_FILE_NAME = 'data/data' + str(VERSION_NUMBER) + '.p'
-HITS_FILE_NAME = 'data/hits' + str(VERSION_NUMBER) + '.p'
-# BLACKLIST_FILE_NAME = 'data/blacklist.p'
+VERSION_NUMBER = 0.6
+# DATA_FILE_NAME = 'data/data' + str(VERSION_NUMBER) + '.p'
+# HITS_FILE_NAME = 'data/hits' + str(VERSION_NUMBER) + '.p'
 LOG_FILE_NAME = 'data/anagramer.log'
 
 # possible database sources:
@@ -46,7 +43,6 @@ class Anagramer(object):
         self.twitter_handler = None
         self.stats = AnagramStats()
         self.data = DataHandler()
-        # self.hits = []
         self.activity_time = 0
 
     def run(self, source=None):
@@ -57,19 +53,17 @@ class Anagramer(object):
             while 1:
                 try:
                     logging.info('entering run loop')
-                    # self.load()
-                    if self.hits:
-                        logging.info('printing %g hits', len(self.hits))
-                        self.print_hits()
+                    self.print_hits()
                     self.twitter_handler = TwitterHandler()
                     self.start_stream()
                 except KeyboardInterrupt:
-                    self.data.finish()
-                    self.save()
+                    # self.data.finish()
                     break
                 except TwitterHTTPError as e:
                     print('\n', e)
                     # handle errors probably?
+                finally:
+                    self.data.finish()
         else:
             # means we're running from local data
             self.run_with_data(source)
@@ -106,8 +100,6 @@ class Anagramer(object):
         """
         LOW_CHAR_CUTOFF = 10
         MIN_UNIQUE_CHARS = 7
-        # pass_flag = True
-        
         # filter non-english tweets
         if tweet.get('lang') != 'en':
             return False
@@ -152,7 +144,7 @@ class Anagramer(object):
         # uniqueness checking:
 
     def process_input(self, hashed_tweet):
-        if self.data.get(hashed_tweet['hash']):
+        if self.data.contains(hashed_tweet['hash']):
             self.process_hit(hashed_tweet)
         else:
             self.add_to_data(hashed_tweet)
@@ -260,7 +252,6 @@ class Anagramer(object):
         status = (
             'tweets seen: ' + str(self.stats.tweets_seen) +
             " passed filter: " + str(self.stats.passed_filter) +
-            # " ({0:.2f}%)".format(seen_percent)
             " ({0}%)".format(seen_percent) +
             " hits " + str(self.stats.possible_hits) +
             " agrams: " + str(self.stats.hits) +
