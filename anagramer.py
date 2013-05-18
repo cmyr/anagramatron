@@ -55,6 +55,7 @@ class Anagramer(object):
                     logging.info('entering run loop')
                     self.print_hits()
                     self.twitter_handler = TwitterHandler()
+                    print('data file contains %g tweets' % self.data.count()[0])
                     self.start_stream()
                 except KeyboardInterrupt:
                     # self.data.finish()
