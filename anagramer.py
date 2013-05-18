@@ -23,6 +23,7 @@ LOG_FILE_NAME = 'data/anagramer.log'
 # http://yserial.sourceforge.net/
 # http://buzhug.sourceforge.net/
 
+# TODO: PERSISTENT TRACKING / SCORING OF ANAGRAMS THAT WE'VE ACTUALLY SEEN, PLEASE
 
 class AnagramStats(object):
     """
