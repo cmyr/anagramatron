@@ -55,6 +55,7 @@ class Anagramer(object):
                     logging.info('entering run loop')
                     self.print_hits()
                     self.twitter_handler = TwitterHandler()
+                    print('data file contains %g tweets' % self.data.count()[0])
                     self.start_stream()
                 except KeyboardInterrupt:
                     # self.data.finish()
@@ -87,9 +88,10 @@ class Anagramer(object):
         """
         uses a supplied data source instead of a twitter connection (debug)
         """
+        self.stats.start_time = time.time()
         for tweet in data:
             self.process_input(tweet)
-            time.sleep(0.001)
+            # time.sleep(0.0001)
             self.stats.tweets_seen += 1
             self.stats.passed_filter += 1
             self.update_console()
@@ -308,9 +310,9 @@ def main():
     )
     anagramer = Anagramer()
     
-    # testdata = pickle.load(open('testdata/archive0.p', 'r'))
-    # return anagramer.run(source=testdata)
-    return anagramer.run()
+    testdata = pickle.load(open('testdata/tst10000.p', 'r'))
+    return anagramer.run(source=testdata)
+    # return anagramer.run()
 
 if __name__ == "__main__":
     main()

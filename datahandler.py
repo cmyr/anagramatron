@@ -55,10 +55,24 @@ class DataHandler(object):
         else:
             return False
 
+    def count(self):
+        cursor = self.data.cursor()
+        cursor.execute("SELECT Count() FROM tweets")
+        diskcount = cursor.fetchone()
+        cache_cursor = self.cache.cursor()
+        cache_cursor.execute("SELECT Count() FROM cache")
+        cachecount = cache_cursor.fetchone()
+        return (diskcount, cachecount)
+
+    def count_hashes(self):
+        cursor = self.cache.cursor()
+        cursor.execute("SELECT Count() FROM hashes")
+        return cursor.fetchone()
+
     def add(self, tweet):
         cursor = self.cache.cursor()
         cursor.execute("INSERT INTO cache VALUES (?,?,?)", (str(tweet['id']), tweet['hash'], tweet['text']))
-        cursor.execute("INSERT INTO hashes VALUES (?)", tweet['hash'])
+        cursor.execute("INSERT INTO hashes VALUES (?)", (tweet['hash'],))
         self.cache.commit()
 
     def get(self, tweet_hash):
@@ -84,7 +98,7 @@ class DataHandler(object):
         {"hash":tweet_hash})
         self.data.commit()
         cache_cursor = self.cache.cursor()
-        cursor.execute("DELETE FROM cache WHERE hash=:hash",
+        cache_cursor.execute("DELETE FROM cache WHERE hash=:hash",
         {"hash":tweet_hash})
         self.cache.commit()
         return result
@@ -148,15 +162,16 @@ class DataHandler(object):
         cursor = self.data.cursor()
         cursor.executemany("INSERT INTO tweets VALUES (?, ?, ?)", results)
         self.data.commit()
-        cache_cursor.executemany("DELETE * FROM cache")
+        cache_cursor.execute("DELETE FROM cache")
         self.cache.commit()
 
     def finish(self):
         self.write_cache()
+        print('datahandler closing with %g tweets' % (self.count()[0]))
         if self.data:
             self.data.close()
-        if self.lookup_table:
-            self.lookup_table.close()
+        if self.cache:
+            self.cache.close()
 
 if __name__ == "__main__":
     dh = DataHandler()
