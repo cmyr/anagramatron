@@ -16,7 +16,7 @@ from twitter.api import TwitterHTTPError
 VERSION_NUMBER = 0.54
 DATA_FILE_NAME = 'data/data' + str(VERSION_NUMBER) + '.p'
 HITS_FILE_NAME = 'data/hits' + str(VERSION_NUMBER) + '.p'
-BLACKLIST_FILE_NAME = 'data/blacklist.p'
+# BLACKLIST_FILE_NAME = 'data/blacklist.p'
 LOG_FILE_NAME = 'data/anagramer.log'
 
 # possible database sources:
@@ -45,7 +45,7 @@ class Anagramer(object):
         self.twitter_handler = None
         self.stats = AnagramStats()
         self.data = DataHandler()
-        self.hits = []
+        # self.hits = []
         self.activity_time = 0
 
     def run(self, source=None):

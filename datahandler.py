@@ -103,7 +103,7 @@ class DataHandler(object):
 
     def finish(self):
         if self.data:
-            data.close()
+            self.data.close()
 
 if __name__ == "__main__":
     dh = DataHandler()
