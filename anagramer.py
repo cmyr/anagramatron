@@ -73,57 +73,6 @@ class Anagramer(object):
             # means we're running from local data
             self.run_with_data(source)
 
-    # def load(self):
-    #     """
-    #     loads state from a data file, if present
-    #     """
-    #     try:
-    #         open(BLACKLIST_FILE_NAME, 'r')
-    #     except IOError:
-    #         print('no data file present. creating new data file.')
-    #         pickle.dump(self.black_list, open(BLACKLIST_FILE_NAME, 'wb'))
-    #     try:
-    #         open(DATA_FILE_NAME, 'r')
-    #     except IOError:
-    #         # create a new pickle file if it isn't here
-    #         pickle.dump(self.data, open(DATA_FILE_NAME, 'wb'))
-    #     try:
-    #         open(HITS_FILE_NAME, 'r')
-    #     except IOError:
-    #         pickle.dump(self.hits, open(HITS_FILE_NAME, 'wb'))
-    #     try:
-    #         # legacy from old storage scheme
-    #         saved_data = pickle.load(open(DATA_FILE_NAME, 'rb'))
-    #         if saved_data.get('data'):
-    #             self.data = saved_data['data']
-    #             self.hits = saved_data['hits']
-    #         else:
-    #             self.data = saved_data
-    #             self.hits = pickle.load(open(HITS_FILE_NAME, 'rb'))
-    #         self.black_list = pickle.load(open(BLACKLIST_FILE_NAME, 'rb'))
-    #         # print("loaded data file with:", len(self.data), "entries.")
-    #         logging.info('loaded data file with %g entries', len(self.data))
-    #         # print("loaded blacklist with:", len(self.black_list), "entries.")
-    #     except (pickle.UnpicklingError, EOFError) as e:
-    #         print("error loading data \n")
-    #         print(e)
-    #         sys.exit(1)
-
-    # def save(self):
-    #     """
-    #     saves a list of fetched tweets & possible matches
-    #     """
-    #     try:
-    #         pickle.dump(self.data, open(DATA_FILE_NAME, 'wb'))
-    #         pickle.dump(self.hits, open(HITS_FILE_NAME, 'wb'))
-    #         pickle.dump(self.black_list, open(BLACKLIST_FILE_NAME, 'wb'))
-    #         # shutil.copy(DATA_FILE_NAME, BACKUP_FILE_NAME)
-    #         print("\nsaved data with:", len(self.data), "entries")
-    #     except IOError:
-    #         print("unable to save file, debug me plz")
-    #         sys.exit(1)
-
-
     def start_stream(self):
         """
         main run loop
@@ -287,8 +236,6 @@ class Anagramer(object):
         else:
             return False
 
-    
-
     def make_hash(self, text):
         """
         takes a tweet as input. returns a character-unique hash
@@ -298,10 +245,7 @@ class Anagramer(object):
         t_hash = ''.join(sorted(t_text, key=str.lower))
         return t_hash
 
-
-
 # displaying data while we run:
-
     def update_console(self):
         """
         prints various bits of status information to the console.
@@ -311,9 +255,6 @@ class Anagramer(object):
         seen_percent = int(100*(float(
             self.stats.passed_filter)/self.stats.tweets_seen))
         runtime = int(time.time()-self.stats.start_time)
-        # save every ten minutes
-        if not runtime % 1800:
-            self.save()
 
         status = (
             'tweets seen: ' + str(self.stats.tweets_seen) +
@@ -375,9 +316,9 @@ def main():
     )
     anagramer = Anagramer()
     
-    # testdata = pickle.load(open('testdata/tst10000.p', 'r'))
+    # testdata = pickle.load(open('testdata/archive0.p', 'r'))
     # return anagramer.run(source=testdata)
-
+    return anagramer.run()
 
 if __name__ == "__main__":
     main()

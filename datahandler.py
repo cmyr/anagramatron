@@ -86,6 +86,15 @@ class DataHandler(object):
             'tweet_one':{'id': long(item[1]), 'text': str(item[3])},
             'tweet_two':{'id': long(item[2]), 'text': str(item[4])}}
 
+    def add_from_file(self, filename):
+        import cPickle as pickle
+        data = pickle.load(open(filename, 'r'))
+        print("loaded data of type:", type(data), "size: ", len(data))
+        dlist = [data[d] for d in data]
+        tlist = [(str(d['id']), d['hash'], d['text']) for d in dlist]
+        cursor = self.data.cursor()
+        cursor.executemany("INSERT INTO tweets VALUES (?, ?, ?)", tlist)
+        self.data.commit()
 
 
 
