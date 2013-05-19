@@ -61,23 +61,12 @@ class DataHandler(object):
         return (diskcount, cachecount)
 
     def count_hashes(self):
-<<<<<<< HEAD
         return len(self.hashes)
-=======
-        cursor = self.cache.cursor()
-        cursor.execute("SELECT Count() FROM hashes")
-        return cursor.fetchone()
->>>>>>> 568729697aa2ca4b221fb2a6701a1c00a372b3e6
 
     def add(self, tweet):
         cursor = self.cache.cursor()
         cursor.execute("INSERT INTO cache VALUES (?,?,?)", (str(tweet['id']), tweet['hash'], tweet['text']))
-<<<<<<< HEAD
-        # cursor.execute("INSERT INTO hashes VALUES (?)", (tweet['hash'],))
         self.hashes.add(tweet['hash'])
-=======
-        cursor.execute("INSERT INTO hashes VALUES (?)", (tweet['hash'],))
->>>>>>> 568729697aa2ca4b221fb2a6701a1c00a372b3e6
         self.cache.commit()
 
     def get(self, tweet_hash):
