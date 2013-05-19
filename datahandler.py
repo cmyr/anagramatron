@@ -14,6 +14,7 @@ class DataHandler(object):
     def __init__(self):
         self.data = None
         self.cache = None
+        self.hashes = set()
         self.setup()
 
     def setup(self):
@@ -39,18 +40,13 @@ class DataHandler(object):
         # setup the lookup table;
         self.cache = lite.connect(':memory:')
         cache_cursor = self.cache.cursor()
-        cache_cursor.execute("CREATE TABLE hashes(hash text)")
-        cache_cursor.executemany("INSERT INTO hashes VALUES (?)", hashes)
-        self.cache.commit()
+        self.hashes = set(hashes)
         # setup the cache
         cache_cursor.execute("CREATE TABLE cache(id_str text, hash text, text text)")
         self.cache.commit()
 
     def contains(self, tweet_hash):
-        cursor = self.cache.cursor()
-        cursor.execute("SELECT hash FROM hashes WHERE hash=:hash",
-            {"hash":tweet_hash})
-        if cursor.fetchone():
+        if tweet_hash in self.hashes:
             return True
         else:
             return False
@@ -65,14 +61,13 @@ class DataHandler(object):
         return (diskcount, cachecount)
 
     def count_hashes(self):
-        cursor = self.cache.cursor()
-        cursor.execute("SELECT Count() FROM hashes")
-        return cursor.fetchone()
+        return len(self.hashes)
 
     def add(self, tweet):
         cursor = self.cache.cursor()
         cursor.execute("INSERT INTO cache VALUES (?,?,?)", (str(tweet['id']), tweet['hash'], tweet['text']))
-        cursor.execute("INSERT INTO hashes VALUES (?)", (tweet['hash'],))
+        # cursor.execute("INSERT INTO hashes VALUES (?)", (tweet['hash'],))
+        self.hashes.add(tweet['hash'])
         self.cache.commit()
 
     def get(self, tweet_hash):
@@ -101,6 +96,8 @@ class DataHandler(object):
         cache_cursor.execute("DELETE FROM cache WHERE hash=:hash",
         {"hash":tweet_hash})
         self.cache.commit()
+        # delete from hashes
+        self.hashes.remove(tweet_hash)
         return result
 
     def add_hit(self, hit):

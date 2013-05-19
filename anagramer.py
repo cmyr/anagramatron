@@ -12,13 +12,7 @@ from datahandler import DataHandler
 from twitter.api import TwitterHTTPError
 
 VERSION_NUMBER = 0.6
-# DATA_FILE_NAME = 'data/data' + str(VERSION_NUMBER) + '.p'
-# HITS_FILE_NAME = 'data/hits' + str(VERSION_NUMBER) + '.p'
 LOG_FILE_NAME = 'data/anagramer.log'
-
-# possible database sources:
-# http://yserial.sourceforge.net/
-# http://buzhug.sourceforge.net/
 
 # TODO: PERSISTENT TRACKING / SCORING OF ANAGRAMS THAT WE'VE ACTUALLY SEEN, PLEASE
 
@@ -58,7 +52,6 @@ class Anagramer(object):
                     print('data file contains %g tweets' % self.data.count()[0])
                     self.start_stream()
                 except KeyboardInterrupt:
-                    # self.data.finish()
                     break
                 except TwitterHTTPError as e:
                     print('\n', e)
@@ -95,6 +88,7 @@ class Anagramer(object):
             self.stats.tweets_seen += 1
             self.stats.passed_filter += 1
             self.update_console()
+        logging.debug('hits %g matches %g' % (self.stats.possible_hits, self.stats.hits))
 
     def filter_tweet(self, tweet):
         """
