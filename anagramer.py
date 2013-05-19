@@ -304,9 +304,9 @@ def main():
     )
     anagramer = Anagramer()
     
-    testdata = pickle.load(open('testdata/tst10000.p', 'r'))
-    return anagramer.run(source=testdata)
-    # return anagramer.run()
+    # testdata = pickle.load(open('testdata/tst10000.p', 'r'))
+    # return anagramer.run(source=testdata)
+    return anagramer.run()
 
 if __name__ == "__main__":
     main()

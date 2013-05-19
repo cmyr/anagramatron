@@ -4,8 +4,8 @@ import os
 import shutil
 import logging
 
-# TWEET_DB_PATH = 'data/tweetcache.db'
-TWEET_DB_PATH = 'data/testdb.db'
+TWEET_DB_PATH = 'data/tweetcache.db'
+# TWEET_DB_PATH = 'data/testdb.db'
 
 class DataHandler(object):
     """
