@@ -153,7 +153,7 @@ class Anagramer(object):
         called when a duplicate is found, & does difference checking
         """
 
-        hit_tweet = self.data.pop(new_tweet['hash'])
+        hit_tweet = self.data.get(new_tweet['hash'])
         self.stats.possible_hits += 1
         # logging: 
         logging.info(
@@ -172,10 +172,12 @@ class Anagramer(object):
                 "tweet_one": new_tweet,
                 "tweet_two": hit_tweet,
             }
+            self.data.remove(hit_tweet['hash'])
             self.data.add_hit(hit)
             self.stats.hits += 1
         else:
-            self.add_to_data(new_tweet)
+            # self.add_to_data(new_tweet)
+            pass
 
     def compare(self, tweet_one, tweet_two):
         """

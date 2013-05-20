@@ -86,6 +86,10 @@ class DataHandler(object):
 
     def pop(self, tweet_hash):
         result = self.get(tweet_hash)
+        self.remove(tweet_hash)
+        return result
+
+    def remove(self, tweet_hash):
         # delete any entries in data & cache
         cursor = self.data.cursor()
         cursor.execute("DELETE FROM tweets WHERE hash=:hash",
@@ -97,7 +101,6 @@ class DataHandler(object):
         self.cache.commit()
         # delete from hashes
         self.hashes.remove(tweet_hash)
-        return result
 
     def add_hit(self, hit):
         cursor = self.data.cursor()
