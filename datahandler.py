@@ -16,14 +16,15 @@ class DataHandler(object):
         self.data = None
         self.cache = None
         self.hashes = set()
-        self.setup(just_the_hits=just_the_hits)
+        self.just_the_hits = just_the_hits
+        self.setup()
 
-    def setup(self, just_the_hits=False):
+    def setup(self):
         """
         creates database if it doesn't already exist
         populates hash table
         """
-        if just_the_hits:
+        if self.just_the_hits:
             # don't bother initing the cache etc
             self.data = lite.connect(TWEET_DB_PATH)
             return
@@ -177,8 +178,9 @@ class DataHandler(object):
         self.cache.commit()
 
     def finish(self):
-        self.write_cache()
-        print('datahandler closing with %g tweets' % (self.count()[0]))
+        if not self.just_the_hits:
+            self.write_cache()
+            print('datahandler closing with %g tweets' % (self.count()[0]))
         if self.data:
             self.data.close()
         if self.cache:
