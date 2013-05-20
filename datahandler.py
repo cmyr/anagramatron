@@ -1,12 +1,12 @@
 from __future__ import print_function
 import sqlite3 as lite
 import os
-import shutil
 import logging
 
 TWEET_DB_PATH = 'data/tweetcache.db'
 # TWEET_DB_PATH = 'data/testdb.db'
 # TWEET_DB_PATH = 'data/blankdb.db'
+
 
 class DataHandler(object):
     """
@@ -72,15 +72,10 @@ class DataHandler(object):
         self.cache.commit()
 
     def get(self, tweet_hash):
-        # cursor = self.data.cursor()
-        # cursor.execute("SELECT id_str, hash, text FROM tweets WHERE hash=:hash",
-        #     {"hash":tweet_hash})
-        # result = cursor.fetchone()
-        # if not result:  
-            # if hit isn't in data, check if it's still in the cache
+        # if hit isn't in data, check if it's still in the cache
         cache_cursor = self.cache.cursor()
         cache_cursor.execute("SELECT id_str, hash, text FROM cache WHERE hash=:hash",
-        {"hash":tweet_hash})
+        {"hash": tweet_hash})
         result = cache_cursor.fetchone()
         if result:
             return {'id': long(result[0]), 'hash': str(result[1]), 'text': str(result[2])}
@@ -93,13 +88,9 @@ class DataHandler(object):
 
     def remove(self, tweet_hash):
         # delete any entries in data & cache
-        # cursor = self.data.cursor()
-        # cursor.execute("DELETE FROM tweets WHERE hash=:hash",
-        # {"hash":tweet_hash})
-        # self.data.commit()
         cache_cursor = self.cache.cursor()
         cache_cursor.execute("DELETE FROM cache WHERE hash=:hash",
-        {"hash":tweet_hash})
+            {"hash": tweet_hash})
         self.cache.commit()
         # delete from hashes
         self.hashes.remove(tweet_hash)
@@ -133,9 +124,9 @@ class DataHandler(object):
         convenience method for converting the result of an sql query
         into a python dictionary compatable with anagramer
         """
-        return {'id': long(item[0]), 
-            'tweet_one':{'id': long(item[1]), 'text': str(item[3])},
-            'tweet_two':{'id': long(item[2]), 'text': str(item[4])}}
+        return {'id': long(item[0]),
+            'tweet_one': {'id': long(item[1]), 'text': str(item[3])},
+            'tweet_two': {'id': long(item[2]), 'text': str(item[4])}}
 
     def add_from_file(self, filename):
         """
@@ -187,4 +178,3 @@ class DataHandler(object):
 
 if __name__ == "__main__":
     dh = DataHandler()
-    dh.add_from_file('testdata/tst100.p')

@@ -3,8 +3,6 @@ from __future__ import print_function
 import sys
 import re
 import time
-import string
-import cPickle as pickle
 import logging
 
 from twitterhandler import TwitterHandler
@@ -15,6 +13,7 @@ VERSION_NUMBER = 0.6
 LOG_FILE_NAME = 'data/anagramer.log'
 
 # TODO: PERSISTENT TRACKING / SCORING OF ANAGRAMS THAT WE'VE ACTUALLY SEEN, PLEASE
+
 
 class AnagramStats(object):
     """
@@ -28,9 +27,10 @@ class AnagramStats(object):
         self.hits = 0
         self.start_time = 0
 
+
 class Anagramer(object):
     """
-    Anagramer hunts for anagrams on twitter. 
+    Anagramer hunts for anagrams on twitter.
     """
 
     def __init__(self):
@@ -155,7 +155,7 @@ class Anagramer(object):
 
         hit_tweet = self.data.get(new_tweet['hash'])
         self.stats.possible_hits += 1
-        # logging: 
+        # logging:
         logging.info(
             'possible hit: \n %s %d \n %s %d',
             hit_tweet['text'],
@@ -297,15 +297,16 @@ class Anagramer(object):
             time_string = str(dd) + 'd ' + time_string
         return time_string
 
+
 def main():
     # set up logging:
     logging.basicConfig(
-    filename=LOG_FILE_NAME,
-    format='%(levelname)s:%(message)s',
-    level=logging.DEBUG
+        filename=LOG_FILE_NAME,
+        format='%(levelname)s:%(message)s',
+        level=logging.DEBUG
     )
     anagramer = Anagramer()
-    
+
     # testdata = pickle.load(open('testdata/tst10000.p', 'r'))
     # return anagramer.run(source=testdata)
     return anagramer.run()
