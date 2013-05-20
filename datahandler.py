@@ -12,17 +12,22 @@ class DataHandler(object):
     """
     handles storage and retrieval of tweets
     """
-    def __init__(self):
+    def __init__(self, just_the_hits=False):
         self.data = None
         self.cache = None
         self.hashes = set()
-        self.setup()
+        self.setup(just_the_hits=just_the_hits)
 
-    def setup(self):
+    def setup(self, just_the_hits=False):
         """
         creates database if it doesn't already exist
         populates hash table
         """
+        if just_the_hits:
+            # don't bother initing the cache etc
+            self.data = lite.connect(TWEET_DB_PATH)
+            return
+
         if not os.path.exists(TWEET_DB_PATH):
             self.data = lite.connect(TWEET_DB_PATH)
             cursor = self.data.cursor()
@@ -106,9 +111,15 @@ class DataHandler(object):
     def get_hit(self, hit_id):
         cursor = self.data.cursor()
         cursor.execute("SELECT hit_id_str one_id, two_id, one_text, two_text FROM hits WHERE hit_id_str=:id",
-            {"id": hit_id})
+            {"id": str(hit_id)})
         result = cursor.fetchone()
         return self.hit_from_sql(result)
+
+    def remove_hit(self, hit_id):
+        cursor = self.data.cursor()
+        cursor.execute("DELETE FROM hits WHERE hit_id_str=:id",
+            {"id": str(hit_id)})
+        self.data.commit()
 
     def get_all_hits(self):
         cursor = self.data.cursor()
@@ -140,9 +151,6 @@ class DataHandler(object):
         cursor = self.data.cursor()
         cursor.executemany("INSERT INTO tweets VALUES (?, ?, ?)", tlist)
         self.data.commit()
-
-    def remove_hit(self, hit):
-        pass
 
     def load_cache(self):
         cursor = self.data.cursor()
