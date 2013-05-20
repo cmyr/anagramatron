@@ -5,9 +5,9 @@ import httplib
 from time import sleep
 import logging
 
-from .twitter.twitter.oauth import OAuth
-from .twitter.twitter.stream import TwitterStream
-from .twitter.twitter.api import Twitter, TwitterError
+from twitter.oauth import OAuth
+from twitter.stream import TwitterStream
+from twitter.api import Twitter, TwitterError
 
 # my twitter OAuth key:
 from twittercreds import (CONSUMER_KEY, CONSUMER_SECRET,
@@ -41,7 +41,7 @@ class TwitterHandler(object):
         """returns a stream iterator."""
         # implementation may change
 
-        return self.stream.statuses.sample()
+        return self.stream.statuses.sample(language='en', stall_warnings='true')
 
     def fetch_tweet(self, tweet_id):
         """
