@@ -69,7 +69,9 @@ class Anagramer(object):
         self.stats.start_time = time.time()
         stream_iterator = self.twitter_handler.stream_iter()
         for tweet in stream_iterator:
-            self.activity_time = time.time()
+            if tweet.get('warning'):
+                print('\n', tweet)
+                logging.warning(tweet)
             if tweet.get('text'):
                 self.stats.tweets_seen += 1
                 if self.filter_tweet(tweet):
