@@ -41,3 +41,6 @@ tests/*
 testdata/*
 .DS_Store
 twittercreds.py
+twitter/
+*.bak
+notes
