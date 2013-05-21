@@ -2,6 +2,9 @@ from __future__ import print_function
 import sqlite3 as lite
 import os
 import logging
+import time
+
+import utils
 
 TWEET_DB_PATH = 'data/tweetcache.db'
 # TWEET_DB_PATH = 'data/testdb.db'
@@ -49,6 +52,7 @@ class DataHandler(object):
         self.load_cache()
         # setup the hashtable
         print('extracting hashes')
+        cache_cursor = self.cache.cursor()
         cache_cursor.execute("SELECT hash FROM cache")
         hashes = cache_cursor.fetchall()
         self.hashes = set([str(h) for (h,) in hashes])
@@ -178,6 +182,7 @@ class DataHandler(object):
     def load_cache(self):
         # load data from file into memory
         print('loading cache')
+        load_time = time.time()
         self.cache = lite.connect(':memory:')
         cache_cursor = self.cache.cursor()
         cache_cursor.execute("CREATE TABLE cache(id_str text, hash text, text text)")
@@ -188,11 +193,15 @@ class DataHandler(object):
         cache_cursor = self.cache.cursor()
         cache_cursor.executemany("INSERT INTO cache VALUES (?, ?, ?)", results)
         self.cache.commit()
-        print('loaded %g tweets to cache' % (len(results),))
+        load_time = time.time() - load_time
+        print('loaded %i tweets to cache in %s' %
+              (len(results), utils.format_seconds(load_time)))
         # note the highest id we've loaded so we don't save superfluously
+        print('finding last added id')
         cache_cursor.execute("SELECT id_str FROM cache")
-        self.high_id_on_disk = max(cache_cursor.fetchall())
-
+        idstrs = cache_cursor.fetchall()
+        self.high_id_on_disk = max(idstrs)
+        print('last added id: %s' % self.high_id_on_disk)
 
     def write_cache(self):
         """
@@ -212,7 +221,7 @@ class DataHandler(object):
     def finish(self):
         if not self.just_the_hits:
             self.write_cache()
-            print('datahandler closing with %g tweets' % (self.count()[0]))
+            print('datahandler closing with %i tweets' % (self.count()[0]))
         if self.data:
             self.data.close()
         if self.cache:
