@@ -23,6 +23,7 @@ class DataHandler(object):
         self.hashes = set()
         self.just_the_hits = just_the_hits
         self.setup()
+        self.high_id_on_disk = None
 
     def setup(self):
         """
@@ -44,19 +45,14 @@ class DataHandler(object):
             self.data.commit()
         else:
             self.data = lite.connect(TWEET_DB_PATH)
-        # extract hashes for adding to the lookup table
-        cursor = self.data.cursor()
-        cursor.execute("SELECT hash FROM tweets")
-        hashes = cursor.fetchall()
-        logging.debug('loaded %d hashes' % (len(hashes)))
-        # setup the lookup table;
-        self.cache = lite.connect(':memory:')
-        cache_cursor = self.cache.cursor()
-        self.hashes = set([str(h) for (h,) in hashes])
         # setup the cache
-        cache_cursor.execute("CREATE TABLE cache(id_str text, hash text, text text)")
-        self.cache.commit()
         self.load_cache()
+        # setup the hashtable
+        print('extracting hashes')
+        cache_cursor.execute("SELECT hash FROM cache")
+        hashes = cache_cursor.fetchall()
+        self.hashes = set([str(h) for (h,) in hashes])
+        print('loaded %d hashes' % (len(hashes)))
 
     def contains(self, tweet_hash):
         if tweet_hash in self.hashes:
@@ -180,13 +176,23 @@ class DataHandler(object):
         self.data.commit()
 
     def load_cache(self):
+        # load data from file into memory
+        print('loading cache')
+        self.cache = lite.connect(':memory:')
+        cache_cursor = self.cache.cursor()
+        cache_cursor.execute("CREATE TABLE cache(id_str text, hash text, text text)")
+        self.cache.commit()
         cursor = self.data.cursor()
         cursor.execute("SELECT * FROM tweets")
         results = cursor.fetchall()
         cache_cursor = self.cache.cursor()
         cache_cursor.executemany("INSERT INTO cache VALUES (?, ?, ?)", results)
         self.cache.commit()
-        logging.debug('loaded %g tweets to cache' % (self.count()[1]))
+        print('loaded %g tweets to cache' % (len(results),))
+        # note the highest id we've loaded so we don't save superfluously
+        cache_cursor.execute("SELECT id_str FROM cache")
+        self.high_id_on_disk = max(cache_cursor.fetchall())
+
 
     def write_cache(self):
         """
