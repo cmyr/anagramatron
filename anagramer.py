@@ -6,7 +6,7 @@ import time
 import logging
 
 from twitterhandler import TwitterHandler
-from datahandler import DataHandler
+from datahandler import DataHandler, HIT_STATUS_REVIEW
 from twitter.api import TwitterHTTPError
 
 VERSION_NUMBER = 0.6
@@ -171,6 +171,7 @@ class Anagramer(object):
         if self.compare(new_tweet['text'], hit_tweet['text']):
             hit = {
                 "id": int(time.time()*1000),
+                "status": HIT_STATUS_REVIEW,
                 "tweet_one": new_tweet,
                 "tweet_two": hit_tweet,
             }

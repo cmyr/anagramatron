@@ -7,6 +7,11 @@ TWEET_DB_PATH = 'data/tweetcache.db'
 # TWEET_DB_PATH = 'data/testdb.db'
 # TWEET_DB_PATH = 'data/blankdb.db'
 
+HIT_STATUS_REVIEW = 'review'
+HIT_STATUS_REJECTED = 'rejected'
+HIT_STATUS_POSTED = 'posted'
+HIT_STATUS_APPROVED = 'approved'
+HIT_STATUS_MISC = 'misc'
 
 class DataHandler(object):
     """
@@ -35,7 +40,7 @@ class DataHandler(object):
             print('db not found, creating')
             cursor.execute("CREATE TABLE tweets(id_str text, hash text, text text)")
             cursor.execute("""CREATE TABLE hits
-                (hit_id_str text, one_id text, two_id text, one_text text, two_text text)""")
+                (hit_id_str text, hit_status text, one_id text, two_id text, one_text text, two_text text)""")
             self.data.commit()
         else:
             self.data = lite.connect(TWEET_DB_PATH)
@@ -81,7 +86,7 @@ class DataHandler(object):
         # if hit isn't in data, check if it's still in the cache
         cache_cursor = self.cache.cursor()
         cache_cursor.execute("SELECT id_str, hash, text FROM cache WHERE hash=:hash",
-        {"hash": tweet_hash})
+                             {"hash": tweet_hash})
         result = cache_cursor.fetchone()
         if result:
             return {'id': long(result[0]), 'hash': str(result[1]), 'text': str(result[2])}
@@ -96,31 +101,48 @@ class DataHandler(object):
         # delete any entries in data & cache
         cache_cursor = self.cache.cursor()
         cache_cursor.execute("DELETE FROM cache WHERE hash=:hash",
-            {"hash": tweet_hash})
+                             {"hash": tweet_hash})
         self.cache.commit()
         # delete from hashes
         self.hashes.remove(tweet_hash)
 
     def add_hit(self, hit):
         cursor = self.data.cursor()
-        cursor.execute("INSERT INTO hits VALUES (?,?,?,?,?)",
-            (str(hit['id']), str(hit['tweet_one']['id']), str(hit['tweet_two']['id']),
-            hit['tweet_one']['text'], hit['tweet_two']['text'])
-            )
+        cursor.execute("INSERT INTO hits VALUES (?,?,?,?,?,?)",
+                      (str(hit['id']), hit['status'],
+                       str(hit['tweet_one']['id']),
+                       str(hit['tweet_two']['id']),
+                       hit['tweet_one']['text'],
+                       hit['tweet_two']['text'])
+                       )
         self.data.commit()
 
     def get_hit(self, hit_id):
         cursor = self.data.cursor()
-        cursor.execute("SELECT hit_id_str one_id, two_id, one_text, two_text FROM hits WHERE hit_id_str=:id",
-            {"id": str(hit_id)})
+        cursor.execute("SELECT * FROM hits WHERE hit_id_str=:id",
+                       {"id": str(hit_id)})
         result = cursor.fetchone()
         return self.hit_from_sql(result)
 
     def remove_hit(self, hit_id):
         cursor = self.data.cursor()
         cursor.execute("DELETE FROM hits WHERE hit_id_str=:id",
-            {"id": str(hit_id)})
+                       {"id": str(hit_id)})
         self.data.commit()
+
+    def set_hit_status(self, hit_id, status):
+        if status not in [HIT_STATUS_REVIEW, HIT_STATUS_MISC,
+                          HIT_STATUS_APPROVED, HIT_STATUS_POSTED,
+                          HIT_STATUS_REJECTED]:
+                          return False
+        # get the hit, delete the hit, add it again with new status.
+        hit = self.get_hit(hit_id)
+        hit['status'] = status
+        self.remove_hit(hit_id)
+        self.add_hit(hit)
+
+
+
 
     def get_all_hits(self):
         cursor = self.data.cursor()
@@ -137,8 +159,10 @@ class DataHandler(object):
         into a python dictionary compatable with anagramer
         """
         return {'id': long(item[0]),
-            'tweet_one': {'id': long(item[1]), 'text': str(item[3])},
-            'tweet_two': {'id': long(item[2]), 'text': str(item[4])}}
+                'status': str(item[1]),
+                'tweet_one': {'id': long(item[2]), 'text': str(item[4])},
+                'tweet_two': {'id': long(item[3]), 'text': str(item[5])}
+                }
 
     def add_from_file(self, filename):
         """
