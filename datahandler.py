@@ -166,18 +166,18 @@ class DataHandler(object):
                 'tweet_two': {'id': long(item[3]), 'text': str(item[5])}
                 }
 
-    def add_from_file(self, filename):
-        """
-        utility function for loading archived tweets
-        """
-        import cPickle as pickle
-        data = pickle.load(open(filename, 'r'))
-        print("loaded data of type:", type(data), "size: ", len(data))
-        dlist = [data[d] for d in data]
-        tlist = [(str(d['id']), d['hash'], d['text']) for d in dlist]
-        cursor = self.data.cursor()
-        cursor.executemany("INSERT INTO tweets VALUES (?, ?, ?)", tlist)
-        self.data.commit()
+    # def add_from_file(self, filename):
+    #     """
+    #     utility function for loading archived tweets
+    #     """
+    #     import cPickle as pickle
+    #     data = pickle.load(open(filename, 'r'))
+    #     print("loaded data of type:", type(data), "size: ", len(data))
+    #     dlist = [data[d] for d in data]
+    #     tlist = [(str(d['id']), d['hash'], d['text']) for d in dlist]
+    #     cursor = self.data.cursor()
+    #     cursor.executemany("INSERT INTO tweets VALUES (?, ?, ?)", tlist)
+    #     self.data.commit()
 
     def load_cache(self):
         # load data from file into memory

@@ -309,9 +309,6 @@ def main():
         level=logging.DEBUG
     )
     anagramer = Anagramer()
-
-    # testdata = pickle.load(open('testdata/tst10000.p', 'r'))
-    # return anagramer.run(source=testdata)
     return anagramer.run()
 
 if __name__ == "__main__":

@@ -1,8 +1,6 @@
 from __future__ import print_function
 
-import sys
 import httplib
-from time import sleep
 import logging
 
 from twitter.oauth import OAuth

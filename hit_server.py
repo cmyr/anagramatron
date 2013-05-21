@@ -13,6 +13,7 @@ def hit_for_id(hit_id):
 
 @route('/hits')
 def get_hits():
+    HITS = data.get_all_hits()
     return {'hits': HITS}
 
 
@@ -26,7 +27,9 @@ def retweet():
 
 @route('/del')
 def delete():
-    pass
+    hit_id = int(request.query.id)
+    data.remove_hit(hit_id)
+    return "success"
 
 
 run(host='localhost', port=8080, debug=True)
