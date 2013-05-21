@@ -159,7 +159,7 @@ class DataHandler(object):
             return {'id': long(item[0]),
                     'tweet_one': {'id': long(item[1]), 'text': str(item[3])},
                     'tweet_two': {'id': long(item[2]), 'text': str(item[4])}
-                    }    
+                    }
         return {'id': long(item[0]),
                 'status': str(item[1]),
                 'tweet_one': {'id': long(item[2]), 'text': str(item[4])},
@@ -197,11 +197,11 @@ class DataHandler(object):
         print('loaded %i tweets to cache in %s' %
               (len(results), utils.format_seconds(load_time)))
         # note the highest id we've loaded so we don't save superfluously
-        print('finding last added id')
-        cache_cursor.execute("SELECT id_str FROM cache")
-        idstrs = cache_cursor.fetchall()
-        self.high_id_on_disk = max(idstrs)
-        print('last added id: %s' % self.high_id_on_disk)
+        # print('finding last added id')
+        # cache_cursor.execute("SELECT id_str FROM cache")
+        # idstrs = cache_cursor.fetchall()
+        # self.high_id_on_disk = max(idstrs)
+        # print('last added id: %s' % self.high_id_on_disk)
 
     def write_cache(self):
         """
@@ -240,4 +240,6 @@ class DataHandler(object):
             self.add_hit(hit)
 
 if __name__ == "__main__":
-    dh = DataHandler()
+    dh = DataHandler(just_the_hits=True)
+    dh.add_status_field_to_hits()
+    dh.finish()
