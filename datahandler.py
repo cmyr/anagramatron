@@ -141,23 +141,25 @@ class DataHandler(object):
         self.remove_hit(hit_id)
         self.add_hit(hit)
 
-
-
-
-    def get_all_hits(self):
+    def get_all_hits(self, old_format=False):
         cursor = self.data.cursor()
         cursor.execute("SELECT * FROM hits")
         results = cursor.fetchall()
         hits = []
         for item in results:
-            hits.append(self.hit_from_sql(item))
+            hits.append(self.hit_from_sql(item, old_format))
         return hits
 
-    def hit_from_sql(self, item):
+    def hit_from_sql(self, item, old_format=False):
         """
         convenience method for converting the result of an sql query
         into a python dictionary compatable with anagramer
         """
+        if old_format:
+            return {'id': long(item[0]),
+                    'tweet_one': {'id': long(item[1]), 'text': str(item[3])},
+                    'tweet_two': {'id': long(item[2]), 'text': str(item[4])}
+                    }    
         return {'id': long(item[0]),
                 'status': str(item[1]),
                 'tweet_one': {'id': long(item[2]), 'text': str(item[4])},
@@ -209,6 +211,18 @@ class DataHandler(object):
             self.data.close()
         if self.cache:
             self.cache.close()
+
+    # utility functions:
+    def add_status_field_to_hits(self):
+        hits = self.get_all_hits(old_format=True)
+        cursor = self.data.cursor()
+        cursor.execute("DROP TABLE IF EXISTS hits")
+        cursor.execute("""CREATE TABLE hits
+                (hit_id_str text, hit_status text, one_id text, two_id text, one_text text, two_text text)""")
+        for hit in hits:
+            hit['status'] = HIT_STATUS_REVIEW
+            self.remove_hit(hit['id'])
+            self.add_hit(hit)
 
 if __name__ == "__main__":
     dh = DataHandler()
