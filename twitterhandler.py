@@ -11,7 +11,7 @@ from twitter.api import Twitter, TwitterError
 
 # my twitter OAuth key:
 from twittercreds import (CONSUMER_KEY, CONSUMER_SECRET,
-                          ACCESS_KEY, ACCESS_SECRET, BOSS_USERNAME)
+                          ACCESS_KEY, ACCESS_SECRET)
 
 
 class TwitterHandler(object):
@@ -87,6 +87,14 @@ class TwitterHandler(object):
             return True
         else:
             return False
+
+    def url_for_tweet(self, tweet_id):
+        tweet = self.fetch_tweet(tweet_id)
+        username = tweet.get('user').get('screen_name')
+        if username:
+            return('https://www.twitter.com/%s/status/%s'
+                   % (username, str(tweet_id)))
+        return False
 
     def send_msg(self, msg):
         """
