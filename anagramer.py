@@ -28,6 +28,53 @@ class AnagramStats(object):
         self.start_time = 0
 
 
+BASELINE_SKIP_TARGET = 200
+
+
+class RateWarning(object):
+    """
+    handles rate warnings sent from twitter when we're falling behind.
+    controls the falling_behind flag on Anagramer & stashes skipped tweets
+    """
+
+    def __init__(self, delegate):
+        self.delegate = delegate
+        self.warning = None
+        self.skip_target = BASELINE_SKIP_TARGET
+        self.skip_count = 0
+        self.skipped_tweets = []
+
+    def warning(self, warning):
+        """
+        receive and handle stall warnings
+        """
+        if self.warning_active:
+            self.skip_target *= 2
+        else:
+            self.skip_target = BASELINE_SKIP_TARGET
+        self.warning = {'time': time.time(), 'percent_full': warning.get('percent_full')}
+        self.skip_count = 0
+        self.delegate.falling_behind = True
+
+    def warning_active(self):
+        """
+        checks to see if we have an active warning
+        """
+        if not self.warning:
+            return False
+        time_since_warning = time.time() - self.warning.get('time')
+        if time_since_warning < (6*60):  # warnings sent every five minutes
+            # if we get two warnings in five minutes we need to catch up more
+                return True
+        return False
+
+    def skipped(self, tweet):
+        self.skipped_tweets.append(tweet)
+        self.skip_count += 1
+        if self.skip_count == self.skip_target:
+            self.delegate.falling_behind = False
+
+
 class Anagramer(object):
     """
     Anagramer hunts for anagrams on twitter.
