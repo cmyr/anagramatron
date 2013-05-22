@@ -6,6 +6,12 @@ twitter_handler = twitterhandler.TwitterHandler()
 HITS = data.get_all_hits()
 
 
+HIT_STATUS_REVIEW = 'review'
+HIT_STATUS_REJECTED = 'rejected'
+HIT_STATUS_POSTED = 'posted'
+HIT_STATUS_APPROVED = 'approved'
+HIT_STATUS_MISC = 'misc'
+
 def review_hits():
     hit_count = len(HITS)
     print('recorded ' + str(hit_count) + ' hits in need of review')
@@ -25,12 +31,13 @@ def review_hits():
             flag = post_hit(hit)
             if not flag:
                 print('retweet failed, sorry bud')
+                data.set_hit_status(hit['id'], HIT_STATUS_REJECTED)
             else:
-                data.remove_hit(hit['id'])
+                data.set_hit_status(hit['id'], HIT_STATUS_POSTED)
                 print('post successful')
         if inp == 'r':
             # remove from list of hits
-            data.remove_hit(hit['id'])
+            data.set_hit_status(hit['id'], HIT_STATUS_REJECTED)
         if inp == 's':
             pass
         if inp == 'q':
