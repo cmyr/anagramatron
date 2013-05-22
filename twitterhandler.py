@@ -94,22 +94,8 @@ class TwitterHandler(object):
                    % (username, str(tweet_id)))
         return False
 
-    # def send_msg(self, msg):
-    #     """
-    #     attempts to send a DM to a globally defined twitter username.
-    #     returns True on success, False on failure.
-    #     """
-    #     try:
-    #         success = self.twitter.direct_messages.new(
-    #             user=BOSS_USERNAME,
-    #             text=msg)
-    #     except TwitterError as err:
-    #         print(err)
-    #         return False
-    #     if success:
-    #         return True
-    #     else:
-    #         return False
+    def oembed_for_tweet(self, tweet_id):
+        return (self.twitter.statuses.oembed(_id=tweet_id))
 
 
 def main():
