@@ -2,6 +2,7 @@ import datahandler
 import twitterhandler
 import tumblpy
 
+import utils
 from tumblrcreds import TUMBLR_KEY, TUMBLR_SECRET, TOKEN_KEY, TOKEN_SECRET
 BLOG_URL = 'http://anagramatron.tumblr.com/'
 
@@ -35,9 +36,12 @@ def review_hits():
         print(hit['tweet_two']['text'])
 
         while 1:
-            inp = raw_input("(a)ccept, (r)eject, (s)kip, (q)uit:")
-            if inp not in ['a', 'r', 's', 'q']:
-                print("invalid input. Please enter 'a', 'r', 's', or 'q'.")
+            inp = raw_input("(a)ccept, (r)eject, (s)kip, (i)llustrate, (q)uit:")
+            if inp == 'i':
+                utils.show_anagram(hit['tweet_one']['text'], hit['tweet_two']['text'])
+                continue
+            if inp not in ['a', 'r', 's', 'q', 'i']:
+                print("invalid input. Please enter 'a', 'r', 's', 'i' or 'q'.")
             else:
                 break
         if inp == 'a':
@@ -52,7 +56,7 @@ def review_hits():
             # remove from list of hits
             data.set_hit_status(hit['id'], HIT_STATUS_REJECTED)
         if inp == 's':
-            pass
+            data.set_hit_status(hit['id'], HIT_STATUS_APPROVED)
         if inp == 'q':
             break
     data.finish()
@@ -77,12 +81,12 @@ def post_hit(hit):
         return False
 
     # then post to tumblr:
-    sn1 = t1.get('user').get('name')
-    sn2 = t2.get('user').get('name')
+    sn1 = t1.get('user').get('screen_name')
+    sn2 = t2.get('user').get('screen_name')
     oembed1 = twitter_handler.oembed_for_tweet(hit['tweet_one']['id'])
     oembed2 = twitter_handler.oembed_for_tweet(hit['tweet_two']['id'])
     post_title = "%s vs %s" % (sn1, sn2)
-    post_content = '%s<br />%s' % (oembed1['html'], oembed2['html'])
+    post_content = '<div class="tweet-pair">\n%s<br /><br />%s\n</div>' % (oembed1['html'], oembed2['html'])
     post = tmbl.post('post',
                      blog_url=BLOG_URL,
                      params={'type': 'text',
