@@ -31,7 +31,7 @@ class AnagramStats(object):
 BASELINE_SKIP_TARGET = 200
 
 
-class RateWarning(object):
+class StallWarningHandler(object):
     """
     handles rate warnings sent from twitter when we're falling behind.
     controls the falling_behind flag on Anagramer & stashes skipped tweets
@@ -39,22 +39,35 @@ class RateWarning(object):
 
     def __init__(self, delegate):
         self.delegate = delegate
-        self.warning = None
+        self.warning = False
         self.skip_target = BASELINE_SKIP_TARGET
         self.skip_count = 0
         self.skipped_tweets = []
+        self.reconnecting = False
 
-    def warning(self, warning):
+        # SIMPLE TEST TO SEE IF DELEGATE IS GETTING SET
+
+    def handle_warning(self, warn):
         """
         receive and handle stall warnings
         """
-        if self.warning_active:
+        if self.warning_active():
             self.skip_target *= 2
         else:
             self.skip_target = BASELINE_SKIP_TARGET
-        self.warning = {'time': time.time(), 'percent_full': warning.get('percent_full')}
+        self.warning = {'time': time.time(), 'percent_full': warn.get('percent_full')}
         self.skip_count = 0
         self.delegate.falling_behind = True
+
+    def handle_reconnection(self):
+        """
+        when reconnecting to a streaming endpoint we'll often receive duplicates
+        of tweets we've already seen. This sets skipping and discarding those tweets.
+        """
+        self.skip_target = BASELINE_SKIP_TARGET
+        self.reconnecting = True
+        self.delegate.falling_behind = True
+
 
     def warning_active(self):
         """
@@ -69,10 +82,15 @@ class RateWarning(object):
         return False
 
     def skipped(self, tweet):
-        self.skipped_tweets.append(tweet)
+        """
+        receives a skip tweet and saves it to process later?
+        """
         self.skip_count += 1
+        if tweet.get('text') and not self.reconnecting:
+            self.skipped_tweets.append(tweet)
         if self.skip_count == self.skip_target:
             self.delegate.falling_behind = False
+            self.reconnecting = False
 
 
 class Anagramer(object):
@@ -84,7 +102,8 @@ class Anagramer(object):
         self.twitter_handler = None
         self.stats = AnagramStats()
         self.data = DataHandler()
-        self.activity_time = 0
+        self.stall_handler = StallWarningHandler(self)
+        self.falling_behind = False
 
     def run(self, source=None):
         """
@@ -119,6 +138,10 @@ class Anagramer(object):
             if tweet.get('warning'):
                 print('\n', tweet)
                 logging.warning(tweet)
+                self.stall_handler.handle_warning(tweet)
+            if self.falling_behind:
+                self.stall_handler.skipped(tweet)
+                continue
             if tweet.get('text'):
                 self.stats.tweets_seen += 1
                 if self.filter_tweet(tweet):
