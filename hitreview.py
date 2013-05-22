@@ -1,5 +1,18 @@
 import datahandler
 import twitterhandler
+import tumblpy
+
+from tumblrcreds import TUMBLR_KEY, TUMBLR_SECRET, TOKEN_KEY, TOKEN_SECRET
+BLOG_URL = 'http://anagramatron.tumblr.com/'
+
+tmbl = tumblpy.Tumblpy(app_key=TUMBLR_KEY,
+                       app_secret=TUMBLR_SECRET,
+                       oauth_token=TOKEN_KEY,
+                       oauth_token_secret=TOKEN_SECRET
+                      )
+
+
+
 
 data = datahandler.DataHandler(just_the_hits=True)
 twitter_handler = twitterhandler.TwitterHandler()
@@ -61,6 +74,22 @@ def post_hit(hit):
     if not flag:
         # if the first passes but the second does not delete the first
         twitter_handler.delete_last_tweet()
+        return False
+
+    # then post to tumblr:
+    sn1 = t1.get('user').get('name')
+    sn2 = t2.get('user').get('name')
+    oembed1 = twitter_handler.oembed_for_tweet(hit['tweet_one']['id'])
+    oembed2 = twitter_handler.oembed_for_tweet(hit['tweet_two']['id'])
+    post_title = "%s vs %s" % (sn1, sn2)
+    post_content = '%s<br />%s' % (oembed1['html'], oembed2['html'])
+    post = tmbl.post('post',
+                     blog_url=BLOG_URL,
+                     params={'type': 'text',
+                             'title': post_title,
+                             'body': post_content
+                             })
+    if not post:
         return False
     return True
 
