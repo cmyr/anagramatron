@@ -85,7 +85,7 @@ def post_hit(hit):
     sn2 = t2.get('user').get('screen_name')
     oembed1 = twitter_handler.oembed_for_tweet(hit['tweet_one']['id'])
     oembed2 = twitter_handler.oembed_for_tweet(hit['tweet_two']['id'])
-    post_title = "%s vs %s" % (sn1, sn2)
+    post_title = "@%s vs @%s" % (sn1, sn2)
     post_content = '<div class="tweet-pair">\n%s<br /><br />%s\n</div>' % (oembed1['html'], oembed2['html'])
     post = tmbl.post('post',
                      blog_url=BLOG_URL,
