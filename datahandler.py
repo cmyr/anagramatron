@@ -5,10 +5,9 @@ import logging
 import time
 
 import utils
+import twitterhandler
 
 TWEET_DB_PATH = 'data/tweetcache.db'
-# TWEET_DB_PATH = 'data/testdb.db'
-# TWEET_DB_PATH = 'data/blankdb.db'
 
 HIT_STATUS_REVIEW = 'review'
 HIT_STATUS_REJECTED = 'rejected'
@@ -166,19 +165,6 @@ class DataHandler(object):
                 'tweet_two': {'id': long(item[3]), 'text': str(item[5])}
                 }
 
-    # def add_from_file(self, filename):
-    #     """
-    #     utility function for loading archived tweets
-    #     """
-    #     import cPickle as pickle
-    #     data = pickle.load(open(filename, 'r'))
-    #     print("loaded data of type:", type(data), "size: ", len(data))
-    #     dlist = [data[d] for d in data]
-    #     tlist = [(str(d['id']), d['hash'], d['text']) for d in dlist]
-    #     cursor = self.data.cursor()
-    #     cursor.executemany("INSERT INTO tweets VALUES (?, ?, ?)", tlist)
-    #     self.data.commit()
-
     def load_cache(self):
         # load data from file into memory
         print('loading cache')
@@ -196,12 +182,6 @@ class DataHandler(object):
         load_time = time.time() - load_time
         print('loaded %i tweets to cache in %s' %
               (len(results), utils.format_seconds(load_time)))
-        # note the highest id we've loaded so we don't save superfluously
-        # print('finding last added id')
-        # cache_cursor.execute("SELECT id_str FROM cache")
-        # idstrs = cache_cursor.fetchall()
-        # self.high_id_on_disk = max(idstrs)
-        # print('last added id: %s' % self.high_id_on_disk)
 
     def write_cache(self):
         """
@@ -227,19 +207,53 @@ class DataHandler(object):
         if self.cache:
             self.cache.close()
 
-    # utility functions:
-    def add_status_field_to_hits(self):
-        hits = self.get_all_hits(old_format=True)
-        cursor = self.data.cursor()
-        cursor.execute("DROP TABLE IF EXISTS hits")
-        cursor.execute("""CREATE TABLE hits
-                (hit_id_str text, hit_status text, one_id text, two_id text, one_text text, two_text text)""")
+    def review_hits(self):
+        """
+        this is a simple command line tool for reviewing and categorizing
+        potential anagrams as they come in. It's intended as a stopgap/
+        fallback pending my adding a more elegent solution.
+        """
+        twttr = twitterhandler.TwitterHandler()
+        # should only be run with the just_the_hits flag
+        if not self.just_the_hits:
+            return
+        hits = self.get_all_hits()
+        hits = [h for h in hits if h['status'] in [HIT_STATUS_REVIEW]]
+        print('recorded %i hits in need of review' % len(hits))
         for hit in hits:
-            hit['status'] = HIT_STATUS_REVIEW
-            self.remove_hit(hit['id'])
-            self.add_hit(hit)
+            print(hit['tweet_one']['text'], hit['tweet_one']['id'])
+            print(hit['tweet_two']['text'], hit['tweet_two']['id'])
+        for hit in hits:
+            print(hit['tweet_one']['id'], hit['tweet_two']['id']), hit['status']
+            print(hit['tweet_one']['text'])
+            print(hit['tweet_two']['text'])
+
+            while 1:
+                inp = raw_input("(a)ccept, (r)eject, (s)kip, (i)llustrate, (q)uit:")
+                if inp == 'i':
+                    utils.show_anagram(hit['tweet_one']['text'], hit['tweet_two']['text'])
+                    continue
+                if inp not in ['a', 'r', 's', 'q', 'i']:
+                    print("invalid input. Please enter 'a', 'r', 's', 'i' or 'q'.")
+                else:
+                    break
+            if inp == 'a':
+                flag = twttr.post_hit(hit)
+                if not flag:
+                    print('retweet failed, sorry bud')
+                    self.set_hit_status(hit['id'], HIT_STATUS_REJECTED)
+                else:
+                    self.set_hit_status(hit['id'], HIT_STATUS_POSTED)
+                    print('post successful')
+            if inp == 'r':
+                # remove from list of hits
+                self.set_hit_status(hit['id'], HIT_STATUS_REJECTED)
+            if inp == 's':
+                self.set_hit_status(hit['id'], HIT_STATUS_APPROVED)
+            if inp == 'q':
+                break
 
 if __name__ == "__main__":
     dh = DataHandler(just_the_hits=True)
-    dh.add_status_field_to_hits()
+    dh.review_hits()
     dh.finish()

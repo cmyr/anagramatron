@@ -6,11 +6,14 @@ import logging
 from twitter.oauth import OAuth
 from twitter.stream import TwitterStream
 from twitter.api import Twitter, TwitterError
+import tumblpy
 
 # my twitter OAuth key:
 from twittercreds import (CONSUMER_KEY, CONSUMER_SECRET,
                           ACCESS_KEY, ACCESS_SECRET)
-
+# my tumblr OAuth key:
+from tumblrcreds import (TUMBLR_KEY, TUMBLR_SECRET,
+                         TOKEN_KEY, TOKEN_SECRET, TUMBLR_BLOG_URL)
 
 class TwitterHandler(object):
     """
@@ -18,6 +21,7 @@ class TwitterHandler(object):
     This includes setting up streams and returning stream iterators, as well
     as handling normal twitter functions such as retrieving specific tweets,
     posting tweets, and sending messages as necessary.
+    It also now includes a basic tumblr posting utility function.
     """
 
     def __init__(self):
@@ -26,14 +30,18 @@ class TwitterHandler(object):
                        ACCESS_SECRET,
                        CONSUMER_KEY,
                        CONSUMER_SECRET),
-            api_version='1.1',
-            secure='False')
+            api_version='1.1')
         self.twitter = Twitter(
             auth=OAuth(ACCESS_KEY,
                        ACCESS_SECRET,
                        CONSUMER_KEY,
                        CONSUMER_SECRET),
             api_version='1.1')
+        self.tmblr = tumblpy.Tumblpy(app_key=TUMBLR_KEY,
+                                     app_secret=TUMBLR_SECRET,
+                                     oauth_token=TOKEN_KEY,
+                                     oauth_token_secret=TOKEN_SECRET
+                                     )
 
     def stream_iter(self):
         """returns a stream iterator."""
@@ -96,6 +104,54 @@ class TwitterHandler(object):
 
     def oembed_for_tweet(self, tweet_id):
         return (self.twitter.statuses.oembed(_id=tweet_id))
+
+    def retweet_hit(self, hit):
+        """
+        handles retweeting a pair of tweets & various possible failures
+        """
+        if not self.retweet(hit['tweet_one']['id']):
+            return False
+        else:
+            if not self.retweet(hit['tweet_one']['id']):
+                # if the first works and second doesn't delete first
+                self.delete_last_tweet()
+                return False
+        return True
+
+    def tumbl_tweets(self, tweetone, tweettwo):
+        """
+        posts a pair of tweets to tumblr. for url needs real tweet from twitter
+        """
+        sn1 = tweetone.get('user').get('screen_name')
+        sn2 = tweettwo.get('user').get('screen_name')
+        oembed1 = self.oembed_for_tweet(tweetone.get('id_str'))
+        oembed2 = self.oembed_for_tweet(tweettwo.get('id_str'))
+        post_title = "@%s vs @%s" % (sn1, sn2)
+        post_content = '<div class="tweet-pair">%s<br /><br />%s</div>' % (oembed1['html'], oembed2['html'])
+        post = self.tmblr.post('post',
+                         blog_url=BLOG_URL,
+                         params={'type': 'text',
+                                 'title': post_title,
+                                 'body': post_content
+                                 })
+        if not post:
+            return False
+        return True
+
+    def post_hit(self, hit):
+        t1 = self.fetch_tweet(hit['tweet_one']['id'])
+        t2 = self.fetch_tweet(hit['tweet_two']['id'])
+        if not t1 or not t2:
+            # tweet doesn't exist or is unavailable
+            # TODO: better error handling here
+            return False
+        # retewet hits
+        if not self.retweet_hit(hit):
+            return False
+        if not self.tumbl_tweets(t1, t2):
+            # if a tumblr post fails in a forest and nobody etc
+            logging.warning('tumblr failed with hit', hit)
+        return True
 
 
 def main():
