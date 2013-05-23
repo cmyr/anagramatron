@@ -15,8 +15,14 @@ HIT_STATUS_MISC = 'misc'
 def review_hits():
     hit_count = len(HITS)
     print('recorded ' + str(hit_count) + ' hits in need of review')
+    HITS = data.get_all_hits()
+    no_rejects = [h for h in HITS if h['status'] is not HIT_STATUS_REJECTED]
+    # just print them all to start
+    for h in no_rejects:
+        print(hit['tweet_one']['text'], hit['tweet_one']['id'])
+        print(hit['tweet_two']['text'], hit['tweet_two']['id'])
 
-    for hit in HITS:
+    for hit in no_rejects:
         print(hit['tweet_one']['id'], hit['tweet_two']['id'])
         print(hit['tweet_one']['text'])
         print(hit['tweet_two']['text'])
