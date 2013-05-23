@@ -15,6 +15,7 @@ from twittercreds import (CONSUMER_KEY, CONSUMER_SECRET,
 from tumblrcreds import (TUMBLR_KEY, TUMBLR_SECRET,
                          TOKEN_KEY, TOKEN_SECRET, TUMBLR_BLOG_URL)
 
+
 class TwitterHandler(object):
     """
     The TwitterHandler object handles all of the interactions with twitter.
@@ -129,11 +130,11 @@ class TwitterHandler(object):
         post_title = "@%s vs @%s" % (sn1, sn2)
         post_content = '<div class="tweet-pair">%s<br /><br />%s</div>' % (oembed1['html'], oembed2['html'])
         post = self.tmblr.post('post',
-                         blog_url=BLOG_URL,
-                         params={'type': 'text',
-                                 'title': post_title,
-                                 'body': post_content
-                                 })
+                               blog_url=TUMBLR_BLOG_URL,
+                               params={'type': 'text',
+                                       'title': post_title,
+                                       'body': post_content
+                                       })
         if not post:
             return False
         return True

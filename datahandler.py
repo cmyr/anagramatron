@@ -133,7 +133,7 @@ class DataHandler(object):
         if status not in [HIT_STATUS_REVIEW, HIT_STATUS_MISC,
                           HIT_STATUS_APPROVED, HIT_STATUS_POSTED,
                           HIT_STATUS_REJECTED]:
-                          return False
+            return False
         # get the hit, delete the hit, add it again with new status.
         hit = self.get_hit(hit_id)
         hit['status'] = status

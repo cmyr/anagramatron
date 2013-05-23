@@ -8,11 +8,10 @@ import logging
 from twitterhandler import TwitterHandler
 from datahandler import DataHandler, HIT_STATUS_REVIEW
 from twitter.api import TwitterHTTPError
+import utils
 
 VERSION_NUMBER = 0.6
 LOG_FILE_NAME = 'data/anagramer.log'
-
-# TODO: PERSISTENT TRACKING / SCORING OF ANAGRAMS THAT WE'VE ACTUALLY SEEN, PLEASE
 
 
 class AnagramStats(object):
@@ -68,7 +67,6 @@ class StallWarningHandler(object):
         self.reconnecting = True
         self.delegate.falling_behind = True
 
-
     def warning_active(self):
         """
         checks to see if we have an active warning
@@ -113,9 +111,7 @@ class Anagramer(object):
             while 1:
                 try:
                     logging.info('entering run loop')
-                    self.print_hits()
                     self.twitter_handler = TwitterHandler()
-                    # print('data file contains %g tweets' % self.data.count()[0])
                     self.start_stream()
                 except KeyboardInterrupt:
                     break
@@ -186,7 +182,7 @@ class Anagramer(object):
         if len(tweet.get('entities').get('urls')) is not 0:
             return False
         # ignore short tweets
-        t = self.stripped_string(tweet['text'])
+        t = utils.stripped_string(tweet['text'])
         if len(t) <= LOW_CHAR_CUTOFF:
             return False
         # ignore tweets with few characters
@@ -266,15 +262,15 @@ class Anagramer(object):
         """
         basic test, looks for similarity on a char by char basis
         """
-        stripped_one = self.stripped_string(tweet_one)
-        stripped_two = self.stripped_string(tweet_two)
+        stripped_one = utils.stripped_string(tweet_one)
+        stripped_two = utils.stripped_string(tweet_two)
 
         total_chars = len(stripped_two)
         same_chars = 0
         for i in range(total_chars):
             if stripped_one[i] == stripped_two[i]:
                 same_chars += 1
-        
+
         if (float(same_chars) / total_chars) < cutoff:
             return True
         return False
@@ -283,9 +279,9 @@ class Anagramer(object):
         """
         looks for tweets containing the same words in different orders
         """
-        words_one = self.stripped_string(tweet_one, spaces=True).split()
-        words_two = self.stripped_string(tweet_two, spaces=True).split()
-           
+        words_one = utils.stripped_string(tweet_one, spaces=True).split()
+        words_two = utils.stripped_string(tweet_two, spaces=True).split()
+
         word_count = len(words_one)
         if len(words_two) < len(words_one): word_count = len(words_two)
 
@@ -305,7 +301,7 @@ class Anagramer(object):
         takes a tweet as input. returns a character-unique hash
         from the tweet's text.
         """
-        t_text = str(re.sub(r'[^a-zA-Z]', '', text).lower())
+        t_text = utils.stripped_string(text)
         t_hash = ''.join(sorted(t_text, key=str.lower))
         return t_hash
 
@@ -326,7 +322,7 @@ class Anagramer(object):
             " ({0}%)".format(seen_percent) +
             " hits " + str(self.stats.possible_hits) +
             " agrams: " + str(self.stats.hits) +
-            " runtime: " + self.format_seconds(runtime)
+            " runtime: " + utils.format_seconds(runtime)
         )
         sys.stdout.write(status + '\r')
         sys.stdout.flush()
@@ -336,39 +332,6 @@ class Anagramer(object):
         for hit in hits:
             print(hit['tweet_one']['text'], hit['tweet_one']['id'])
             print(hit['tweet_two']['text'], hit['tweet_two']['id'])
-
-# helper methods
-
-    def stripped_string(self, text, spaces=False):
-        """
-        returns lower case string with all non alpha chars removed
-        """
-        if spaces:
-            return re.sub(r'[^a-zA-Z]', ' ', text).lower()
-        return re.sub(r'[^a-zA-Z]', '', text).lower()
-
-    def format_seconds(self, seconds):
-        """
-        yea fine this is bad deal with it
-        """
-        DAYSECS = 86400
-        HOURSECS = 3600
-        MINSECS = 60
-        dd = hh = mm = ss = 0
-
-        dd = seconds / DAYSECS
-        seconds = seconds % DAYSECS
-        hh = seconds / HOURSECS
-        seconds = seconds % HOURSECS
-        mm = seconds / MINSECS
-        seconds = seconds % MINSECS
-        ss = seconds
-        time_string = str(mm)+'m ' + str(ss) + 's'
-        if hh or dd:
-            time_string = str(hh) + 'h ' + time_string
-        if dd:
-            time_string = str(dd) + 'd ' + time_string
-        return time_string
 
 
 def main():
