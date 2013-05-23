@@ -188,6 +188,8 @@ class DataHandler(object):
         """
         write the cache to disk
         """
+        print('writing data to disk')
+        load_time = time.time()
         cache_cursor = self.cache.cursor()
         cache_cursor.execute("SELECT * FROM cache")
         results = cache_cursor.fetchall()
@@ -198,6 +200,9 @@ class DataHandler(object):
         self.data.commit()
         cache_cursor.execute("DELETE FROM cache")
         self.cache.commit()
+        load_time = time.time() - load_time
+        print('saved %i tweets to cache in %s' %
+              (len(results), utils.format_seconds(load_time)))
 
     def finish(self):
         if not self.just_the_hits:
