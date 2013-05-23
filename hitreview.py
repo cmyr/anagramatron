@@ -1,8 +1,8 @@
 import datahandler
 import twitterhandler
 import tumblpy
-
 import utils
+
 from tumblrcreds import TUMBLR_KEY, TUMBLR_SECRET, TOKEN_KEY, TOKEN_SECRET
 BLOG_URL = 'http://anagramatron.tumblr.com/'
 
@@ -11,9 +11,6 @@ tmbl = tumblpy.Tumblpy(app_key=TUMBLR_KEY,
                        oauth_token=TOKEN_KEY,
                        oauth_token_secret=TOKEN_SECRET
                       )
-
-
-
 
 data = datahandler.DataHandler(just_the_hits=True)
 twitter_handler = twitterhandler.TwitterHandler()
@@ -29,8 +26,11 @@ HIT_STATUS_MISC = 'misc'
 def review_hits():
     hit_count = len(HITS)
     print('recorded ' + str(hit_count) + ' hits in need of review')
-
-    for hit in HITS:
+    revhits = [h for h in HITS if h['status'] in [HIT_STATUS_REVIEW, HIT_STATUS_APPROVED]]
+    for hit in revhits:
+        print(hit['tweet_one']['text'], hit['tweet_one']['id'])
+        print(hit['tweet_two']['text'], hit['tweet_two']['id'])
+    for hit in revhits:
         print(hit['tweet_one']['id'], hit['tweet_two']['id'])
         print(hit['tweet_one']['text'])
         print(hit['tweet_two']['text'])
