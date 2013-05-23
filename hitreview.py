@@ -13,9 +13,9 @@ HIT_STATUS_APPROVED = 'approved'
 HIT_STATUS_MISC = 'misc'
 
 def review_hits():
+    HITS = data.get_all_hits()
     hit_count = len(HITS)
     print('recorded ' + str(hit_count) + ' hits in need of review')
-    HITS = data.get_all_hits()
     no_rejects = [h for h in HITS if h['status'] is not HIT_STATUS_REJECTED]
     # just print them all to start
     for h in no_rejects:
