@@ -26,7 +26,7 @@ HIT_STATUS_MISC = 'misc'
 
 def review_hits():
     hits = data.get_all_hits()
-    hits = [h for h in hits if h['status'] in [HIT_STATUS_REVIEW, HIT_STATUS_APPROVED]]
+    hits = [h for h in hits if h['status'] in [HIT_STATUS_REVIEW]]
     print('recorded %i hits in need of review' % len(hits))
     for hit in hits:
         print(hit['tweet_one']['text'], hit['tweet_one']['id'])
