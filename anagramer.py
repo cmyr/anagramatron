@@ -99,7 +99,7 @@ class Anagramer(object):
     def __init__(self):
         self.twitter_handler = None
         self.stats = AnagramStats()
-        self.data = DataHandler()
+        self.data = None  #wait until we get run call to load data
         self.stall_handler = StallWarningHandler(self)
         self.falling_behind = False
 
@@ -107,6 +107,7 @@ class Anagramer(object):
         """
         starts the program's main run-loop
         """
+        self.data = DataHandler()
         if not source:
             while 1:
                 try:
