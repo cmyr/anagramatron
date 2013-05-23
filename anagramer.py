@@ -120,6 +120,8 @@ class Anagramer(object):
                     print('\n', e)
                     # handle errors probably?
                 finally:
+                    logging.debug('closed with %i tweets in stall handler'
+                                  % len(self.stall_handler.skipped_tweets))
                     self.data.finish()
         else:
             # means we're running from local data
