@@ -14,6 +14,7 @@ HIT_STATUS_REJECTED = 'rejected'
 HIT_STATUS_POSTED = 'posted'
 HIT_STATUS_APPROVED = 'approved'
 HIT_STATUS_MISC = 'misc'
+HIT_STATUS_FAILED = 'failed'
 
 class DataHandler(object):
     """
@@ -132,7 +133,7 @@ class DataHandler(object):
     def set_hit_status(self, hit_id, status):
         if status not in [HIT_STATUS_REVIEW, HIT_STATUS_MISC,
                           HIT_STATUS_APPROVED, HIT_STATUS_POSTED,
-                          HIT_STATUS_REJECTED]:
+                          HIT_STATUS_REJECTED, HIT_STATUS_FAILED]:
             return False
         # get the hit, delete the hit, add it again with new status.
         hit = self.get_hit(hit_id)
@@ -241,7 +242,7 @@ class DataHandler(object):
                 flag = twttr.post_hit(hit)
                 if not flag:
                     print('retweet failed, sorry bud')
-                    self.set_hit_status(hit['id'], HIT_STATUS_REJECTED)
+                    self.set_hit_status(hit['id'], HIT_STATUS_FAILED)
                 else:
                     self.set_hit_status(hit['id'], HIT_STATUS_POSTED)
                     print('post successful')

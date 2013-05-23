@@ -112,11 +112,9 @@ class TwitterHandler(object):
         """
         if not self.retweet(hit['tweet_one']['id']):
             return False
-        else:
-            if not self.retweet(hit['tweet_one']['id']):
-                # if the first works and second doesn't delete first
-                self.delete_last_tweet()
-                return False
+        if not self.retweet(hit['tweet_two']['id']):
+            self.delete_last_tweet()
+            return False
         return True
 
     def tumbl_tweets(self, tweetone, tweettwo):
@@ -143,11 +141,13 @@ class TwitterHandler(object):
         t1 = self.fetch_tweet(hit['tweet_one']['id'])
         t2 = self.fetch_tweet(hit['tweet_two']['id'])
         if not t1 or not t2:
+            print('failed to fetch tweets')
             # tweet doesn't exist or is unavailable
             # TODO: better error handling here
             return False
         # retewet hits
         if not self.retweet_hit(hit):
+            print('failed to retweet hits')
             return False
         if not self.tumbl_tweets(t1, t2):
             # if a tumblr post fails in a forest and nobody etc

@@ -165,9 +165,6 @@ class Anagramer(object):
         """
         LOW_CHAR_CUTOFF = 10
         MIN_UNIQUE_CHARS = 7
-        # filter non-english tweets
-        if tweet.get('lang') != 'en':
-            return False
         #check for mentions
         if len(tweet.get('entities').get('user_mentions')) is not 0:
             return False
@@ -225,12 +222,12 @@ class Anagramer(object):
         hit_tweet = self.data.get(new_tweet['hash'])
         self.stats.possible_hits += 1
         # logging:
-        logging.info(
-            'possible hit: \n %s %d \n %s %d',
-            hit_tweet['text'],
-            hit_tweet['id'],
-            new_tweet['text'],
-            new_tweet['id'])
+        # logging.info(
+        #     'possible hit: \n %s %d \n %s %d',
+        #     hit_tweet['text'],
+        #     hit_tweet['id'],
+        #     new_tweet['text'],
+        #     new_tweet['id'])
         if not hit_tweet:
             print('error retrieving hit')
             return
@@ -246,7 +243,6 @@ class Anagramer(object):
             self.data.add_hit(hit)
             self.stats.hits += 1
         else:
-            # self.add_to_data(new_tweet)
             pass
 
     def compare(self, tweet_one, tweet_two):
@@ -284,7 +280,8 @@ class Anagramer(object):
         words_two = utils.stripped_string(tweet_two, spaces=True).split()
 
         word_count = len(words_one)
-        if len(words_two) < len(words_one): word_count = len(words_two)
+        if len(words_two) < len(words_one):
+            word_count = len(words_two)
 
         same_words = 0
         # compare words to each other:
@@ -302,7 +299,7 @@ class Anagramer(object):
         takes a tweet as input. returns a character-unique hash
         from the tweet's text.
         """
-        t_text = utils.stripped_string(text)
+        t_text = str(utils.stripped_string(text))
         t_hash = ''.join(sorted(t_text, key=str.lower))
         return t_hash
 
@@ -344,6 +341,7 @@ def main():
     )
     anagramer = Anagramer()
     return anagramer.run()
+
 
 if __name__ == "__main__":
     main()
