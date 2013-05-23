@@ -223,13 +223,6 @@ class Anagramer(object):
 
         hit_tweet = self.data.get(new_tweet['hash'])
         self.stats.possible_hits += 1
-        # logging:
-        # logging.info(
-        #     'possible hit: \n %s %d \n %s %d',
-        #     hit_tweet['text'],
-        #     hit_tweet['id'],
-        #     new_tweet['text'],
-        #     new_tweet['id'])
         if not hit_tweet:
             print('error retrieving hit')
             return
@@ -314,7 +307,7 @@ class Anagramer(object):
         # tweets seen: $IN_HAS_TEXT passed filter: $PASSED_F% Hits: $HITS
         seen_percent = int(100*(float(
             self.stats.passed_filter)/self.stats.tweets_seen))
-        runtime = int(time.time()-self.stats.start_time)
+        runtime = time.time()-self.stats.start_time
 
         status = (
             'tweets seen: ' + str(self.stats.tweets_seen) +
