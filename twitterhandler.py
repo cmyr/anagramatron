@@ -52,7 +52,7 @@ class TwitterHandler(object):
 
     def fetch_tweet(self, tweet_id):
         """
-        attempts to retrieve the specified tweet. returns None on failure.
+        attempts to retrieve the specified tweet. returns False on failure.
         """
         try:
             tweet = self.twitter.statuses.show(
@@ -62,10 +62,12 @@ class TwitterHandler(object):
         except httplib.IncompleteRead as err:
             # print statements for debugging
             logging.debug(err)
-            return None
+            print(err)
+            return False
         except TwitterError as err:
             logging.debug(err)
-            return None
+            print(err)
+            return False
 
     def retweet(self, tweet_id):
         try:
@@ -97,8 +99,8 @@ class TwitterHandler(object):
 
     def url_for_tweet(self, tweet_id):
         tweet = self.fetch_tweet(tweet_id)
-        username = tweet.get('user').get('screen_name')
-        if username:
+        if tweet:
+            username = tweet.get('user').get('screen_name')
             return('https://www.twitter.com/%s/status/%s'
                    % (username, str(tweet_id)))
         return False
