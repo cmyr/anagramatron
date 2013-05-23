@@ -4,7 +4,9 @@ import twitterhandler
 data = datahandler.DataHandler(just_the_hits=True)
 twitter_handler = twitterhandler.TwitterHandler()
 HITS = data.get_all_hits()
-
+from datahandler import (HIT_STATUS_REVIEW, HIT_STATUS_REJECTED,
+                         HIT_STATUS_POSTED, HIT_STATUS_APPROVED,
+                         HIT_STATUS_MISC)
 
 def review_hits():
     hit_count = len(HITS)
@@ -26,11 +28,11 @@ def review_hits():
             if not flag:
                 print('retweet failed, sorry bud')
             else:
-                data.remove_hit(hit['id'])
+                data.set_hit_status(hit['id'], HIT_STATUS_POSTED)
                 print('post successful')
         if inp == 'r':
             # remove from list of hits
-            data.remove_hit(hit['id'])
+            data.set_hit_status(hit['id'], HIT_STATUS_REJECTED)
         if inp == 's':
             pass
         if inp == 'q':
