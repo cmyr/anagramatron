@@ -10,11 +10,11 @@ tmbl = tumblpy.Tumblpy(app_key=TUMBLR_KEY,
                        app_secret=TUMBLR_SECRET,
                        oauth_token=TOKEN_KEY,
                        oauth_token_secret=TOKEN_SECRET
-                      )
+                       )
 
 data = datahandler.DataHandler(just_the_hits=True)
 twitter_handler = twitterhandler.TwitterHandler()
-HITS = data.get_all_hits()
+# HITS = data.get_all_hits()
 
 
 HIT_STATUS_REVIEW = 'review'
@@ -23,15 +23,16 @@ HIT_STATUS_POSTED = 'posted'
 HIT_STATUS_APPROVED = 'approved'
 HIT_STATUS_MISC = 'misc'
 
+
 def review_hits():
-    hit_count = len(HITS)
-    print('recorded ' + str(hit_count) + ' hits in need of review')
-    revhits = [h for h in HITS if h['status'] in [HIT_STATUS_REVIEW, HIT_STATUS_APPROVED]]
-    for hit in revhits:
+    hits = data.get_all_hits()
+    hits = [h for h in hits if h['status'] in [HIT_STATUS_REVIEW, HIT_STATUS_APPROVED]]
+    print('recorded %i hits in need of review' % len(hits))
+    for hit in hits:
         print(hit['tweet_one']['text'], hit['tweet_one']['id'])
         print(hit['tweet_two']['text'], hit['tweet_two']['id'])
-    for hit in revhits:
-        print(hit['tweet_one']['id'], hit['tweet_two']['id'])
+    for hit in hits:
+        print(hit['tweet_one']['id'], hit['tweet_two']['id']), hit['status']
         print(hit['tweet_one']['text'])
         print(hit['tweet_two']['text'])
 
