@@ -2,9 +2,10 @@ from __future__ import print_function
 from bottle import (Bottle, route, run, request, response, server_names,
                     ServerAdapter, abort)
 import datahandler
-# from datahandler import HIT_STATUS_REJECTED,
-#                         HIT_STATUS_POSTED, HIT_STATUS_APPROVED,
-#                         HIT_STATUS_MISC, HIT_STATUS_FAILED
+
+CLIENT_ACTION_POST = 'post'
+CLIENT_ACTION_REJECT = 'reject'
+CLIENT_ACTION_APPROVE = 'approve'
 
 # SSL subclass of bottle cribbed from:
 # http://dgtool.blogspot.com.au/2011/12/ssl-encryption-in-python-bottle.html
@@ -50,11 +51,13 @@ def hit_for_id(hit_id):
         if hit['id'] == hit_id:
             return hit
 
+
 def authenticate(auth):
     if auth == AUTH_TOKEN:
         return True
     abort(401, '-_-')
 # actual bottle stuff
+
 
 @app.route('/hits')
 def get_hits():
@@ -68,6 +71,7 @@ def get_hits():
     hits = data.get_all_hits()
     return {'hits': hits}
 
+
 @app.route('/mod')
 def modify_hit():
     auth = request.get_header('Authorization')
@@ -77,23 +81,38 @@ def modify_hit():
     action = str(request.query.act)
     if not hit_id or not action:
         abort(400, 'v0_0v')
+    if action == CLIENT_ACTION_POST:
+        if data.post_hit(hit_id):
+            return 'pass'
+        else:
+            return 'fail'
+    if action == CLIENT_ACTION_APPROVE:
+        data.approve_hit(hit_id)
+        return 'pass'
+    if action == CLIENT_ACTION_REJECT:
+        data.reject_hit(hit_id)
+        return 'pass'
 
-@app.route('/ok')
-def retweet():
-    auth = request.get_header('Authorization')
-    if not authenticate(auth):
-        return
-    hit_id = int(request.query.id)
-    hit = hit_for_id(hit_id)
-    # return str(hit_id) + hit
-    return "retweeted '%s' and '%s'" % (hit['tweet_one']['text'], hit['tweet_two']['text'])
 
 
-@app.route('/del')
-def delete():
-    hit_id = int(request.query.id)
-    data.remove_hit(hit_id)
-    return "success"
+
+
+# @app.route('/ok')
+# def retweet():
+#     auth = request.get_header('Authorization')
+#     if not authenticate(auth):
+#         return
+#     hit_id = int(request.query.id)
+#     hit = hit_for_id(hit_id)
+#     # return str(hit_id) + hit
+#     return "retweeted '%s' and '%s'" % (hit['tweet_one']['text'], hit['tweet_two']['text'])
+
+
+# @app.route('/del')
+# def delete():
+#     hit_id = int(request.query.id)
+#     data.remove_hit(hit_id)
+#     return "success"
 
 
 run(app, host='localhost', port=8080, debug=True, server='sslbottle')
