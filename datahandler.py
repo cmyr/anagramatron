@@ -26,7 +26,7 @@ class DataHandler(object):
         self.hashes = set()
         self.just_the_hits = just_the_hits
         self.setup()
-        self.high_id_on_disk = None
+        self.twitterhandler = twitterhandler.TwitterHandler()
 
     def setup(self):
         """
@@ -208,13 +208,28 @@ class DataHandler(object):
         if self.cache:
             self.cache.close()
 
+    # functions for handling hit processing
+
+    def reject_hit(self, hit_id):
+        self.set_hit_status(hit_id, HIT_STATUS_REJECTED)
+
+    def post_hit(self, hit_id):
+        if self.twitterhandler.post_hit(self.get_hit(hit_id)):
+            self.set_hit_status(hit_id, HIT_STATUS_POSTED)
+            return True
+        else:
+            self.set_hit_status(hit_id, HIT_STATUS_FAILED)
+            return False
+
+    def approve_hit(self, hit_id):
+        self.set_hit_status(hit_id, HIT_STATUS_APPROVED)
+
     def review_hits(self):
         """
         this is a simple command line tool for reviewing and categorizing
         potential anagrams as they come in. It's intended as a stopgap/
         fallback pending my adding a more elegent solution.
         """
-        twttr = twitterhandler.TwitterHandler()
         # should only be run with the just_the_hits flag
         if not self.just_the_hits:
             return
@@ -239,18 +254,15 @@ class DataHandler(object):
                 else:
                     break
             if inp == 'a':
-                flag = twttr.post_hit(hit)
-                if not flag:
+                if not self.post_hit(hit['id']):
                     print('retweet failed, sorry bud')
-                    self.set_hit_status(hit['id'], HIT_STATUS_FAILED)
                 else:
-                    self.set_hit_status(hit['id'], HIT_STATUS_POSTED)
                     print('post successful')
             if inp == 'r':
                 # remove from list of hits
-                self.set_hit_status(hit['id'], HIT_STATUS_REJECTED)
+                self.reject_hit(hit['id'])
             if inp == 's':
-                self.set_hit_status(hit['id'], HIT_STATUS_APPROVED)
+                self.approve_hit(hit['id'])
             if inp == 'q':
                 break
 

@@ -2,6 +2,9 @@ from __future__ import print_function
 from bottle import (Bottle, route, run, request, response, server_names,
                     ServerAdapter, abort)
 import datahandler
+# from datahandler import HIT_STATUS_REJECTED,
+#                         HIT_STATUS_POSTED, HIT_STATUS_APPROVED,
+#                         HIT_STATUS_MISC, HIT_STATUS_FAILED
 
 # SSL subclass of bottle cribbed from:
 # http://dgtool.blogspot.com.au/2011/12/ssl-encryption-in-python-bottle.html
@@ -65,6 +68,15 @@ def get_hits():
     hits = data.get_all_hits()
     return {'hits': hits}
 
+@app.route('/mod')
+def modify_hit():
+    auth = request.get_header('Authorization')
+    if not authenticate(auth):
+        return
+    hit_id = int(request.query.id)
+    action = str(request.query.act)
+    if not hit_id or not action:
+        abort(400, 'v0_0v')
 
 @app.route('/ok')
 def retweet():
