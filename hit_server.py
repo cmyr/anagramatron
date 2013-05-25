@@ -46,10 +46,10 @@ data = None
 app = Bottle()
 
 
-def hit_for_id(hit_id):
-    for hit in HITS:
-        if hit['id'] == hit_id:
-            return hit
+# def hit_for_id(hit_id):
+#     for hit in HITS:
+#         if hit['id'] == hit_id:
+#             return hit
 
 
 def authenticate(auth):
@@ -83,15 +83,15 @@ def modify_hit():
         abort(400, 'v0_0v')
     if action == CLIENT_ACTION_POST:
         if data.post_hit(hit_id):
-            return 'pass'
+            return {'response': 'pass'}
         else:
-            return 'fail'
+            return {'response': 'fail'}
     if action == CLIENT_ACTION_APPROVE:
         data.approve_hit(hit_id)
-        return 'pass'
+        return {'response': 'pass'}
     if action == CLIENT_ACTION_REJECT:
         data.reject_hit(hit_id)
-        return 'pass'
+        return {'response': 'pass'}
 
 
 
