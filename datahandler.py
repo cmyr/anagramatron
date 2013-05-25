@@ -7,7 +7,7 @@ import time
 import utils
 import twitterhandler
 
-TWEET_DB_PATH = 'data/tweetcache.db'
+TWEET_DB_PATH = 'data/datatestsINT.db'
 
 HIT_STATUS_REVIEW = 'review'
 HIT_STATUS_REJECTED = 'rejected'
@@ -42,9 +42,9 @@ class DataHandler(object):
             self.data = lite.connect(TWEET_DB_PATH)
             cursor = self.data.cursor()
             print('db not found, creating')
-            cursor.execute("CREATE TABLE tweets(id_str text, hash text, text text)")
+            cursor.execute("CREATE TABLE tweets(id INTEGER UNIQUE, hash text, text text)")
             cursor.execute("""CREATE TABLE hits
-                (hit_id_str text, hit_status text, one_id text, two_id text, one_text text, two_text text)""")
+                (hit_id INTEGER, hit_status text, one_id text, two_id text, one_text text, two_text text)""")
             self.data.commit()
         else:
             self.data = lite.connect(TWEET_DB_PATH)
@@ -85,7 +85,7 @@ class DataHandler(object):
     def get(self, tweet_hash):
         # if hit isn't in data, check if it's still in the cache
         cache_cursor = self.cache.cursor()
-        cache_cursor.execute("SELECT id_str, hash, text FROM cache WHERE hash=:hash",
+        cache_cursor.execute("SELECT id, hash, text FROM cache WHERE hash=:hash",
                              {"hash": tweet_hash})
         result = cache_cursor.fetchone()
         if result:
@@ -119,14 +119,14 @@ class DataHandler(object):
 
     def get_hit(self, hit_id):
         cursor = self.data.cursor()
-        cursor.execute("SELECT * FROM hits WHERE hit_id_str=:id",
+        cursor.execute("SELECT * FROM hits WHERE hit_id=:id",
                        {"id": str(hit_id)})
         result = cursor.fetchone()
         return self.hit_from_sql(result)
 
     def remove_hit(self, hit_id):
         cursor = self.data.cursor()
-        cursor.execute("DELETE FROM hits WHERE hit_id_str=:id",
+        cursor.execute("DELETE FROM hits WHERE hit_id=:id",
                        {"id": str(hit_id)})
         self.data.commit()
 
@@ -172,7 +172,7 @@ class DataHandler(object):
         load_time = time.time()
         self.cache = lite.connect(':memory:')
         cache_cursor = self.cache.cursor()
-        cache_cursor.execute("CREATE TABLE cache(id_str text, hash text, text text)")
+        cache_cursor.execute("CREATE TABLE cache(id INTEGER UNIQUE, hash text, text text)")
         self.cache.commit()
         cursor = self.data.cursor()
         cursor.execute("SELECT * FROM tweets")
@@ -193,7 +193,7 @@ class DataHandler(object):
         results = cache_cursor.fetchall()
         cursor = self.data.cursor()
         cursor.execute("DROP TABLE IF EXISTS tweets")
-        cursor.execute("CREATE TABLE tweets(id_str text, hash text, text text)")
+        cursor.execute("CREATE TABLE tweets(id INTEGER UNIQUE, hash text, text text)")
         cursor.executemany("INSERT INTO tweets VALUES (?, ?, ?)", results)
         self.data.commit()
         cache_cursor.execute("DELETE FROM cache")
