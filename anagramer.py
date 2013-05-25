@@ -159,7 +159,9 @@ class Anagramer(object):
             self.stats.tweets_seen += 1
             self.stats.passed_filter += 1
             self.update_console()
+
         logging.debug('hits %g matches %g' % (self.stats.possible_hits, self.stats.hits))
+        self.data.finish()
 
     def filter_tweet(self, tweet):
         """
@@ -335,7 +337,9 @@ def main():
         level=logging.DEBUG
     )
     anagramer = Anagramer()
-    return anagramer.run()
+    import cPickle as pickle
+    return anagramer.run(source=pickle.load(open('testdata/tst10000.p', 'r')))
+    # return anagramer.run()
 
 
 if __name__ == "__main__":

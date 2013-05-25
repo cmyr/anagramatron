@@ -188,7 +188,7 @@ class DataHandler(object):
         """
         write the cache to disk
         """
-        print('writing cache to disk')
+        print('\nwriting cache to disk')
         load_time = time.time()
         cache_cursor = self.cache.cursor()
         cache_cursor.execute("SELECT * FROM cache")
