@@ -34,6 +34,7 @@ def stripped_string(text, spaces=False):
         return re.sub(r'[^a-zA-Z]', ' ', text).lower()
     return re.sub(r'[^a-zA-Z]', '', text).lower()
 
+
 def convert_database_formats():
     SOURCE_DB = 'data/tweetcache.db'
     DEST_DB = 'data/tweets.db'
@@ -59,10 +60,10 @@ def convert_database_formats():
     cursor = hitsdb.cursor()
     cursor.execute("""CREATE TABLE hits
                 (hit_id integer, hit_status text, one_id integer, two_id integer, one_text text, two_text text)""")
-    cursor.executemany("INSERT INTO tweets VALUES (?, ?, ?, ?, ?, ?)", tweets)
+    cursor.executemany("INSERT INTO hits VALUES (?, ?, ?, ?, ?, ?)", hits)
     hitsdb.commit()
 
 
     # load source; copy tweets/hits to new db;
 if __name__ == "__main__":
-    pass
+    convert_database_formats()
