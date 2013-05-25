@@ -61,6 +61,7 @@ def authenticate(auth):
 
 @app.route('/hits')
 def get_hits():
+    print(request)
     auth = request.get_header('Authorization')
     if not authenticate(auth):
         return
@@ -74,23 +75,26 @@ def get_hits():
 
 @app.route('/mod')
 def modify_hit():
+    print(request)
     auth = request.get_header('Authorization')
     if not authenticate(auth):
         return
     hit_id = int(request.query.id)
     action = str(request.query.act)
+    print(hit_id, action)
     if not hit_id or not action:
         abort(400, 'v0_0v')
     if action == CLIENT_ACTION_POST:
-        if data.post_hit(hit_id):
+        # if data.post_hit(hit_id):
+        if True:
             return {'response': 'pass'}
         else:
             return {'response': 'fail'}
     if action == CLIENT_ACTION_APPROVE:
-        data.approve_hit(hit_id)
+        # data.approve_hit(hit_id)
         return {'response': 'pass'}
     if action == CLIENT_ACTION_REJECT:
-        data.reject_hit(hit_id)
+        # data.reject_hit(hit_id)
         return {'response': 'pass'}
 
 
