@@ -16,6 +16,7 @@ HIT_STATUS_APPROVED = 'approved'
 HIT_STATUS_MISC = 'misc'
 HIT_STATUS_FAILED = 'failed'
 
+
 class DataHandler(object):
     """
     handles storage and retrieval of tweets
@@ -172,7 +173,7 @@ class DataHandler(object):
         load_time = time.time()
         self.cache = lite.connect(':memory:')
         cache_cursor = self.cache.cursor()
-        cache_cursor.execute("CREATE TABLE cache(id INTEGER UNIQUE, hash text, text text)")
+        cache_cursor.execute("CREATE TABLE cache(id INTEGER, hash text, text text)")
         self.cache.commit()
         cursor = self.data.cursor()
         cursor.execute("SELECT * FROM tweets")
@@ -192,9 +193,9 @@ class DataHandler(object):
         cache_cursor.execute("SELECT * FROM cache")
         results = cache_cursor.fetchall()
         cursor = self.data.cursor()
-        cursor.execute("DROP TABLE IF EXISTS tweets")
-        cursor.execute("CREATE TABLE tweets(id INTEGER UNIQUE, hash text, text text)")
-        cursor.executemany("INSERT INTO tweets VALUES (?, ?, ?)", results)
+        # cursor.execute("DROP TABLE IF EXISTS tweets")
+        # cursor.execute("CREATE TABLE tweets(id INTEGER UNIQUE, hash text, text text)")
+        cursor.executemany("INSERT OR IGNORE INTO tweets VALUES (?, ?, ?)", results)
         self.data.commit()
         cache_cursor.execute("DELETE FROM cache")
         self.cache.commit()
