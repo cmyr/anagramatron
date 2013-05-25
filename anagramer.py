@@ -160,7 +160,7 @@ class Anagramer(object):
             self.stats.passed_filter += 1
             self.update_console()
         logging.debug('hits %g matches %g' % (self.stats.possible_hits, self.stats.hits))
-
+        self.data.finish()
     def filter_tweet(self, tweet):
         """
         filter out anagram-inappropriate tweets
