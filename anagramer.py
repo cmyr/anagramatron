@@ -338,7 +338,7 @@ def main():
     )
     anagramer = Anagramer()
     import cPickle as pickle
-    return anagramer.run(source=pickle.load(open('testdata/tst10000.p', 'r')))
+    return anagramer.run(source=pickle.load(open('testdata/archive2.p', 'r')))
     # return anagramer.run()
 
 
