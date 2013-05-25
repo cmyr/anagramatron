@@ -38,7 +38,6 @@ class DataHandler(object):
             # don't bother initing the cache etc
             self.data = lite.connect(TWEET_DB_PATH)
             return
-
         if not os.path.exists(TWEET_DB_PATH):
             self.data = lite.connect(TWEET_DB_PATH)
             cursor = self.data.cursor()
@@ -189,6 +188,8 @@ class DataHandler(object):
         """
         write the cache to disk
         """
+        print('writing cache to disk')
+        load_time = time.time()
         cache_cursor = self.cache.cursor()
         cache_cursor.execute("SELECT * FROM cache")
         results = cache_cursor.fetchall()
@@ -199,6 +200,9 @@ class DataHandler(object):
         self.data.commit()
         cache_cursor.execute("DELETE FROM cache")
         self.cache.commit()
+        load_time = time.time() - load_time
+        print('saved %i tweets to disk in %s' %
+              (len(results), utils.format_seconds(load_time)))
 
     def finish(self):
         if not self.just_the_hits:
