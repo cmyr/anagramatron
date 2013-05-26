@@ -45,6 +45,14 @@ def convert_database_formats():
     cursor = source.cursor()
     cursor.execute("SELECT * FROM tweets")
     tweets = cursor.fetchall()
+    origsize = len(tweets)
+    print('fetched %i tweets' % origsize)
+    tweets = [(i, h, t) for (i, h, t) in tweets if len(h) >= 12]
+    print('removed %i short tweets' % (origsize - len(tweets)))
+    origsize = len(tweets)
+    tweets = [(i, h, t) for (i, h, t) in tweets if len(set(h)) > 7]
+    print('removed %i low character tweets' % (origsize - len(tweets)))
+
     cursor.execute("SELECT * FROM hits")
     hits = cursor.fetchall()
     source.close()

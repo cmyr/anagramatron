@@ -40,7 +40,7 @@ class DataHandler(object):
         """
         if self.just_the_hits:
             # don't bother initing the cache etc
-            self.data = lite.connect(TWEET_DB_PATH)
+            self.hitsdb = lite.connect(HITS_DB_PATH)
             return
         if not os.path.exists(TWEET_DB_PATH):
             self.data = lite.connect(TWEET_DB_PATH)
@@ -229,7 +229,7 @@ class DataHandler(object):
             self.data.close()
         if self.cache:
             self.cache.close()
-        if self.hitdb:
+        if self.hitsdb:
             self.hitdb.close()
 
     # functions for handling hit processing
