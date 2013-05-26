@@ -258,6 +258,7 @@ class DataHandler(object):
         if not self.just_the_hits:
             return
         hits = self.get_all_hits()
+        print('db contains %i hits' % len(hits))
         hits = [h for h in hits if h['status'] in [HIT_STATUS_REVIEW]]
         print('recorded %i hits in need of review' % len(hits))
         for hit in hits:
