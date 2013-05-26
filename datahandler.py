@@ -230,7 +230,7 @@ class DataHandler(object):
         if self.cache:
             self.cache.close()
         if self.hitsdb:
-            self.hitdb.close()
+            self.hitsdb.close()
 
     # functions for handling hit processing
 
