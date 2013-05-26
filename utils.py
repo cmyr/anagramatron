@@ -1,41 +1,77 @@
+import re
+
+
 def format_seconds(seconds):
     """
-    yea fine this is bad deal with it
+    convert a number of seconds into a custom string representation
     """
-    seconds = int(seconds)
-    DAYSECS = 86400
-    HOURSECS = 3600
-    MINSECS = 60
-    dd = hh = mm = ss = 0
-
-    dd = seconds / DAYSECS
-    seconds = seconds % DAYSECS
-    hh = seconds / HOURSECS
-    seconds = seconds % HOURSECS
-    mm = seconds / MINSECS
-    seconds = seconds % MINSECS
-    ss = seconds
-    # time_string = (str(mm)+'m ' + str(ss) + 's')
-    time_string = ("%im %s" %(mm,ss))
-    if hh or dd:
-        # time_string = str(hh) + 'h ' + time_string
-        time_string = "%ih %s" % (hh, time_string)
-    if dd:
-        # time_string = str(dd) + 'd ' + time_string
-        time_string = "%id %s" % (dd, time_string)
+    d, seconds = divmod(seconds, (60*60*24))
+    h, seconds = divmod(seconds, (60*60))
+    m, seconds = divmod(seconds, 60)
+    time_string = ("%im %0.2fs" % (m, seconds))
+    if h or d:
+        time_string = "%ih %s" % (h, time_string)
+    if d:
+        time_string = "%id %s" % (d, time_string)
     return time_string
 
 
-if __name__ == "__main__":
-    tests = [10,
-             12.025808095932007,
-             15.282587051391602,
-             101,
-             1124,
-             23232,
-             4334321,
-             1231450698173748]
+def show_anagram(one, two):
+    print one
+    print two
+    print stripped_string(one, spaces=True)
+    print stripped_string(two, spaces=True)
+    print stripped_string(one)
+    print stripped_string(two)
+    print ''.join(sorted(stripped_string(two), key=str.lower))
 
-    for t in tests:
-        print format_seconds(t)
-        print "format test: %s" % format_seconds(t)
+
+def stripped_string(text, spaces=False):
+    """
+    returns lower case string with all non alpha chars removed
+    """
+    if spaces:
+        return re.sub(r'[^a-zA-Z]', ' ', text).lower()
+    return re.sub(r'[^a-zA-Z]', '', text).lower()
+
+
+def convert_database_formats():
+    SOURCE_DB = 'data/tweetcache.db'
+    DEST_DB = 'data/tweets.db'
+    HITS_DB = 'data/hits.db'
+
+    import sqlite3 as lite
+    source = lite.connect(SOURCE_DB)
+    cursor = source.cursor()
+    cursor.execute("SELECT * FROM tweets")
+    tweets = cursor.fetchall()
+    origsize = len(tweets)
+    print('fetched %i tweets' % origsize)
+    tweets = [(i, h, t) for (i, h, t) in tweets if len(h) >= 12]
+    print('removed %i short tweets' % (origsize - len(tweets)))
+    origsize = len(tweets)
+    tweets = [(i, h, t) for (i, h, t) in tweets if len(set(h)) > 7]
+    print('removed %i low character tweets' % (origsize - len(tweets)))
+
+    cursor.execute("SELECT * FROM hits")
+    hits = cursor.fetchall()
+    source.close()
+
+    new_tweet_db = lite.connect(DEST_DB)
+    cursor = new_tweet_db.cursor()
+    cursor.execute("CREATE TABLE tweets(id integer, hash text, text text)")
+    cursor.executemany("INSERT INTO tweets VALUES (?, ?, ?)", tweets)
+    new_tweet_db.commit()
+    new_tweet_db.close()
+
+    hitsdb = lite.connect(HITS_DB)
+    cursor = hitsdb.cursor()
+    cursor.execute("""CREATE TABLE hits
+                (hit_id integer, hit_status text, one_id integer, two_id integer, one_text text, two_text text)""")
+    cursor.executemany("INSERT INTO hits VALUES (?, ?, ?, ?, ?, ?)", hits)
+    hitsdb.commit()
+
+
+    # load source; copy tweets/hits to new db;
+if __name__ == "__main__":
+    convert_database_formats()
