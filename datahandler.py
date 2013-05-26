@@ -257,18 +257,18 @@ class DataHandler(object):
         # should only be run with the just_the_hits flag
         if not self.just_the_hits:
             return
-        hits = self.get_all_hits()
-        print('db contains %i hits' % len(hits))
-        hits = [h for h in hits if h['status'] in [HIT_STATUS_REVIEW]]
-        print('recorded %i hits in need of review' % len(hits))
+        allhits = self.get_all_hits()
+        hits = [h for h in allhits if h['status'] in [HIT_STATUS_REVIEW]]
         for hit in hits:
             print(hit['tweet_one']['text'], hit['tweet_one']['id'])
             print(hit['tweet_two']['text'], hit['tweet_two']['id'])
+        print('db contains %i hits' % len(hits))
+        print('recorded %i hits in need of review' % len(hits))
+        # show hit and input prompt
         for hit in hits:
             print(hit['tweet_one']['id'], hit['tweet_two']['id']), hit['status']
             print(hit['tweet_one']['text'])
             print(hit['tweet_two']['text'])
-
             while 1:
                 inp = raw_input("(a)ccept, (r)eject, (s)kip, (i)llustrate, (q)uit:")
                 if inp == 'i':
