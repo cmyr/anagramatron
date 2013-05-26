@@ -3,9 +3,9 @@ from bottle import (Bottle, route, run, request, response, server_names,
                     ServerAdapter, abort)
 import datahandler
 
-CLIENT_ACTION_POST = 'post'
-CLIENT_ACTION_REJECT = 'reject'
-CLIENT_ACTION_APPROVE = 'approve'
+CLIENT_ACTION_POST = 'posted'
+CLIENT_ACTION_REJECT = 'rejected'
+CLIENT_ACTION_APPROVE = 'approved'
 
 # SSL subclass of bottle cribbed from:
 # http://dgtool.blogspot.com.au/2011/12/ssl-encryption-in-python-bottle.html
@@ -70,32 +70,43 @@ def get_hits():
     if not data:
         data = datahandler.DataHandler(just_the_hits=True)
     hits = data.get_all_hits()
+    print("returned %i hits" % len(hits))
     return {'hits': hits}
 
 
 @app.route('/mod')
 def modify_hit():
+    global data
+    if not data:
+        data = datahandler.DataHandler(just_the_hits=True)
     print(request)
     auth = request.get_header('Authorization')
     if not authenticate(auth):
         return
     hit_id = int(request.query.id)
-    action = str(request.query.act)
+    action = str(request.query.status)
     print(hit_id, action)
     if not hit_id or not action:
         abort(400, 'v0_0v')
     if action == CLIENT_ACTION_POST:
         # if data.post_hit(hit_id):
-        if True:
-            return {'response': 'pass'}
+        print('post requested')
+        if data.post_hit(hit_id):
+            return {'hit': data.get_hit(hit_id), 'response': True}
         else:
-            return {'response': 'fail'}
+            return {'hit': data.get_hit(hit_id), 'response': False}
     if action == CLIENT_ACTION_APPROVE:
-        # data.approve_hit(hit_id)
-        return {'response': 'pass'}
+        print('approve requested')
+        if data.approve_hit(hit_id):
+            return {'hit': data.get_hit(hit_id), 'response': True}
+        else:
+            return {'hit': data.get_hit(hit_id), 'response': False}
     if action == CLIENT_ACTION_REJECT:
-        # data.reject_hit(hit_id)
-        return {'response': 'pass'}
+        print('reject requested')
+        if data.reject_hit(hit_id):
+            return {'hit': data.get_hit(hit_id), 'response': True}
+        else:
+            return {'hit': data.get_hit(hit_id), 'response': False}
 
 
 
@@ -119,7 +130,7 @@ def modify_hit():
 #     return "success"
 
 
-run(app, host='localhost', port=8080, debug=True, server='sslbottle')
+run(app, host='0.0.0.0', port=8080, debug=True, server='sslbottle')
 
 # if __name__ == "__main__":
 #     print hit_for_id(1368809545607)
