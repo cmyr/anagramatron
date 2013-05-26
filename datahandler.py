@@ -262,7 +262,7 @@ class DataHandler(object):
         for hit in hits:
             print(hit['tweet_one']['text'], hit['tweet_one']['id'])
             print(hit['tweet_two']['text'], hit['tweet_two']['id'])
-        print('db contains %i hits' % len(hits))
+        print('db contains %i hits' % len(allhits))
         print('recorded %i hits in need of review' % len(hits))
         # show hit and input prompt
         for hit in hits:
