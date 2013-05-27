@@ -236,6 +236,7 @@ class DataHandler(object):
 
     def reject_hit(self, hit_id):
         self.set_hit_status(hit_id, HIT_STATUS_REJECTED)
+        return True
 
     def post_hit(self, hit_id):
         if self.twitterhandler.post_hit(self.get_hit(hit_id)):
@@ -247,6 +248,7 @@ class DataHandler(object):
 
     def approve_hit(self, hit_id):
         self.set_hit_status(hit_id, HIT_STATUS_APPROVED)
+        return True
 
     def review_hits(self):
         """
@@ -259,8 +261,8 @@ class DataHandler(object):
             return
         allhits = self.get_all_hits()
         hits = [h for h in allhits if h['status'] in [HIT_STATUS_REVIEW]]
-        for hit in hits:
-            print(hit['tweet_one']['text'], hit['tweet_one']['id'])
+        for hit in allhits:
+            print(hit['tweet_one']['text'], hit['tweet_one']['id'], hit['status'])
             print(hit['tweet_two']['text'], hit['tweet_two']['id'])
         print('db contains %i hits' % len(allhits))
         print('recorded %i hits in need of review' % len(hits))
