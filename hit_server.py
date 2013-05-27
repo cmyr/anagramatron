@@ -12,7 +12,7 @@ CLIENT_ACTION_APPROVE = 'approved'
 
 # Declaration of new class that inherits from ServerAdapter
 # It's almost equal to the supported cherrypy class CherryPyServer
-from serverauth import AUTH_TOKEN
+from serverauth import AUTH_TOKEN, TEST_PORT
 
 
 class MySSLCherryPy(ServerAdapter):
@@ -112,7 +112,7 @@ def modify_hit():
             return {'hit': data.get_hit(hit_id), 'response': False}
 
 
-run(app, host='0.0.0.0', debug=True, port=42512, server='sslbottle')
+run(app, host='0.0.0.0', debug=True, port=TEST_PORT, server='sslbottle')
 
 # if __name__ == "__main__":
 #     print hit_for_id(1368809545607)
