@@ -90,6 +90,8 @@ class StallWarningHandler(object):
             self.reconnecting = False
 
 
+SAVE_INTERVAL = (60*60) * 2 # two hours
+
 class Anagramer(object):
     """
     Anagramer hunts for anagrams on twitter.
@@ -101,6 +103,7 @@ class Anagramer(object):
         self.data = None  # wait until we get run call to load data
         self.stall_handler = StallWarningHandler(self)
         self.falling_behind = False
+        self.time_to_save = time.time() + SAVE_INTERVAL
 
     def run(self, source=None):
         """
@@ -221,7 +224,7 @@ class Anagramer(object):
         """
         called when a duplicate is found, & does difference checking
         """
-
+        self.check_save()
         hit_tweet = self.data.get(new_tweet['hash'])
         self.stats.possible_hits += 1
         if not hit_tweet:
@@ -298,6 +301,12 @@ class Anagramer(object):
         t_text = str(utils.stripped_string(text))
         t_hash = ''.join(sorted(t_text, key=str.lower))
         return t_hash
+
+    def check_save(self):
+        """check if it's time to save and save if necessary"""
+        if (time.time() > self.time_to_save):
+            self.data.write_cache()
+            self.time_to_save = time.time() + SAVE_INTERVAL
 
 # displaying data while we run:
     def update_console(self):

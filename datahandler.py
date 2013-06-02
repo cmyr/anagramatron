@@ -215,8 +215,8 @@ class DataHandler(object):
             cursor.execute("DELETE FROM tweets where id=:id",
                            {"id": t})
         self.data.commit()
-        cache_cursor.execute("DELETE FROM cache")
-        self.cache.commit()
+        # cache_cursor.execute("DELETE FROM cache")
+        # self.cache.commit()
         load_time = time.time() - load_time
         print('saved %i tweets to disk in %s' %
               (len(results), utils.format_seconds(load_time)))
