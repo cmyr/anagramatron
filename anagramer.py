@@ -10,7 +10,6 @@ from datahandler import DataHandler, HIT_STATUS_REVIEW
 from twitter.api import TwitterHTTPError
 import utils
 
-VERSION_NUMBER = 0.6
 LOG_FILE_NAME = 'data/anagramer.log'
 
 
@@ -99,7 +98,7 @@ class Anagramer(object):
     def __init__(self):
         self.twitter_handler = None
         self.stats = AnagramStats()
-        self.data = None  #wait until we get run call to load data
+        self.data = None  # wait until we get run call to load data
         self.stall_handler = StallWarningHandler(self)
         self.falling_behind = False
 
@@ -159,14 +158,16 @@ class Anagramer(object):
             self.stats.tweets_seen += 1
             self.stats.passed_filter += 1
             self.update_console()
+
         logging.debug('hits %g matches %g' % (self.stats.possible_hits, self.stats.hits))
+        self.data.finish()
 
     def filter_tweet(self, tweet):
         """
         filter out anagram-inappropriate tweets
         """
-        LOW_CHAR_CUTOFF = 10
-        MIN_UNIQUE_CHARS = 7
+        LOW_CHAR_CUTOFF = 12
+        MIN_UNIQUE_CHARS = 8    
         #check for mentions
         if len(tweet.get('entities').get('user_mentions')) is not 0:
             return False
@@ -335,6 +336,8 @@ def main():
         level=logging.DEBUG
     )
     anagramer = Anagramer()
+    # import cPickle as pickle
+    # return anagramer.run(source=pickle.load(open('testdata/archive2.p', 'r')))
     return anagramer.run()
 
 
