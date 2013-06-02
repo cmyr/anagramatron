@@ -2,6 +2,7 @@ from __future__ import print_function
 from bottle import (Bottle, route, run, request, response, server_names,
                     ServerAdapter, abort)
 import datahandler
+from serverauth import AUTH_TOKEN, TEST_PORT
 
 CLIENT_ACTION_POST = 'posted'
 CLIENT_ACTION_REJECT = 'rejected'
@@ -12,7 +13,7 @@ CLIENT_ACTION_APPROVE = 'approved'
 
 # Declaration of new class that inherits from ServerAdapter
 # It's almost equal to the supported cherrypy class CherryPyServer
-AUTH_TOKEN = "lemmein"
+# AUTH_TOKEN = "lemmein"
 
 class MySSLCherryPy(ServerAdapter):
     def run(self, handler):
@@ -130,7 +131,7 @@ def modify_hit():
 #     return "success"
 
 
-run(app, host='0.0.0.0', port=8080, debug=True, server='sslbottle')
+run(app, host='0.0.0.0', port=TEST_PORT, debug=True, server='sslbottle')
 
 # if __name__ == "__main__":
 #     print hit_for_id(1368809545607)
