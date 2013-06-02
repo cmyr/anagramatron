@@ -98,7 +98,7 @@ class Anagramer(object):
     def __init__(self):
         self.twitter_handler = None
         self.stats = AnagramStats()
-        self.data = None  #wait until we get run call to load data
+        self.data = None  # wait until we get run call to load data
         self.stall_handler = StallWarningHandler(self)
         self.falling_behind = False
 
@@ -167,7 +167,7 @@ class Anagramer(object):
         filter out anagram-inappropriate tweets
         """
         LOW_CHAR_CUTOFF = 12
-        MIN_UNIQUE_CHARS = 8
+        MIN_UNIQUE_CHARS = 8    
         #check for mentions
         if len(tweet.get('entities').get('user_mentions')) is not 0:
             return False
