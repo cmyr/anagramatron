@@ -12,7 +12,10 @@ CLIENT_ACTION_APPROVE = 'approved'
 
 # Declaration of new class that inherits from ServerAdapter
 # It's almost equal to the supported cherrypy class CherryPyServer
-AUTH_TOKEN = "lemmein"
+
+from serverauth import AUTH_TOKEN, TEST_PORT
+
+
 
 class MySSLCherryPy(ServerAdapter):
     def run(self, handler):
@@ -55,6 +58,7 @@ app = Bottle()
 def authenticate(auth):
     if auth == AUTH_TOKEN:
         return True
+    print('failed authentication')
     abort(401, '-_-')
 # actual bottle stuff
 
@@ -70,6 +74,7 @@ def get_hits():
     if not data:
         data = datahandler.DataHandler(just_the_hits=True)
     hits = data.get_all_hits()
+    hits = [h for h in hits if h['status'] not in [CLIENT_ACTION_POST, CLIENT_ACTION_REJECT]]
     print("returned %i hits" % len(hits))
     return {'hits': hits}
 
@@ -109,28 +114,7 @@ def modify_hit():
             return {'hit': data.get_hit(hit_id), 'response': False}
 
 
-
-
-
-# @app.route('/ok')
-# def retweet():
-#     auth = request.get_header('Authorization')
-#     if not authenticate(auth):
-#         return
-#     hit_id = int(request.query.id)
-#     hit = hit_for_id(hit_id)
-#     # return str(hit_id) + hit
-#     return "retweeted '%s' and '%s'" % (hit['tweet_one']['text'], hit['tweet_two']['text'])
-
-
-# @app.route('/del')
-# def delete():
-#     hit_id = int(request.query.id)
-#     data.remove_hit(hit_id)
-#     return "success"
-
-
-run(app, host='0.0.0.0', port=8080, debug=True, server='sslbottle')
+run(app, host='0.0.0.0', port=TEST_PORT, debug=True, server='sslbottle')
 
 # if __name__ == "__main__":
 #     print hit_for_id(1368809545607)
