@@ -28,13 +28,16 @@ class StreamHandler(object):
     def __init__(self, buffersize=2000):
         self.buffer = []
         self.buffersize = buffersize
-        self.stream = None
+        self.overflow = 0
+        self.activity_time = time.time()
 
     def __iter__(self):
         while 1:
             if (len(self.buffer)):
                 yield self.buffer.pop()
             else:
+                time.sleep(0.1)
+                print('hi')
                 continue
 
     def _run(self):
@@ -43,15 +46,27 @@ class StreamHandler(object):
                        ACCESS_SECRET,
                        CONSUMER_KEY,
                        CONSUMER_SECRET),
-            api_version='1.1')
+            api_version='1.1',
+            block=False)
 
         streamiter = stream.statuses.sample(language='en', stall_warnings='true')
         for tweet in streamiter:
-            if self.filter_tweet(tweet):
-                self.buffer.append(tweet)
+            self._handle_tweet(tweet)
+
+    def _handle_tweet(self, tweet):
+        if tweet == None:
+            # the stream will occassionally return None
+            return
+        if self.filter_tweet(tweet):
+            if len(self.buffer) > self.buffersize:
+                self.overflow += 1
+            else:
+               self.buffer.append(tweet)
 
     def start(self):
-        Thread(target=self._run).start()
+        athread = Thread(target=self._run)
+        athread.daemon = True
+        athread.start()
 
     def filter_tweet(self, tweet):
         """
@@ -229,5 +244,5 @@ if __name__ == "__main__":
     teststream = StreamHandler()
     teststream.start()
     for t in teststream:
-        print("buffer size = %i" % len(teststream.buffer), t)
-        time.sleep(1)
+        print("buffer size = %i" % len(teststream.buffer), t.get('text'))
+        # time.sleep(1)
