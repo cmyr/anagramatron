@@ -2,11 +2,15 @@ from __future__ import print_function
 
 import httplib
 import logging
+from threading import Thread
 
 from twitter.oauth import OAuth
 from twitter.stream import TwitterStream
 from twitter.api import Twitter, TwitterError
 import tumblpy
+
+import utils
+import time  # just for debug
 
 # my twitter OAuth key:
 from twittercreds import (CONSUMER_KEY, CONSUMER_SECRET,
@@ -14,6 +18,70 @@ from twittercreds import (CONSUMER_KEY, CONSUMER_SECRET,
 # my tumblr OAuth key:
 from tumblrcreds import (TUMBLR_KEY, TUMBLR_SECRET,
                          TOKEN_KEY, TOKEN_SECRET, TUMBLR_BLOG_URL)
+
+
+class StreamHandler(object):
+    """
+    handles twitter stream connections. Buffers incoming tweets and
+    acts as an iter.
+    """
+    def __init__(self, buffersize=2000):
+        self.buffer = []
+        self.buffersize = buffersize
+        self.stream = None
+
+    def __iter__(self):
+        while 1:
+            if (len(self.buffer)):
+                yield self.buffer.pop()
+            else:
+                continue
+
+    def _run(self):
+        stream = TwitterStream(
+            auth=OAuth(ACCESS_KEY,
+                       ACCESS_SECRET,
+                       CONSUMER_KEY,
+                       CONSUMER_SECRET),
+            api_version='1.1')
+
+        streamiter = stream.statuses.sample(language='en', stall_warnings='true')
+        for tweet in streamiter:
+            if self.filter_tweet(tweet):
+                self.buffer.append(tweet)
+
+    def start(self):
+        Thread(target=self._run).start()
+
+    def filter_tweet(self, tweet):
+        """
+        filter out anagram-inappropriate tweets
+        """
+        LOW_CHAR_CUTOFF = 12
+        MIN_UNIQUE_CHARS = 8
+        #check for mentions
+        if len(tweet.get('entities').get('user_mentions')) is not 0:
+            return False
+        #check for retweets
+        if tweet.get('retweeted_status'):
+            return False
+        # ignore tweets w/ non-ascii characters
+        try:
+            tweet['text'].decode('ascii')
+        except UnicodeEncodeError:
+            return False
+        # check for links:
+        if len(tweet.get('entities').get('urls')) is not 0:
+            return False
+        # ignore short tweets
+        t = utils.stripped_string(tweet['text'])
+        if len(t) <= LOW_CHAR_CUTOFF:
+            return False
+        # ignore tweets with few characters
+        st = set(t)
+        if len(st) < MIN_UNIQUE_CHARS:
+            return False
+        return True
 
 
 class TwitterHandler(object):
@@ -157,8 +225,9 @@ class TwitterHandler(object):
         return True
 
 
-def main():
-    pass
-
 if __name__ == "__main__":
-    main()
+    teststream = StreamHandler()
+    teststream.start()
+    for t in teststream:
+        print("buffer size = %i" % len(teststream.buffer), t)
+        time.sleep(1)
