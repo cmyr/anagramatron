@@ -25,11 +25,10 @@ class StreamHandler(object):
     handles twitter stream connections. Buffers incoming tweets and
     acts as an iter.
     """
-    def __init__(self, buffersize=2000):
+    def __init__(self, buffersize=2000, timeout=30):
         self.buffer = []
         self.buffersize = buffersize
         self.overflow = 0
-        self.activity_time = time.time()
 
     def __iter__(self):
         while 1:
