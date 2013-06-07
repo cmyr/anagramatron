@@ -189,7 +189,7 @@ class DataHandler(object):
         self.cache.commit()
         # now get max ID (but only if we have anything in the cache):
         if results:
-            cache_cursor.execute("SELECT id from cache")
+            cache_cursor.execute("SELECT id from tweets")
             ids = cache_cursor.fetchall()
             self.highest_loaded_id = max(ids)[0]
             print("found highest id: %i from %i ids" % (self.highest_loaded_id, len(ids)))
