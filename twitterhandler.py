@@ -4,7 +4,7 @@ import httplib
 import logging
 from threading import Thread
 from ssl import SSLError
-import socket.error
+from socket import error as SocketError
 from twitter.oauth import OAuth
 from twitter.stream import TwitterStream
 from twitter.api import Twitter, TwitterError, TwitterHTTPError
@@ -26,6 +26,7 @@ from tumblrcreds import (TUMBLR_KEY, TUMBLR_SECRET,
 #     """
 #     pass
 
+
 class StreamHandler(object):
     """
     handles twitter stream connections. Buffers incoming tweets and
@@ -39,32 +40,35 @@ class StreamHandler(object):
         self.active_time = None
         self.stream_thread = None
 
+        self.tweets_seen = 0
+        self.passed_filter = 0
+
     def __iter__(self):
         # I think we really want to handle all our various errors and reconection scenarios here
-        while 1:
-            try:
-                if (len(self.buffer)):
-                    yield self.buffer.pop()
-                else:
-                    time.sleep(0.1)
-                    if (self.active_time and time.time() - self.active_time > self.timeout):
-                        # we've timed out, so try to reconnect
-                        print('stream idle, reconnecting')
-                        self.active_time = time.time()
-                        self.start()
-                    print('hi')
-            except SSLError as err:
-                print(err)
-                logging.error(err)
-            except TwitterHTTPError as err:
-                print(err)
-                logging.error(err)
-            except socket.error as err:
-                print(err)
-                logging.error(err)
-            finally:
-                print("\nstream handler closing with overflow %i from buffer size %i" %
-                      (self.overflow, self.buffersize))
+        try:
+            while 1:
+                try:
+                    if (len(self.buffer)):
+                        yield self.buffer.pop()
+                    else:
+                        time.sleep(0.1)
+                        if (self.active_time and time.time() - self.active_time > self.timeout):
+                            # we've timed out, so try to reconnect
+                            print('stream idle, reconnecting')
+                            self.active_time = time.time()
+                            self.start()
+                except SSLError as err:
+                    print(err)
+                    logging.error(err)
+                except TwitterHTTPError as err:
+                    print(err)
+                    logging.error(err)
+                except SocketError as err:
+                    print(err)
+                    logging.error(err)
+        finally:
+            print("\nstream handler closing with overflow %i from buffer size %i" %
+                  (self.overflow, self.buffersize))
 
     def _run(self):
         stream = TwitterStream(
@@ -83,8 +87,10 @@ class StreamHandler(object):
         if tweet is None:
             # the stream will occassionally return None
             return
+        self.tweets_seen += 1
         self.active_time = time.time()
         if self.filter_tweet(tweet):
+            self.passed_filter += 1
             if len(self.buffer) > self.buffersize:
                 self.overflow += 1
             else:

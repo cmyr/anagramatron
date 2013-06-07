@@ -5,7 +5,7 @@ import re
 import time
 import logging
 
-from twitterhandler import TwitterHandler
+from twitterhandler import TwitterHandler, StreamHandler
 from datahandler import DataHandler, HIT_STATUS_REVIEW
 from twitter.api import TwitterHTTPError
 import utils
@@ -98,7 +98,8 @@ class Anagramer(object):
     """
 
     def __init__(self):
-        self.twitter_handler = None
+        self.twitter_handler = TwitterHandler()
+        self.stream_handler = StreamHandler()
         self.stats = AnagramStats()
         self.data = None  # wait until we get run call to load data
         self.stall_handler = StallWarningHandler(self)
@@ -114,13 +115,12 @@ class Anagramer(object):
             while 1:
                 try:
                     logging.info('entering run loop')
-                    self.twitter_handler = TwitterHandler()
                     self.start_stream()
                 except KeyboardInterrupt:
                     break
-                except TwitterHTTPError as e:
-                    print('\n', e)
-                    # handle errors probably?
+                # except TwitterHTTPError as e:
+                #     print('\n', e)
+                #     # handle errors probably?
                 finally:
                     logging.debug('closed with %i tweets in stall handler'
                                   % len(self.stall_handler.skipped_tweets))
@@ -134,8 +134,8 @@ class Anagramer(object):
         main run loop
         """
         self.stats.start_time = time.time()
-        stream_iterator = self.twitter_handler.stream_iter()
-        for tweet in stream_iterator:
+        self.stream_handler.start()
+        for tweet in self.stream_handler:
             if tweet.get('warning'):
                 print('\n', tweet)
                 logging.warning(tweet)
@@ -143,12 +143,12 @@ class Anagramer(object):
             if self.falling_behind:
                 self.stall_handler.skipped(tweet)
                 continue
-            if tweet.get('text'):
-                self.stats.tweets_seen += 1
-                if self.filter_tweet(tweet):
-                    self.stats.passed_filter += 1
-                    self.update_console()
-                    self.process_input(self.format_tweet(tweet))
+            # if tweet.get('text'):
+            #     self.stats.tweets_seen += 1
+            #     if self.filter_tweet(tweet):
+            #         self.stats.passed_filter += 1
+            self.update_console()
+            self.process_input(self.format_tweet(tweet))
 
     def run_with_data(self, data):
         """
@@ -316,15 +316,16 @@ class Anagramer(object):
         # what all do we want to have, here? let's blueprint:
         # tweets seen: $IN_HAS_TEXT passed filter: $PASSED_F% Hits: $HITS
         seen_percent = int(100*(float(
-            self.stats.passed_filter)/self.stats.tweets_seen))
+            self.stream_handler.passed_filter)/self.stream_handler.tweets_seen))
         runtime = time.time()-self.stats.start_time
 
         status = (
-            'tweets seen: ' + str(self.stats.tweets_seen) +
-            " passed filter: " + str(self.stats.passed_filter) +
+            'tweets seen: ' + str(self.stream_handler.tweets_seen) +
+            " passed filter: " + str(self.stream_handler.passed_filter) +
             " ({0}%)".format(seen_percent) +
             " hits " + str(self.stats.possible_hits) +
             " agrams: " + str(self.stats.hits) +
+            " buffer: " + str(len(self.stream_handler.buffer)) +
             " runtime: " + utils.format_seconds(runtime)
         )
         sys.stdout.write(status + '\r')
