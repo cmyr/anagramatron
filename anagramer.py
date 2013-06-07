@@ -321,7 +321,7 @@ class Anagramer(object):
             " ({0}%)".format(seen_percent) +
             " hits " + str(self.stats.possible_hits) +
             " agrams: " + str(self.stats.hits) +
-            " buffer: " + str(self.stream_handler.buffersize()) +
+            " buffer: " + str(self.stream_handler.bufferlength()) +
             " runtime: " + utils.format_seconds(runtime)
         )
         sys.stdout.write(status + '\r')

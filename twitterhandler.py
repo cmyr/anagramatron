@@ -93,11 +93,11 @@ class StreamHandler(object):
         if self.filter_tweet(tweet):
             self.passed_filter += 1
             try:
-                self.Queue.put(format_tweet(tweet))
+                self.Queue.put(self.format_tweet(tweet))
             except Queue.Full:
                 self.overflow += 1
 
-    def buffersize(self):
+    def bufferlength(self):
         return self.Queue.qsize()
 
     def start(self):
