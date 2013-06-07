@@ -87,11 +87,22 @@ class StreamHandler(object):
                     break
                 self._handle_tweet(tweet)
 
-    def start(self):
+    def _run_with_data(self, data):
+        for tweet in data:
+            self._handle_tweet(tweet)
+
+    def start(self, source=None):
         """
         creates a new thread and starts a streaming connection.
         If a thread already exists, it is terminated.
         """
+        if source:
+            #  this means we're running with debug tweets
+            print('running tests with %i tweets' % len(source))
+            self.stream_thread = threading.Thread(target=self._run_with_data(source))
+            self.stream_thread.daemon = True
+            self.stream_thread.start()
+
         print('creating new server connection')
         if self.stream_thread is not None:
             print('terminating existing thread')

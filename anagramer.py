@@ -151,12 +151,13 @@ class Anagramer(object):
         uses a supplied data source instead of a twitter connection (debug)
         """
         self.stats.start_time = time.time()
-        for tweet in data:
-            self.process_input(tweet)
-            # time.sleep(0.0001)
-            self.stats.tweets_seen += 1
-            self.stats.passed_filter += 1
-            self.update_console()
+        self.stream_handler.start(source=data)
+        # for tweet in data:
+        #     self.process_input(tweet)
+        #     # time.sleep(0.0001)
+        #     self.stats.tweets_seen += 1
+        #     self.stats.passed_filter += 1
+        #     self.update_console()
 
         logging.debug('hits %g matches %g' % (self.stats.possible_hits, self.stats.hits))
         self.data.finish()
