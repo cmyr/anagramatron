@@ -1,13 +1,13 @@
 from __future__ import print_function
 
 import sys
-import re
+# import re
 import time
 import logging
 
 from twitterhandler import TwitterHandler, StreamHandler
 from datahandler import DataHandler, HIT_STATUS_REVIEW
-from twitter.api import TwitterHTTPError
+# from twitter.api import TwitterHTTPError
 import utils
 
 LOG_FILE_NAME = 'data/anagramer.log'
@@ -90,7 +90,6 @@ class StallWarningHandler(object):
             self.reconnecting = False
 
 
-
 class Anagramer(object):
     """
     Anagramer hunts for anagrams on twitter.
@@ -103,7 +102,7 @@ class Anagramer(object):
         self.data = None  # wait until we get run call to load data
         self.stall_handler = StallWarningHandler(self)
         self.falling_behind = False
-        self.save_interval = (60*60) * 2 
+        self.save_interval = (60*60) * 2
         self.time_to_save = time.time() + self.save_interval
 
     def run(self, source=None):
