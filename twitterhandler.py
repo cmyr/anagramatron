@@ -25,10 +25,13 @@ class StreamHandler(object):
     handles twitter stream connections. Buffers incoming tweets and
     acts as an iter.
     """
-    def __init__(self, buffersize=2000, timeout=30):
+    def __init__(self, buffersize=10000, timeout=30):
         self.buffer = []
         self.buffersize = buffersize
         self.overflow = 0
+        self.timeout = timeout
+        self.active_time = None
+        self.stream_thread = None
 
     def __iter__(self):
         while 1:
@@ -36,8 +39,13 @@ class StreamHandler(object):
                 yield self.buffer.pop()
             else:
                 time.sleep(0.1)
+                if (self.active_time and time.time() - self.active_time > self.timeout):
+                    # we've timed out, so try to reconnect
+                    print('stream idle, reconnecting')
+                    self.active_time = time.time()
+                    self.start()
+
                 print('hi')
-                continue
 
     def _run(self):
         stream = TwitterStream(
@@ -53,19 +61,20 @@ class StreamHandler(object):
             self._handle_tweet(tweet)
 
     def _handle_tweet(self, tweet):
-        if tweet == None:
+        if tweet is None:
             # the stream will occassionally return None
             return
+        self.active_time = time.time()
         if self.filter_tweet(tweet):
             if len(self.buffer) > self.buffersize:
                 self.overflow += 1
             else:
-               self.buffer.append(tweet)
+                self.buffer.append(tweet)
 
     def start(self):
-        athread = Thread(target=self._run)
-        athread.daemon = True
-        athread.start()
+        self.stream_thread = Thread(target=self._run)
+        self.stream_thread.daemon = True
+        self.stream_thread.start()
 
     def filter_tweet(self, tweet):
         """
@@ -244,4 +253,3 @@ if __name__ == "__main__":
     teststream.start()
     for t in teststream:
         print("buffer size = %i" % len(teststream.buffer), t.get('text'))
-        # time.sleep(1)
