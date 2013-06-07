@@ -85,7 +85,8 @@ class StreamHandler(object):
             if tweet is not None:
                 if self._stop_thread.is_set():
                     break
-                self._handle_tweet(tweet)
+                if tweet.get('text'):
+                    self._handle_tweet(tweet)
 
     def _run_with_data(self, data):
         for tweet in data:
