@@ -220,7 +220,7 @@ class Anagramer(object):
         """
         called when a duplicate is found, & does difference checking
         """
-        self.check_save()
+        # self.check_save()
         hit_tweet = self.data.get(new_tweet['hash'])
         self.stats.possible_hits += 1
         if not hit_tweet:
