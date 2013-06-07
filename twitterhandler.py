@@ -3,10 +3,11 @@ from __future__ import print_function
 import httplib
 import logging
 from threading import Thread
-
+from ssl import SSLError
+import socket.error
 from twitter.oauth import OAuth
 from twitter.stream import TwitterStream
-from twitter.api import Twitter, TwitterError
+from twitter.api import Twitter, TwitterError, TwitterHTTPError
 import tumblpy
 
 import utils
@@ -19,6 +20,11 @@ from twittercreds import (CONSUMER_KEY, CONSUMER_SECRET,
 from tumblrcreds import (TUMBLR_KEY, TUMBLR_SECRET,
                          TOKEN_KEY, TOKEN_SECRET, TUMBLR_BLOG_URL)
 
+# class StreamConnectionError(Exception):
+#     """
+#     Base Exception thrown when the stream is closed for some reason
+#     """
+#     pass
 
 class StreamHandler(object):
     """
@@ -34,18 +40,31 @@ class StreamHandler(object):
         self.stream_thread = None
 
     def __iter__(self):
+        # I think we really want to handle all our various errors and reconection scenarios here
         while 1:
-            if (len(self.buffer)):
-                yield self.buffer.pop()
-            else:
-                time.sleep(0.1)
-                if (self.active_time and time.time() - self.active_time > self.timeout):
-                    # we've timed out, so try to reconnect
-                    print('stream idle, reconnecting')
-                    self.active_time = time.time()
-                    self.start()
-
-                print('hi')
+            try:
+                if (len(self.buffer)):
+                    yield self.buffer.pop()
+                else:
+                    time.sleep(0.1)
+                    if (self.active_time and time.time() - self.active_time > self.timeout):
+                        # we've timed out, so try to reconnect
+                        print('stream idle, reconnecting')
+                        self.active_time = time.time()
+                        self.start()
+                    print('hi')
+            except SSLError as err:
+                print(err)
+                logging.error(err)
+            except TwitterHTTPError as err:
+                print(err)
+                logging.error(err)
+            except socket.error as err:
+                print(err)
+                logging.error(err)
+            finally:
+                print("\nstream handler closing with overflow %i from buffer size %i" %
+                      (self.overflow, self.buffersize))
 
     def _run(self):
         stream = TwitterStream(
