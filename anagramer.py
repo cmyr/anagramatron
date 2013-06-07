@@ -10,7 +10,6 @@ from datahandler import DataHandler, HIT_STATUS_REVIEW
 from twitter.api import TwitterHTTPError
 import utils
 
-VERSION_NUMBER = 0.6
 LOG_FILE_NAME = 'data/anagramer.log'
 
 
@@ -91,6 +90,8 @@ class StallWarningHandler(object):
             self.reconnecting = False
 
 
+SAVE_INTERVAL = (60*60) * 2 # two hours
+
 class Anagramer(object):
     """
     Anagramer hunts for anagrams on twitter.
@@ -99,9 +100,10 @@ class Anagramer(object):
     def __init__(self):
         self.twitter_handler = None
         self.stats = AnagramStats()
-        self.data = None  #wait until we get run call to load data
+        self.data = None  # wait until we get run call to load data
         self.stall_handler = StallWarningHandler(self)
         self.falling_behind = False
+        self.time_to_save = time.time() + SAVE_INTERVAL
 
     def run(self, source=None):
         """
@@ -159,14 +161,16 @@ class Anagramer(object):
             self.stats.tweets_seen += 1
             self.stats.passed_filter += 1
             self.update_console()
+
         logging.debug('hits %g matches %g' % (self.stats.possible_hits, self.stats.hits))
+        self.data.finish()
 
     def filter_tweet(self, tweet):
         """
         filter out anagram-inappropriate tweets
         """
-        LOW_CHAR_CUTOFF = 10
-        MIN_UNIQUE_CHARS = 7
+        LOW_CHAR_CUTOFF = 12
+        MIN_UNIQUE_CHARS = 8
         #check for mentions
         if len(tweet.get('entities').get('user_mentions')) is not 0:
             return False
@@ -220,7 +224,7 @@ class Anagramer(object):
         """
         called when a duplicate is found, & does difference checking
         """
-
+        self.check_save()
         hit_tweet = self.data.get(new_tweet['hash'])
         self.stats.possible_hits += 1
         if not hit_tweet:
@@ -298,6 +302,12 @@ class Anagramer(object):
         t_hash = ''.join(sorted(t_text, key=str.lower))
         return t_hash
 
+    def check_save(self):
+        """check if it's time to save and save if necessary"""
+        if (time.time() > self.time_to_save):
+            self.data.write_cache()
+            self.time_to_save = time.time() + SAVE_INTERVAL
+
 # displaying data while we run:
     def update_console(self):
         """
@@ -335,6 +345,8 @@ def main():
         level=logging.DEBUG
     )
     anagramer = Anagramer()
+    # import cPickle as pickle
+    # return anagramer.run(source=pickle.load(open('testdata/archive2.p', 'r')))
     return anagramer.run()
 
 
