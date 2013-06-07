@@ -2,7 +2,7 @@ from __future__ import print_function
 
 import httplib
 import logging
-from threading import Thread
+import threading
 import Queue
 from ssl import SSLError
 from socket import error as SocketError
@@ -22,12 +22,6 @@ from twittercreds import (CONSUMER_KEY, CONSUMER_SECRET,
 from tumblrcreds import (TUMBLR_KEY, TUMBLR_SECRET,
                          TOKEN_KEY, TOKEN_SECRET, TUMBLR_BLOG_URL)
 
-# class StreamConnectionError(Exception):
-#     """
-#     Base Exception thrown when the stream is closed for some reason
-#     """
-#     pass
-
 
 class StreamHandler(object):
     """
@@ -41,6 +35,8 @@ class StreamHandler(object):
         self.active_time = None
         self.stream_thread = None
         self.Queue = Queue.Queue(maxsize=buffersize)
+        self._should_terminate = False
+        self._stop_thread = threading.Event()
         self._iter = self.__iter__()
 
         self.tweets_seen = 0
@@ -48,27 +44,29 @@ class StreamHandler(object):
 
     def __iter__(self):
         # I think we really want to handle all our various errors and reconection scenarios here
-        try:
-            while 1:
-                try:
-                    yield self.Queue.get(True, self.timeout)
-                    self.Queue.task_done()
-                    continue
-                except Queue.Empty:
-                    # means we've timed out, and should try to reconnect
-                    self.start()
-                except SSLError as err:
-                    print(err)
-                    logging.error(err)
-                except TwitterHTTPError as err:
-                    print(err)
-                    logging.error(err)
-                except SocketError as err:
-                    print(err)
-                    logging.error(err)
-        finally:
-            print("\nstream handler closing with overflow %i from buffer size %i" %
-                  (self.overflow, self.buffersize))
+
+        while 1:
+            try:
+                if self._should_terminate:
+                    break
+                yield self.Queue.get(True, self.timeout)
+                self.Queue.task_done()
+                continue
+            except Queue.Empty:
+                if (self._stop_thread.is_set()):
+                    break
+                print('queue timeout, restarting thread')
+                # means we've timed out, and should try to reconnect
+                self.start()
+            except SSLError as err:
+                print(err)
+                logging.error(err)
+            except TwitterHTTPError as err:
+                print(err)
+                logging.error(err)
+            except SocketError as err:
+                print(err)
+                logging.error(err)
 
     def next(self):
         return self._iter.next()
@@ -85,7 +83,38 @@ class StreamHandler(object):
         streamiter = stream.statuses.sample(language='en', stall_warnings='true')
         for tweet in streamiter:
             if tweet is not None:
+                if self._stop_thread.is_set():
+                    break
                 self._handle_tweet(tweet)
+
+    def start(self):
+        """
+        creates a new thread and starts a streaming connection.
+        If a thread already exists, it is terminated.
+        """
+        print('creating new server connection')
+        if self.stream_thread is not None:
+            print('terminating existing thread')
+            self._stop_thread.set()
+            self.stream_thread.join(5.0)
+            if self.stream_thread.isAlive():
+                print('termination of existing connection thread failed')
+            else:
+                print('existing thread terminated succesfully')
+        self._stop_thread.clear()
+        self.stream_thread = threading.Thread(target=self._run)
+        self.stream_thread.daemon = True
+        self.stream_thread.start()
+        print('created thread %i' % self.stream_thread.ident)
+
+    def close(self):
+        """
+        terminates existing connection and returns
+        """
+        # self._stop_thread.set()
+        self._should_terminate = True
+        print("\nstream handler closing with overflow %i from buffer size %i" %
+              (self.overflow, self.buffersize))
 
     def _handle_tweet(self, tweet):
         self.tweets_seen += 1
@@ -99,12 +128,6 @@ class StreamHandler(object):
 
     def bufferlength(self):
         return self.Queue.qsize()
-
-    def start(self):
-        self.stream_thread = Thread(target=self._run)
-        self.stream_thread.daemon = True
-        self.stream_thread.start()
-        print('created thread %i' % self.stream_thread.ident)
 
     def filter_tweet(self, tweet):
         """
@@ -310,6 +333,10 @@ if __name__ == "__main__":
 
     teststream = StreamHandler()
     teststream.start()
+    count = 1
     for t in teststream:
-        print("buffer size = %i" % teststream.Queue.qsize(), t.get('text'))
+        print(count, "buffer size = %i" % teststream.Queue.qsize(), t.get('text'))
+        if count > 10:
+            teststream.close()
+        count +=1
         # pass

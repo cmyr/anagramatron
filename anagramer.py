@@ -90,12 +90,12 @@ class StallWarningHandler(object):
             self.reconnecting = False
 
 
-SAVE_INTERVAL = (60*60) * 2 # two hours
 
 class Anagramer(object):
     """
     Anagramer hunts for anagrams on twitter.
     """
+    SAVE_INTERVAL = (60*60) * 2  # two hours
 
     def __init__(self):
         self.twitter_handler = TwitterHandler()
@@ -125,6 +125,7 @@ class Anagramer(object):
                     logging.debug('closed with %i tweets in stall handler'
                                   % len(self.stall_handler.skipped_tweets))
                     self.data.finish()
+                    self.stream_handler.close()
         else:
             # means we're running from local data
             self.run_with_data(source)
