@@ -95,7 +95,6 @@ class Anagramer(object):
     """
     Anagramer hunts for anagrams on twitter.
     """
-    SAVE_INTERVAL = (60*60) * 2  # two hours
 
     def __init__(self):
         self.twitter_handler = TwitterHandler()
@@ -104,7 +103,8 @@ class Anagramer(object):
         self.data = None  # wait until we get run call to load data
         self.stall_handler = StallWarningHandler(self)
         self.falling_behind = False
-        self.time_to_save = time.time() + SAVE_INTERVAL
+        self.save_interval = (60*60) * 2 
+        self.time_to_save = time.time() + self.save_interval
 
     def run(self, source=None):
         """
@@ -303,7 +303,7 @@ class Anagramer(object):
         """check if it's time to save and save if necessary"""
         if (time.time() > self.time_to_save):
             self.data.write_cache()
-            self.time_to_save = time.time() + SAVE_INTERVAL
+            self.time_to_save = time.time() + self.save_interval
 
 # displaying data while we run:
     def update_console(self):
