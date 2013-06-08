@@ -162,52 +162,6 @@ class Anagramer(object):
         logging.debug('hits %g matches %g' % (self.stats.possible_hits, self.stats.hits))
         self.data.finish()
 
-    # def filter_tweet(self, tweet):
-    #     """
-    #     filter out anagram-inappropriate tweets
-    #     """
-    #     LOW_CHAR_CUTOFF = 12
-    #     MIN_UNIQUE_CHARS = 8
-    #     #check for mentions
-    #     if len(tweet.get('entities').get('user_mentions')) is not 0:
-    #         return False
-    #     #check for retweets
-    #     if tweet.get('retweeted_status'):
-    #         return False
-    #     # ignore tweets w/ non-ascii characters
-    #     try:
-    #         tweet['text'].decode('ascii')
-    #     except UnicodeEncodeError:
-    #         return False
-    #     # check for links:
-    #     if len(tweet.get('entities').get('urls')) is not 0:
-    #         return False
-    #     # ignore short tweets
-    #     t = utils.stripped_string(tweet['text'])
-    #     if len(t) <= LOW_CHAR_CUTOFF:
-    #         return False
-    #     # ignore tweets with few characters
-    #     st = set(t)
-    #     if len(st) < MIN_UNIQUE_CHARS:
-    #         return False
-    #     return True
-
-    # def format_tweet(self, tweet):
-    #     """
-    #     makes a dict from the JSON properties we need
-    #     """
-
-    #     tweet_id = long(tweet['id_str'])
-    #     tweet_hash = self.make_hash(tweet['text'])
-    #     tweet_text = str(tweet['text'])
-    #     hashed_tweet = {
-    #         'id': tweet_id,
-    #         'hash': tweet_hash,
-    #         'text': tweet_text,
-    #     }
-    #     return hashed_tweet
-        # uniqueness checking:
-
     def process_input(self, hashed_tweet):
         if self.data.contains(hashed_tweet['hash']):
             self.process_hit(hashed_tweet)
@@ -289,15 +243,6 @@ class Anagramer(object):
             return True
         else:
             return False
-
-    # def make_hash(self, text):
-    #     """
-    #     takes a tweet as input. returns a character-unique hash
-    #     from the tweet's text.
-    #     """
-    #     t_text = str(utils.stripped_string(text))
-    #     t_hash = ''.join(sorted(t_text, key=str.lower))
-    #     return t_hash
 
     def check_save(self):
         """check if it's time to save and save if necessary"""
