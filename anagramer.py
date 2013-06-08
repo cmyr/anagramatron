@@ -1,13 +1,13 @@
 from __future__ import print_function
 
 import sys
-import re
+# import re
 import time
 import logging
 
-from twitterhandler import TwitterHandler
+from twitterhandler import TwitterHandler, StreamHandler
 from datahandler import DataHandler, HIT_STATUS_REVIEW
-from twitter.api import TwitterHTTPError
+# from twitter.api import TwitterHTTPError
 import utils
 
 LOG_FILE_NAME = 'data/anagramer.log'
@@ -90,20 +90,20 @@ class StallWarningHandler(object):
             self.reconnecting = False
 
 
-SAVE_INTERVAL = (60*60) * 2 # two hours
-
 class Anagramer(object):
     """
     Anagramer hunts for anagrams on twitter.
     """
 
     def __init__(self):
-        self.twitter_handler = None
+        self.twitter_handler = TwitterHandler()
+        self.stream_handler = StreamHandler()
         self.stats = AnagramStats()
         self.data = None  # wait until we get run call to load data
         self.stall_handler = StallWarningHandler(self)
         self.falling_behind = False
-        self.time_to_save = time.time() + SAVE_INTERVAL
+        self.save_interval = (60*60) * 2
+        self.time_to_save = time.time() + self.save_interval
 
     def run(self, source=None):
         """
@@ -114,17 +114,17 @@ class Anagramer(object):
             while 1:
                 try:
                     logging.info('entering run loop')
-                    self.twitter_handler = TwitterHandler()
                     self.start_stream()
                 except KeyboardInterrupt:
                     break
-                except TwitterHTTPError as e:
-                    print('\n', e)
-                    # handle errors probably?
+                # except TwitterHTTPError as e:
+                #     print('\n', e)
+                #     # handle errors probably?
                 finally:
                     logging.debug('closed with %i tweets in stall handler'
                                   % len(self.stall_handler.skipped_tweets))
                     self.data.finish()
+                    self.stream_handler.close()
         else:
             # means we're running from local data
             self.run_with_data(source)
@@ -134,8 +134,8 @@ class Anagramer(object):
         main run loop
         """
         self.stats.start_time = time.time()
-        stream_iterator = self.twitter_handler.stream_iter()
-        for tweet in stream_iterator:
+        self.stream_handler.start()
+        for tweet in self.stream_handler:
             if tweet.get('warning'):
                 print('\n', tweet)
                 logging.warning(tweet)
@@ -143,72 +143,69 @@ class Anagramer(object):
             if self.falling_behind:
                 self.stall_handler.skipped(tweet)
                 continue
-            if tweet.get('text'):
-                self.stats.tweets_seen += 1
-                if self.filter_tweet(tweet):
-                    self.stats.passed_filter += 1
-                    self.update_console()
-                    self.process_input(self.format_tweet(tweet))
+            self.update_console()
+            self.process_input(tweet)
 
     def run_with_data(self, data):
         """
         uses a supplied data source instead of a twitter connection (debug)
         """
         self.stats.start_time = time.time()
-        for tweet in data:
-            self.process_input(tweet)
-            # time.sleep(0.0001)
-            self.stats.tweets_seen += 1
-            self.stats.passed_filter += 1
-            self.update_console()
+        self.stream_handler.start(source=data)
+        # for tweet in data:
+        #     self.process_input(tweet)
+        #     # time.sleep(0.0001)
+        #     self.stats.tweets_seen += 1
+        #     self.stats.passed_filter += 1
+        #     self.update_console()
 
         logging.debug('hits %g matches %g' % (self.stats.possible_hits, self.stats.hits))
         self.data.finish()
 
-    def filter_tweet(self, tweet):
-        """
-        filter out anagram-inappropriate tweets
-        """
-        LOW_CHAR_CUTOFF = 12
-        MIN_UNIQUE_CHARS = 8
-        #check for mentions
-        if len(tweet.get('entities').get('user_mentions')) is not 0:
-            return False
-        #check for retweets
-        if tweet.get('retweeted_status'):
-            return False
-        # ignore tweets w/ non-ascii characters
-        try:
-            tweet['text'].decode('ascii')
-        except UnicodeEncodeError:
-            return False
-        # check for links:
-        if len(tweet.get('entities').get('urls')) is not 0:
-            return False
-        # ignore short tweets
-        t = utils.stripped_string(tweet['text'])
-        if len(t) <= LOW_CHAR_CUTOFF:
-            return False
-        # ignore tweets with few characters
-        st = set(t)
-        if len(st) < MIN_UNIQUE_CHARS:
-            return False
-        return True
+    # def filter_tweet(self, tweet):
+    #     """
+    #     filter out anagram-inappropriate tweets
+    #     """
+    #     LOW_CHAR_CUTOFF = 12
+    #     MIN_UNIQUE_CHARS = 8
+    #     #check for mentions
+    #     if len(tweet.get('entities').get('user_mentions')) is not 0:
+    #         return False
+    #     #check for retweets
+    #     if tweet.get('retweeted_status'):
+    #         return False
+    #     # ignore tweets w/ non-ascii characters
+    #     try:
+    #         tweet['text'].decode('ascii')
+    #     except UnicodeEncodeError:
+    #         return False
+    #     # check for links:
+    #     if len(tweet.get('entities').get('urls')) is not 0:
+    #         return False
+    #     # ignore short tweets
+    #     t = utils.stripped_string(tweet['text'])
+    #     if len(t) <= LOW_CHAR_CUTOFF:
+    #         return False
+    #     # ignore tweets with few characters
+    #     st = set(t)
+    #     if len(st) < MIN_UNIQUE_CHARS:
+    #         return False
+    #     return True
 
-    def format_tweet(self, tweet):
-        """
-        makes a dict from the JSON properties we need
-        """
+    # def format_tweet(self, tweet):
+    #     """
+    #     makes a dict from the JSON properties we need
+    #     """
 
-        tweet_id = long(tweet['id_str'])
-        tweet_hash = self.make_hash(tweet['text'])
-        tweet_text = str(tweet['text'])
-        hashed_tweet = {
-            'id': tweet_id,
-            'hash': tweet_hash,
-            'text': tweet_text,
-        }
-        return hashed_tweet
+    #     tweet_id = long(tweet['id_str'])
+    #     tweet_hash = self.make_hash(tweet['text'])
+    #     tweet_text = str(tweet['text'])
+    #     hashed_tweet = {
+    #         'id': tweet_id,
+    #         'hash': tweet_hash,
+    #         'text': tweet_text,
+    #     }
+    #     return hashed_tweet
         # uniqueness checking:
 
     def process_input(self, hashed_tweet):
@@ -224,7 +221,7 @@ class Anagramer(object):
         """
         called when a duplicate is found, & does difference checking
         """
-        self.check_save()
+        # self.check_save()
         hit_tweet = self.data.get(new_tweet['hash'])
         self.stats.possible_hits += 1
         if not hit_tweet:
@@ -293,20 +290,20 @@ class Anagramer(object):
         else:
             return False
 
-    def make_hash(self, text):
-        """
-        takes a tweet as input. returns a character-unique hash
-        from the tweet's text.
-        """
-        t_text = str(utils.stripped_string(text))
-        t_hash = ''.join(sorted(t_text, key=str.lower))
-        return t_hash
+    # def make_hash(self, text):
+    #     """
+    #     takes a tweet as input. returns a character-unique hash
+    #     from the tweet's text.
+    #     """
+    #     t_text = str(utils.stripped_string(text))
+    #     t_hash = ''.join(sorted(t_text, key=str.lower))
+    #     return t_hash
 
     def check_save(self):
         """check if it's time to save and save if necessary"""
         if (time.time() > self.time_to_save):
             self.data.write_cache()
-            self.time_to_save = time.time() + SAVE_INTERVAL
+            self.time_to_save = time.time() + self.save_interval
 
 # displaying data while we run:
     def update_console(self):
@@ -316,15 +313,16 @@ class Anagramer(object):
         # what all do we want to have, here? let's blueprint:
         # tweets seen: $IN_HAS_TEXT passed filter: $PASSED_F% Hits: $HITS
         seen_percent = int(100*(float(
-            self.stats.passed_filter)/self.stats.tweets_seen))
+            self.stream_handler.passed_filter)/self.stream_handler.tweets_seen))
         runtime = time.time()-self.stats.start_time
 
         status = (
-            'tweets seen: ' + str(self.stats.tweets_seen) +
-            " passed filter: " + str(self.stats.passed_filter) +
+            'tweets seen: ' + str(self.stream_handler.tweets_seen) +
+            " passed filter: " + str(self.stream_handler.passed_filter) +
             " ({0}%)".format(seen_percent) +
             " hits " + str(self.stats.possible_hits) +
             " agrams: " + str(self.stats.hits) +
+            " buffer: " + str(self.stream_handler.bufferlength()) +
             " runtime: " + utils.format_seconds(runtime)
         )
         sys.stdout.write(status + '\r')

@@ -2,11 +2,18 @@ from __future__ import print_function
 
 import httplib
 import logging
-
+import threading
+import Queue
+from ssl import SSLError
+from socket import error as SocketError
 from twitter.oauth import OAuth
 from twitter.stream import TwitterStream
-from twitter.api import Twitter, TwitterError
+from twitter.api import Twitter, TwitterError, TwitterHTTPError
 import tumblpy
+
+import utils
+import time
+import sys # just for debug
 
 # my twitter OAuth key:
 from twittercreds import (CONSUMER_KEY, CONSUMER_SECRET,
@@ -14,6 +21,179 @@ from twittercreds import (CONSUMER_KEY, CONSUMER_SECRET,
 # my tumblr OAuth key:
 from tumblrcreds import (TUMBLR_KEY, TUMBLR_SECRET,
                          TOKEN_KEY, TOKEN_SECRET, TUMBLR_BLOG_URL)
+
+
+class StreamHandler(object):
+    """
+    handles twitter stream connections. Buffers incoming tweets and
+    acts as an iter.
+    """
+    def __init__(self, buffersize=10000, timeout=30):
+        self.buffersize = buffersize
+        self.overflow = 0
+        self.timeout = timeout
+        self.active_time = None
+        self.stream_thread = None
+        self.Queue = Queue.Queue(maxsize=buffersize)
+        self._should_terminate = False
+        self._stop_thread = threading.Event()
+        self._iter = self.__iter__()
+
+        self.tweets_seen = 0
+        self.passed_filter = 0
+
+    def __iter__(self):
+        # I think we really want to handle all our various errors and reconection scenarios here
+
+        while 1:
+            try:
+                if self._should_terminate:
+                    break
+                yield self.Queue.get(True, self.timeout)
+                self.Queue.task_done()
+                continue
+            except Queue.Empty:
+                if (self._stop_thread.is_set()):
+                    break
+                print('queue timeout, restarting thread')
+                # means we've timed out, and should try to reconnect
+                self.start()
+            except SSLError as err:
+                print(err)
+                logging.error(err)
+            except TwitterHTTPError as err:
+                print(err)
+                logging.error(err)
+            except SocketError as err:
+                print(err)
+                logging.error(err)
+
+    def next(self):
+        return self._iter.next()
+
+    def _run(self):
+        stream = TwitterStream(
+            auth=OAuth(ACCESS_KEY,
+                       ACCESS_SECRET,
+                       CONSUMER_KEY,
+                       CONSUMER_SECRET),
+            api_version='1.1',
+            block=True)
+
+        streamiter = stream.statuses.sample(language='en', stall_warnings='true')
+        for tweet in streamiter:
+            if tweet is not None:
+                if self._stop_thread.is_set():
+                    break
+                if tweet.get('text'):
+                    self._handle_tweet(tweet)
+
+    def _run_with_data(self, data):
+        for tweet in data:
+            self._handle_tweet(tweet)
+
+    def start(self, source=None):
+        """
+        creates a new thread and starts a streaming connection.
+        If a thread already exists, it is terminated.
+        """
+        if source:
+            #  this means we're running with debug tweets
+            print('running tests with %i tweets' % len(source))
+            self.stream_thread = threading.Thread(target=self._run_with_data(source))
+            self.stream_thread.daemon = True
+            self.stream_thread.start()
+
+        print('creating new server connection')
+        if self.stream_thread is not None:
+            print('terminating existing thread')
+            self._stop_thread.set()
+            self.stream_thread.join(5.0)
+            if self.stream_thread.isAlive():
+                print('termination of existing connection thread failed')
+            else:
+                print('existing thread terminated succesfully')
+        self._stop_thread.clear()
+        self.stream_thread = threading.Thread(target=self._run)
+        self.stream_thread.daemon = True
+        self.stream_thread.start()
+        print('created thread %i' % self.stream_thread.ident)
+
+    def close(self):
+        """
+        terminates existing connection and returns
+        """
+        # self._stop_thread.set()
+        self._should_terminate = True
+        print("\nstream handler closing with overflow %i from buffer size %i" %
+              (self.overflow, self.buffersize))
+
+    def _handle_tweet(self, tweet):
+        self.tweets_seen += 1
+        self.active_time = time.time()
+        if self.filter_tweet(tweet):
+            self.passed_filter += 1
+            try:
+                self.Queue.put(self.format_tweet(tweet))
+            except Queue.Full:
+                self.overflow += 1
+
+    def bufferlength(self):
+        return self.Queue.qsize()
+
+    def filter_tweet(self, tweet):
+        """
+        filter out anagram-inappropriate tweets
+        """
+        LOW_CHAR_CUTOFF = 12
+        MIN_UNIQUE_CHARS = 8
+        #check for mentions
+        if len(tweet.get('entities').get('user_mentions')) is not 0:
+            return False
+        #check for retweets
+        if tweet.get('retweeted_status'):
+            return False
+        # ignore tweets w/ non-ascii characters
+        try:
+            tweet['text'].decode('ascii')
+        except UnicodeEncodeError:
+            return False
+        # check for links:
+        if len(tweet.get('entities').get('urls')) is not 0:
+            return False
+        # ignore short tweets
+        t = utils.stripped_string(tweet['text'])
+        if len(t) <= LOW_CHAR_CUTOFF:
+            return False
+        # ignore tweets with few characters
+        st = set(t)
+        if len(st) < MIN_UNIQUE_CHARS:
+            return False
+        return True
+
+    def format_tweet(self, tweet):
+        """
+        makes a dict from the JSON properties we need
+        """
+
+        tweet_id = long(tweet['id_str'])
+        tweet_hash = self.make_hash(tweet['text'])
+        tweet_text = str(tweet['text'])
+        hashed_tweet = {
+            'id': tweet_id,
+            'hash': tweet_hash,
+            'text': tweet_text,
+        }
+        return hashed_tweet
+
+    def make_hash(self, text):
+        """
+        takes a tweet as input. returns a character-unique hash
+        from the tweet's text.
+        """
+        t_text = str(utils.stripped_string(text))
+        t_hash = ''.join(sorted(t_text, key=str.lower))
+        return t_hash
 
 
 class TwitterHandler(object):
@@ -157,8 +337,18 @@ class TwitterHandler(object):
         return True
 
 
-def main():
-    pass
-
 if __name__ == "__main__":
-    main()
+    logging.basicConfig(
+    filename='tests/stream.log',
+    format='%(asctime)s - %(levelname)s:%(message)s',
+    level=logging.DEBUG)
+
+    teststream = StreamHandler()
+    teststream.start()
+    count = 1
+    for t in teststream:
+        print(count, "buffer size = %i" % teststream.Queue.qsize(), t.get('text'))
+        if count > 10:
+            teststream.close()
+        count +=1
+        # pass
