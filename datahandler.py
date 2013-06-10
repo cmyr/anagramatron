@@ -75,14 +75,14 @@ class DataHandler(object):
         else:
             return False
 
-    def count(self):
-        cursor = self.data.cursor()
-        cursor.execute("SELECT Count() FROM tweets")
-        diskcount = cursor.fetchone()
-        cache_cursor = self.cache.cursor()
-        cache_cursor.execute("SELECT Count() FROM tweets")
-        cachecount = cache_cursor.fetchone()
-        return (diskcount, cachecount)
+    # def count(self):
+    #     cursor = self.data.cursor()
+    #     cursor.execute("SELECT Count() FROM tweets")
+    #     diskcount = cursor.fetchone()
+    #     cache_cursor = self.cache.cursor()
+    #     cache_cursor.execute("SELECT Count() FROM tweets")
+    #     cachecount = cache_cursor.fetchone()
+    #     return (diskcount, cachecount)
 
     def count_hashes(self):
         return len(self.hashes)
@@ -96,7 +96,7 @@ class DataHandler(object):
     def get(self, tweet_hash):
         # if hit isn't in data, check if it's still in the cache
         cache_cursor = self.cache.cursor()
-        cache_cursor.execute("SELECT id_str, hash, text FROM tweets WHERE hash=:hash",
+        cache_cursor.execute("SELECT id, hash, text FROM tweets WHERE hash=:hash",
                              {"hash": tweet_hash})
         result = cache_cursor.fetchone()
         if result:
@@ -225,7 +225,7 @@ class DataHandler(object):
     def finish(self):
         if not self.just_the_hits:
             self.write_cache()
-            print('datahandler closing with %i tweets' % (self.count()[0]))
+            print('datahandler closing with %i tweets' % (len(self.hashes)))
         if self.data:
             self.data.close()
         if self.cache:
