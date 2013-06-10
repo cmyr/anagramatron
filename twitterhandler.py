@@ -58,15 +58,6 @@ class StreamHandler(object):
                 print('queue timeout, restarting thread')
                 # means we've timed out, and should try to reconnect
                 self.start()
-            # except SSLError as err:
-            #     print(err)
-            #     logging.error(err)
-            # except TwitterHTTPError as err:
-            #     print(err)
-            #     logging.error(err)
-            # except SocketError as err:
-            #     print(err)
-            #     logging.error(err)
 
     def next(self):
         return self._iter.next()
@@ -85,6 +76,10 @@ class StreamHandler(object):
                 if tweet is not None:
                     if self._stop_thread.is_set():
                         break
+                    if tweet.get('warning'):
+                        print('\n', tweet)
+                        logging.warning(tweet)
+                        continue
                     if tweet.get('text'):
                         self._handle_tweet(tweet)
         except SSLError as err:
@@ -146,7 +141,7 @@ class StreamHandler(object):
         if self.filter_tweet(tweet):
             self.passed_filter += 1
             try:
-                self.Queue.put(self.format_tweet(tweet))
+                self.Queue.put(self.format_tweet(tweet), block=False)
             except Queue.Full:
                 self.overflow += 1
 
@@ -358,9 +353,12 @@ if __name__ == "__main__":
     teststream = StreamHandler()
     teststream.start()
     count = 1
-    for t in teststream:
-        print(count, "buffer size = %i" % teststream.Queue.qsize(), t.get('text'))
-        if count > 10:
-            teststream.close()
-        count +=1
-        # pass
+    try:
+        for t in teststream:
+            print(count, "buffer size = %i" % teststream.Queue.qsize(), t.get('text'))
+            time.sleep(1)
+            if count > 10:
+                teststream.close()
+            count +=1
+    finally:
+        teststream.close()
