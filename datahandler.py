@@ -251,6 +251,20 @@ class DataHandler(object):
         self.set_hit_status(hit_id, HIT_STATUS_APPROVED)
         return True
 
+    def trim_short_tweets(self, cutoff=20):
+        """utility function for deleting short tweets from our database"""
+        # cursor = self.cache.cursor()
+
+        # cursor.executemany()
+        short_hashes = [h for h in self.hashes if len(h) < cutoff]
+        print("found %i of %i hashes below %i character cutoff" % (len(short_hashes), len(self.hashes), cutoff))
+        hashvals = ["'%s'" % h for h in short_hashes]
+        self.data.execute("DELETE FROM tweets WHERE hash IN (%s)" % ",".join(hashvals))
+        # self.cache.executemany("DELETE FROM tweets WHERE hash=(?)", iter(short_hashes))
+        self.data.commit()
+        short_hashes = set(short_hashes)
+        self.hashes = self.hashes.difference(short_hashes)
+
     def review_hits(self):
         """
         this is a simple command line tool for reviewing and categorizing
