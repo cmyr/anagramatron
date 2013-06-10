@@ -15,9 +15,8 @@ LOG_FILE_NAME = 'data/anagramer.log'
 
 
 class NeedsSave(Exception):
-    """exception raised when we need to save"""
-    def __str__(self):
-        return "time to save"
+    """hacky exception raised when we need to save"""
+    pass
 
 
 class AnagramStats(object):

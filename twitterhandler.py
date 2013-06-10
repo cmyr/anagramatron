@@ -104,7 +104,7 @@ class StreamHandler(object):
         creates a new thread and starts a streaming connection.
         If a thread already exists, it is terminated.
         """
-        self._should_terminate = False 
+        self._should_terminate = False
         if source:
             #  this means we're running with debug tweets
             print('running tests with %i tweets' % len(source))
