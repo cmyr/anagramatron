@@ -4,6 +4,7 @@ import sys
 # import re
 import time
 import logging
+import cPickle as pickle
 
 from twitterhandler import TwitterHandler, StreamHandler
 from datahandler import DataHandler, HIT_STATUS_REVIEW
@@ -24,6 +25,23 @@ class AnagramStats(object):
         self.possible_hits = 0
         self.hits = 0
         self.start_time = 0
+        self.hit_distributions = [0 for x in range(140)]
+        self.hash_distributions = [0 for x in range(140)]
+
+    def new_hash(self, hash_text):
+        hashlength = len(hash_text)
+        if (hashlength < 140):
+            self.hash_distributions[hashlength] += 1
+
+    def new_hit(self, hash_text):
+        hashlength = len(hash_text)
+        if (hashlength < 140):
+            self.hit_distributions[hashlength] += 1
+
+    def close(self):
+        self.end_time = time.time()
+        filename = "data/stats/%s.p" % time.strftime("%b%d%H%M")
+        pickle.dump(self.saved_stats, open(filename, 'wb'))
 
 
 BASELINE_SKIP_TARGET = 200
@@ -123,6 +141,7 @@ class Anagramer(object):
                 finally:
                     logging.debug('closed with %i tweets in stall handler'
                                   % len(self.stall_handler.skipped_tweets))
+                    self.stats.close()
                     self.data.finish()
                     self.stream_handler.close()
         else:
@@ -163,7 +182,9 @@ class Anagramer(object):
         self.data.finish()
 
     def process_input(self, hashed_tweet):
+        self.stats.new_hash(hashed_tweet['hash'])
         if self.data.contains(hashed_tweet['hash']):
+            self.stats.new_hit(hashed_tweet['hash'])
             self.process_hit(hashed_tweet)
         else:
             self.add_to_data(hashed_tweet)
