@@ -58,15 +58,15 @@ class StreamHandler(object):
                 print('queue timeout, restarting thread')
                 # means we've timed out, and should try to reconnect
                 self.start()
-            except SSLError as err:
-                print(err)
-                logging.error(err)
-            except TwitterHTTPError as err:
-                print(err)
-                logging.error(err)
-            except SocketError as err:
-                print(err)
-                logging.error(err)
+            # except SSLError as err:
+            #     print(err)
+            #     logging.error(err)
+            # except TwitterHTTPError as err:
+            #     print(err)
+            #     logging.error(err)
+            # except SocketError as err:
+            #     print(err)
+            #     logging.error(err)
 
     def next(self):
         return self._iter.next()
@@ -79,14 +79,26 @@ class StreamHandler(object):
                        CONSUMER_SECRET),
             api_version='1.1',
             block=True)
-
-        streamiter = stream.statuses.sample(language='en', stall_warnings='true')
-        for tweet in streamiter:
-            if tweet is not None:
-                if self._stop_thread.is_set():
-                    break
-                if tweet.get('text'):
-                    self._handle_tweet(tweet)
+        try:
+            streamiter = stream.statuses.sample(language='en', stall_warnings='true')
+            for tweet in streamiter:
+                if tweet is not None:
+                    if self._stop_thread.is_set():
+                        break
+                    if tweet.get('text'):
+                        self._handle_tweet(tweet)
+        except SSLError as err:
+            print(err)
+            logging.error(err)
+            return
+        except TwitterHTTPError as err:
+            print(err)
+            logging.error(err)
+            return
+        except SocketError as err:
+            print(err)
+            logging.error(err)
+            return
 
     def _run_with_data(self, data):
         for tweet in data:
