@@ -44,70 +44,6 @@ class AnagramStats(object):
         pickle.dump(self, open(filename, 'wb'))
 
 
-BASELINE_SKIP_TARGET = 200
-
-
-class StallWarningHandler(object):
-    """
-    handles rate warnings sent from twitter when we're falling behind.
-    controls the falling_behind flag on Anagramer & stashes skipped tweets
-    """
-
-    def __init__(self, delegate):
-        self.delegate = delegate
-        self.warning = False
-        self.skip_target = BASELINE_SKIP_TARGET
-        self.skip_count = 0
-        self.skipped_tweets = []
-        self.reconnecting = False
-
-        # SIMPLE TEST TO SEE IF DELEGATE IS GETTING SET
-
-    def handle_warning(self, warn):
-        """
-        receive and handle stall warnings
-        """
-        if self.warning_active():
-            self.skip_target *= 2
-        else:
-            self.skip_target = BASELINE_SKIP_TARGET
-        self.warning = {'time': time.time(), 'percent_full': warn.get('percent_full')}
-        self.skip_count = 0
-        self.delegate.falling_behind = True
-
-    def handle_reconnection(self):
-        """
-        when reconnecting to a streaming endpoint we'll often receive duplicates
-        of tweets we've already seen. This sets skipping and discarding those tweets.
-        """
-        self.skip_target = BASELINE_SKIP_TARGET
-        self.reconnecting = True
-        self.delegate.falling_behind = True
-
-    def warning_active(self):
-        """
-        checks to see if we have an active warning
-        """
-        if not self.warning:
-            return False
-        time_since_warning = time.time() - self.warning.get('time')
-        if time_since_warning < (6*60):  # warnings sent every five minutes
-            # if we get two warnings in five minutes we need to catch up more
-                return True
-        return False
-
-    def skipped(self, tweet):
-        """
-        receives a skip tweet and saves it to process later?
-        """
-        self.skip_count += 1
-        if tweet.get('text') and not self.reconnecting:
-            self.skipped_tweets.append(tweet)
-        if self.skip_count == self.skip_target:
-            self.delegate.falling_behind = False
-            self.reconnecting = False
-
-
 class Anagramer(object):
     """
     Anagramer hunts for anagrams on twitter.
@@ -118,8 +54,6 @@ class Anagramer(object):
         self.stream_handler = StreamHandler()
         self.stats = AnagramStats()
         self.data = None  # wait until we get run call to load data
-        self.stall_handler = StallWarningHandler(self)
-        self.falling_behind = False
         self.save_interval = (60*60) * 2
         self.time_to_save = time.time() + self.save_interval
 
@@ -135,15 +69,10 @@ class Anagramer(object):
                     self.start_stream()
                 except KeyboardInterrupt:
                     break
-                # except TwitterHTTPError as e:
-                #     print('\n', e)
-                #     # handle errors probably?
                 finally:
-                    logging.debug('closed with %i tweets in stall handler'
-                                  % len(self.stall_handler.skipped_tweets))
+                    self.stream_handler.close()
                     self.stats.close()
                     self.data.finish()
-                    self.stream_handler.close()
         else:
             # means we're running from local data
             self.run_with_data(source)
@@ -155,13 +84,6 @@ class Anagramer(object):
         self.stats.start_time = time.time()
         self.stream_handler.start()
         for tweet in self.stream_handler:
-            if tweet.get('warning'):
-                print('\n', tweet)
-                logging.warning(tweet)
-                self.stall_handler.handle_warning(tweet)
-            if self.falling_behind:
-                self.stall_handler.skipped(tweet)
-                continue
             self.update_console()
             self.process_input(tweet)
 
