@@ -206,6 +206,7 @@ class DataHandler(object):
         cache_cursor = self.cache.cursor()
         cache_cursor.execute("SELECT * FROM tweets")
         results = cache_cursor.fetchall()
+        self.cache.close()
         results = [(i, h, t) for (i, h, t) in results if i > self.highest_loaded_id]
         cursor = self.data.cursor()
         cursor.executemany("INSERT INTO tweets VALUES (?, ?, ?)", results)
