@@ -251,20 +251,6 @@ class DataHandler(object):
         self.set_hit_status(hit_id, HIT_STATUS_APPROVED)
         return True
 
-    def trim_short_tweets(self, cutoff=20):
-        """utility function for deleting short tweets from our database"""
-        # cursor = self.cache.cursor()
-
-        # cursor.executemany()
-        short_hashes = [h for h in self.hashes if len(h) < cutoff]
-        print("found %i of %i hashes below %i character cutoff" % (len(short_hashes), len(self.hashes), cutoff))
-        hashvals = ["'%s'" % h for h in short_hashes]
-        self.data.execute("DELETE FROM tweets WHERE hash IN (%s)" % ",".join(hashvals))
-        # self.cache.executemany("DELETE FROM tweets WHERE hash=(?)", iter(short_hashes))
-        self.data.commit()
-        short_hashes = set(short_hashes)
-        self.hashes = self.hashes.difference(short_hashes)
-
     def review_hits(self):
         """
         this is a simple command line tool for reviewing and categorizing
@@ -308,7 +294,70 @@ class DataHandler(object):
             if inp == 'q':
                 break
 
+
+def trim_short_tweets(cutoff=20):
+    """utility function for deleting short tweets from our database"""
+    load_time = time.time()
+    db = lite.connect(TWEET_DB_PATH)
+    cursor = db.cursor()
+    cursor.execute("SELECT hash FROM tweets")
+    hashes = cursor.fetchall()
+    hashes = set([str(h) for (h,) in hashes])
+    print('extracted %i hashes in %s' % len(hashes), utils.format_seconds(time.time()-load_time))
+    short_hashes = [h for h in hashes if len(h) < cutoff]
+    print("found %i of %i hashes below %i character cutoff" % (len(short_hashes), len(hashes), cutoff))
+    load_time = time.time()
+    hashvals = ["'%s'" % h for h in short_hashes]
+    db.execute("DELETE FROM tweets WHERE hash IN (%s)" % ",".join(hashvals))
+    # self.cache.executemany("DELETE FROM tweets WHERE hash=(?)", iter(short_hashes))
+    db.commit()
+    print('deleted %i hashes in %s' % (len(short_hashes), utils.format_seconds(time.time()-load_time)))
+    # short_hashes = set(short_hashes)
+    # self.hashes = self.hashes.difference(short_hashes)
+
+
 if __name__ == "__main__":
-    dh = DataHandler(just_the_hits=True)
-    dh.review_hits()
-    dh.finish()
+    print(
+        "Anagrams Data Utilities, Please Select From the Following Options:",
+        "\n (R)eview Hits",
+        "\n (T)rim Short Tweets",
+        "\n (A)rchive Old Tweets",
+        "\n (D)ump sqlite to file"
+        "\n (Q)uit")
+
+    inp = raw_input(':')
+    while 1:
+        if inp in ['r', 'R']:
+            dh = DataHandler(just_the_hits=True)
+            dh.review_hits()
+            dh.finish()
+            break
+        elif inp in ['t', 'T']:
+            # print('not implemented')
+            while 1:
+                print('enter the character count cutoff below which tweets will be culled')
+                cutoff = raw_input('cutoff:')
+                try:
+                    cutoff = int(cutoff)
+                except ValueError:
+                    print('enter a number between 50-100')
+                    continue
+                if (cutoff < 15) or (cutoff > 100):
+                    print('enter a number between 50-100')
+                    continue
+                trim_short_tweets(cutoff=cutoff)
+                break
+            break
+        elif inp in ['a', 'A']:
+            print('not implemented')
+            break
+        elif inp in ['d', 'D']:
+            dh = DataHandler()
+            dh.dump()
+            dh.finish()
+            break
+        elif inp in ['q', 'Q']:
+            break
+    # dh = DataHandler(just_the_hits=True)
+    # dh.review_hits()
+    # dh.finish()

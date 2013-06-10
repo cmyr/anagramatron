@@ -14,6 +14,12 @@ import utils
 LOG_FILE_NAME = 'data/anagramer.log'
 
 
+class NeedsSave(Exception):
+    """exception raised when we need to save"""
+    def __str__(self):
+        return "time to save"
+
+
 class AnagramStats(object):
     """
     keeps track of stats for us
@@ -54,8 +60,22 @@ class Anagramer(object):
         self.stream_handler = StreamHandler()
         self.stats = AnagramStats()
         self.data = None  # wait until we get run call to load data
-        self.save_interval = (60*60) * 2
-        self.time_to_save = time.time() + self.save_interval
+        # self.save_interval = (60*60) * 2
+        self.time_to_save = self.set_save_time()
+
+    def set_save_time(self):
+        """find out when it will next be 4am"""
+        # this was an embarassingly difficult problem -_-
+        now = time.strftime()
+        hour = now[3]
+        hours_to_four = 0
+        if hour < 4:
+            hours_to_four = 4 - hour
+        elif hour < 12:
+            hours_to_four = 24 - (hour - 4)
+        elif hour < 24:
+            hours_to_four = 28 - hour
+        return time.time() + ((60 * 60) * hours_to_four)
 
     def run(self, source=None):
         """
@@ -65,14 +85,26 @@ class Anagramer(object):
         if not source:
             while 1:
                 try:
+                    if not self.data:
+                        self.data = DataHandler()
+                    if not self.stats:
+                        self.stats = AnagramStats()
+                    if not self.stream_handler:
+                        self.stream_handler = StreamHandler()
                     logging.info('entering run loop')
                     self.start_stream()
                 except KeyboardInterrupt:
                     break
+                except NeedsSave:
+                    print('\nclosing stream for scheduled maintenance')
+                    # todo: this is where we'd handle pruning etc
                 finally:
                     self.stream_handler.close()
+                    self.stream_handler = None
                     self.stats.close()
+                    self.stats = None
                     self.data.finish()
+                    self.data = None
         else:
             # means we're running from local data
             self.run_with_data(source)
@@ -118,7 +150,6 @@ class Anagramer(object):
         """
         called when a duplicate is found, & does difference checking
         """
-        # self.check_save()
         hit_tweet = self.data.get(new_tweet['hash'])
         self.stats.possible_hits += 1
         if not hit_tweet:
@@ -137,6 +168,7 @@ class Anagramer(object):
             self.stats.hits += 1
         else:
             pass
+        self.check_save()
 
     def compare(self, tweet_one, tweet_two):
         """
@@ -190,8 +222,8 @@ class Anagramer(object):
     def check_save(self):
         """check if it's time to save and save if necessary"""
         if (time.time() > self.time_to_save):
-            self.data.write_cache()
-            self.time_to_save = time.time() + self.save_interval
+            self.time_to_save = self.set_save_time()
+            raise NeedsSave
 
 # displaying data while we run:
     def update_console(self):
