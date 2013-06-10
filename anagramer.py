@@ -41,7 +41,7 @@ class AnagramStats(object):
     def close(self):
         self.end_time = time.time()
         filename = "data/stats/%s.p" % time.strftime("%b%d%H%M")
-        pickle.dump(self.saved_stats, open(filename, 'wb'))
+        pickle.dump(self, open(filename, 'wb'))
 
 
 BASELINE_SKIP_TARGET = 200
