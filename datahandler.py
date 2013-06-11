@@ -316,6 +316,27 @@ def trim_short_tweets(cutoff=20):
     # self.hashes = self.hashes.difference(short_hashes)
 
 
+def archive_old_tweets(cutoff=0.2):
+    """cutoff represents the rough fraction of tweets to be archived"""
+    load_time = time.time()
+    db = lite.connect(TWEET_DB_PATH)
+    cursor = db.cursor()
+    cursor.execute("SELECT id FROM tweets")
+    ids = cursor.fetchall()
+    ids = [str(h) for (h,) in ids]
+    print('extracted %i ids in %s' % (len(ids), utils.format_seconds(time.time()-load_time)))
+    ids = sorted(ids)
+    tocull = int(len(ids) * cutoff)
+    ids = ids[:tocull]
+    print('found %i old tweets' % len(ids))
+    load_time = time.time()
+    ids = ["'%s'" % i for i in ids]
+    # todo we actually want to archive this stuff tho
+    db.execute("DELETE FROM tweets WHERE id IN (%s)" % ",".join(ids))
+    db.commit()
+    print('deleted %i hashes in %s' % (len(ids), utils.format_seconds(time.time()-load_time)))
+
+
 if __name__ == "__main__":
     print(
         "Anagrams Data Utilities, Please Select From the Following Options:",
@@ -349,7 +370,19 @@ if __name__ == "__main__":
                 break
             break
         elif inp in ['a', 'A']:
-            print('not implemented')
+            while 1:
+                print('enter the number of tweets to archive as a decimal')
+                cutoff = raw_input('cutoff:')
+                try:
+                    cutoff = float(cutoff)
+                except ValueError:
+                    print('enter a number between 0.01-0.9')
+                    continue
+                if (cutoff < 0.01) or (cutoff > 0.9):
+                    print('enter a number between 0.01-0.9')
+                    continue
+                archive_old_tweets(cutoff=cutoff)
+                break
             break
         elif inp in ['d', 'D']:
             dh = DataHandler()
