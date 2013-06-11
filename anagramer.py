@@ -67,7 +67,7 @@ class Anagramer(object):
     def set_save_time(self):
         """find out when it will next be 4am"""
         # this was an embarassingly difficult problem -_-
-        now = time.strftime()
+        now = time.localtime()
         hour = now[3]
         hours_to_four = 0
         if hour < 4:
