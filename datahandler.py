@@ -3,6 +3,7 @@ import sqlite3 as lite
 import os
 import logging
 import time
+import cPickle as pickle
 
 import utils
 import twitterhandler
@@ -332,9 +333,13 @@ def archive_old_tweets(cutoff=0.2):
     load_time = time.time()
     ids = ["'%s'" % i for i in ids]
     # todo we actually want to archive this stuff tho
+    cursor.execute("SELECT * FROM tweets WHERE id IN (%s)" % ",".join(ids))
+    results = cursor.fetchall()
     db.execute("DELETE FROM tweets WHERE id IN (%s)" % ",".join(ids))
     db.commit()
-    print('deleted %i hashes in %s' % (len(ids), utils.format_seconds(time.time()-load_time)))
+    filename = "data/culled_%s.p" % time.strftime("%b%d%H%M")
+    pickle.dump(results, open(filename, 'wb'))
+    print('archived %i hashes in %s' % (len(ids), utils.format_seconds(time.time()-load_time)))
 
 
 if __name__ == "__main__":

@@ -32,6 +32,7 @@ class AnagramStats(object):
         self.start_time = 0
         self.hit_distributions = [0 for x in range(140)]
         self.hash_distributions = [0 for x in range(140)]
+        self.hitlist = []
 
     def new_hash(self, hash_text):
         hashlength = len(hash_text)
@@ -39,6 +40,7 @@ class AnagramStats(object):
             self.hash_distributions[hashlength] += 1
 
     def new_hit(self, hash_text):
+        self.hitlist.append(hash_text)
         hashlength = len(hash_text)
         if (hashlength < 140):
             self.hit_distributions[hashlength] += 1
