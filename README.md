@@ -14,4 +14,7 @@ when hits are approved (manually) they are automatically posted to associated tw
 - The vast majority of 'hits' are tweets that are identical.
 - The vast majority of remaining hits are either tweets that have one letter switched ('I hate u' vs. 'I haet u') or that have the same words in a different order ('bitch plz' vs. 'plz bitch!!'). etc.
 
+#### Dependencies:
+this script makes use of [python twitter tools](http://mike.verdone.ca/twitter/) for handling twitter interactions, [tumblpy](https://github.com/michaelhelmick/python-tumblpy) for posting to tumblr, and [bottle](http://bottlepy.org/docs/dev/) + [cherrypy](http://www.cherrypy.org/) to run a webserver.
+
  
