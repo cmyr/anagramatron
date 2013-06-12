@@ -304,7 +304,7 @@ def trim_short_tweets(cutoff=20):
     cursor.execute("SELECT hash FROM tweets")
     hashes = cursor.fetchall()
     hashes = set([str(h) for (h,) in hashes])
-    print('extracted %i hashes in %s' % len(hashes), utils.format_seconds(time.time()-load_time))
+    print('extracted %i hashes in %s' % (len(hashes), utils.format_seconds(time.time()-load_time)))
     short_hashes = [h for h in hashes if len(h) < cutoff]
     print("found %i of %i hashes below %i character cutoff" % (len(short_hashes), len(hashes), cutoff))
     load_time = time.time()
