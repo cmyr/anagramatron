@@ -1,6 +1,7 @@
-Anagramer hunts for anagrams on Twitter.
+## Anagramer hunts for anagrams on Twitter.
 
 http://anagramatron.tumblr.com
+
 http://twitter.com/anagramatron
 
 
