@@ -35,43 +35,5 @@ def stripped_string(text, spaces=False):
     return re.sub(r'[^a-zA-Z]', '', text).lower()
 
 
-def convert_database_formats():
-    SOURCE_DB = 'data/tweetcache.db'
-    DEST_DB = 'data/tweets.db'
-    HITS_DB = 'data/hits.db'
-
-    import sqlite3 as lite
-    source = lite.connect(SOURCE_DB)
-    cursor = source.cursor()
-    cursor.execute("SELECT * FROM tweets")
-    tweets = cursor.fetchall()
-    origsize = len(tweets)
-    print('fetched %i tweets' % origsize)
-    tweets = [(i, h, t) for (i, h, t) in tweets if len(h) >= 12]
-    print('removed %i short tweets' % (origsize - len(tweets)))
-    origsize = len(tweets)
-    tweets = [(i, h, t) for (i, h, t) in tweets if len(set(h)) > 7]
-    print('removed %i low character tweets' % (origsize - len(tweets)))
-
-    cursor.execute("SELECT * FROM hits")
-    hits = cursor.fetchall()
-    source.close()
-
-    new_tweet_db = lite.connect(DEST_DB)
-    cursor = new_tweet_db.cursor()
-    cursor.execute("CREATE TABLE tweets(id integer, hash text, text text)")
-    cursor.executemany("INSERT INTO tweets VALUES (?, ?, ?)", tweets)
-    new_tweet_db.commit()
-    new_tweet_db.close()
-
-    hitsdb = lite.connect(HITS_DB)
-    cursor = hitsdb.cursor()
-    cursor.execute("""CREATE TABLE hits
-                (hit_id integer, hit_status text, one_id integer, two_id integer, one_text text, two_text text)""")
-    cursor.executemany("INSERT INTO hits VALUES (?, ?, ?, ?, ?, ?)", hits)
-    hitsdb.commit()
-
-
-    # load source; copy tweets/hits to new db;
 if __name__ == "__main__":
-    convert_database_formats()
+    pass

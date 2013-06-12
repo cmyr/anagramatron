@@ -234,8 +234,8 @@ class TwitterHandler(object):
 
     def stream_iter(self):
         """returns a stream iterator."""
-        # implementation may change
-
+        # this is still here because it is ocassionally used for testing.
+        # streaming is now handled by StreamHandler.
         return self.stream.statuses.sample(language='en', stall_warnings='true')
 
     def fetch_tweet(self, tweet_id):
