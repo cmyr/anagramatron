@@ -21,7 +21,7 @@ class MySSLCherryPy(ServerAdapter):
     def run(self, handler):
         import cherrypy
         from cherrypy import wsgiserver
-        cherrypy.config.update('cherrypy.config')
+        # cherrypy.config.update('cherrypy.config')
         # print(cherrypy.config.items())
         server = cherrypy.wsgiserver.CherryPyWSGIServer(
                                                         (self.host, self.port),
