@@ -197,6 +197,8 @@ class DataHandler(object):
         load_time = time.time() - load_time
         print('loaded %i tweets to tweets in %s' %
               (len(results), utils.format_seconds(load_time)))
+        logging.debug('loaded %i tweets to tweets in %s' %
+              (len(results), utils.format_seconds(load_time)))
 
     def write_cache(self):
         """

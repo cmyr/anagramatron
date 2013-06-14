@@ -135,6 +135,8 @@ class StreamHandler(object):
         self._should_terminate = True
         print("\nstream handler closing with overflow %i from buffer size %i" %
               (self.overflow, self.buffersize))
+        logging.debug("stream handler closing with overflow %i from buffer size %i" %
+              (self.overflow, self.buffersize))
 
     def _handle_tweet(self, tweet):
         self.tweets_seen += 1
