@@ -103,8 +103,8 @@ class DataHandler(object):
         # self.data.commit()
 
     def write_cached_tweets(self):
-        towrite = [(d['id'], d['hash'], d['text']) for d in self.write_cache]
-        self.data.executemany("INSERT INTO tweets (?, ?, ?)", towrite)
+        towrite = [(self.write_cache[d]['id'], self.write_cache[d]['hash'], self.write_cache[d]['text']) for d in self.write_cache]
+        self.data.executemany("INSERT INTO tweets VALUES (?, ?, ?)", towrite)
         self.data.commit()
         self.hashes |= self.write_cache_hashes
         self.write_cache = dict()
