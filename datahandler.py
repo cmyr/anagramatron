@@ -26,6 +26,8 @@ class DataHandler(object):
     def __init__(self, just_the_hits=False):
         self.just_the_hits = just_the_hits
         self.twitterhandler = twitterhandler.TwitterHandler()
+        self.write_cache = dict()
+        self.write_cache_hashes = set()
         self.data = None
         self.hitsdb = None
         self.cache = None
@@ -64,14 +66,14 @@ class DataHandler(object):
         # self.load_cache()
         # setup the hashtable
         print('extracting hashes')
-        # cache_cursor = self.data.cursor()
+        cursor = self.data.cursor()
         cursor.execute("SELECT hash FROM tweets")
         hashes = cursor.fetchall()
         self.hashes = set([str(h) for (h,) in hashes])
         print('loaded %d hashes' % (len(hashes)))
 
     def contains(self, tweet_hash):
-        if tweet_hash in self.hashes:
+        if tweet_hash in self.hashes or tweet_hash in self.write_cache_hashes:
             return True
         else:
             return False
@@ -89,13 +91,30 @@ class DataHandler(object):
         return len(self.hashes)
 
     def add(self, tweet):
-        cursor = self.data.cursor()
-        cursor.execute("INSERT INTO tweets VALUES (?,?,?)", (str(tweet['id']), tweet['hash'], tweet['text']))
-        self.hashes.add(tweet['hash'])
+        WRITE_CACHE_SIZE = 1000
+        self.write_cache[tweet['hash']] = tweet
+        self.write_cache_hashes.add(tweet['hash'])
+        if (len(self.write_cache_hashes) > WRITE_CACHE_SIZE):
+            self.write_cached_tweets
+
+        # cursor = self.data.cursor()
+        # cursor.execute("INSERT INTO tweets VALUES (?,?,?)", (str(tweet['id']), tweet['hash'], tweet['text']))
+        # self.hashes.add(tweet['hash'])
+        # self.data.commit()
+
+    def write_cached_tweets(self):
+        towrite = [(d['id'], d['hash'], d['text']) for d in self.write_cache]
+        self.data.executemany("INSERT INTO tweets (?, ?, ?)", towrite)
         self.data.commit()
+        self.hashes |= self.write_cache_hashes
+        self.write_cache = dict()
+        self.write_cache_hashes = set()
 
     def get(self, tweet_hash):
         # if hit isn't in data, check if it's still in the cache
+        if (tweet_hash in self.write_cache_hashes):
+            return self.write_cache[tweet_hash]
+
         cursor = self.data.cursor()
         cursor.execute("SELECT id, hash, text FROM tweets WHERE hash=:hash",
                              {"hash": tweet_hash})
@@ -228,6 +247,7 @@ class DataHandler(object):
     def finish(self):
         if not self.just_the_hits:
             # self.write_cache()
+            self.write_cached_tweets()
             print('datahandler closing with %i tweets' % (len(self.hashes)))
         if self.data:
             self.data.close()
