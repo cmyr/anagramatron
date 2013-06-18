@@ -129,10 +129,9 @@ class DataHandler(object):
         return result
 
     def remove(self, tweet_hash):
-        # add to our 'deleted list' so we can delete from disk when saving cache
-        # tweet = self.get(tweet_hash)
-        # self.deleted_tweets.add(tweet['id'])
-        # delete from cache
+        if tweet_hash in self.write_cache:
+            # if this hit is still in the cache, write the cache before continuing
+            self.write_cached_tweets()
         cursor = self.data.cursor()
         cursor.execute("DELETE FROM tweets WHERE hash=:hash",
                              {"hash": tweet_hash})
