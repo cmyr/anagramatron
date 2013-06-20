@@ -30,10 +30,11 @@ class DataHandler(object):
         self.write_cache_hashes = set()
         self.data = None
         self.hitsdb = None
-        self.cache = None
+        # self.cache = None
         self.hashes = None
-        self.highest_loaded_id = 0
-        self.deleted_tweets = set()
+        self.debug_used_cache_count = 0
+        # self.highest_loaded_id = 0
+        # self.deleted_tweets = set()
         self.setup()
 
     def setup(self):
@@ -62,8 +63,6 @@ class DataHandler(object):
             self.hitsdb.commit()
         else:
             self.hitsdb = lite.connect(HITS_DB_PATH)
-        # setup the cache
-        # self.load_cache()
         # setup the hashtable
         print('extracting hashes')
         cursor = self.data.cursor()
@@ -78,29 +77,16 @@ class DataHandler(object):
         else:
             return False
 
-    # def count(self):
-    #     cursor = self.data.cursor()
-    #     cursor.execute("SELECT Count() FROM tweets")
-    #     diskcount = cursor.fetchone()
-    #     cache_cursor = self.cache.cursor()
-    #     cache_cursor.execute("SELECT Count() FROM tweets")
-    #     cachecount = cache_cursor.fetchone()
-    #     return (diskcount, cachecount)
-
     def count_hashes(self):
         return len(self.hashes)
 
     def add(self, tweet):
-        WRITE_CACHE_SIZE = 1000
+        WRITE_CACHE_SIZE = 10000
         self.write_cache[tweet['hash']] = tweet
         self.write_cache_hashes.add(tweet['hash'])
         if (len(self.write_cache_hashes) > WRITE_CACHE_SIZE):
             self.write_cached_tweets
 
-        # cursor = self.data.cursor()
-        # cursor.execute("INSERT INTO tweets VALUES (?,?,?)", (str(tweet['id']), tweet['hash'], tweet['text']))
-        # self.hashes.add(tweet['hash'])
-        # self.data.commit()
 
     def write_cached_tweets(self):
         towrite = [(self.write_cache[d]['id'], self.write_cache[d]['hash'], self.write_cache[d]['text']) for d in self.write_cache]
@@ -112,16 +98,20 @@ class DataHandler(object):
 
     def get(self, tweet_hash):
         # if hit isn't in data, check if it's still in the cache
+        tweet = None
         if (tweet_hash in self.write_cache_hashes):
-            return self.write_cache[tweet_hash]
-
-        cursor = self.data.cursor()
-        cursor.execute("SELECT id, hash, text FROM tweets WHERE hash=:hash",
-                             {"hash": tweet_hash})
-        result = cursor.fetchone()
-        if result:
-            return {'id': long(result[0]), 'hash': str(result[1]), 'text': str(result[2])}
-        return None
+            self.debug_used_cache_count += 1
+            tweet = self.write_cache[tweet_hash]
+        else:
+            cursor = self.data.cursor()
+            cursor.execute("SELECT id, hash, text FROM tweets WHERE hash=:hash",
+                                 {"hash": tweet_hash})
+            result = cursor.fetchone()
+            if result:
+                tweet = {'id': long(result[0]), 'hash': str(result[1]), 'text': str(result[2])}
+        if !tweet:
+            logging.debug('failed to retreive tweet')
+        return tweet
 
     def pop(self, tweet_hash):
         result = self.get(tweet_hash)
@@ -194,60 +184,12 @@ class DataHandler(object):
                 'tweet_two': {'id': long(item[3]), 'text': str(item[5])}
                 }
 
-    # def load_cache(self):
-    #     # load data from file into memory
-    #     print('loading cache')
-    #     load_time = time.time()
-    #     cursor = self.data.cursor()
-    #     cursor.execute("SELECT * FROM tweets")
-    #     results = cursor.fetchall()
-    #     self.cache = lite.connect(':memory:')
-    #     cache_cursor = self.cache.cursor()
-    #     cache_cursor.execute("CREATE TABLE tweets(id integer, hash text, text text)")
-    #     cache_cursor.executemany("INSERT INTO tweets VALUES (?, ?, ?)", results)
-    #     self.cache.commit()
-    #     # now get max ID (but only if we have anything in the cache):
-    #     if results:
-    #         cache_cursor.execute("SELECT id from tweets")
-    #         ids = cache_cursor.fetchall()
-    #         self.highest_loaded_id = max(ids)[0]
-    #         print("found highest id: %i from %i ids" % (self.highest_loaded_id, len(ids)))
-    #     load_time = time.time() - load_time
-    #     print('loaded %i tweets to tweets in %s' %
-    #           (len(results), utils.format_seconds(load_time)))
-    #     logging.debug('loaded %i tweets to tweets in %s' %
-    #           (len(results), utils.format_seconds(load_time)))
-
-    # def write_cache(self):
-    #     """
-    #     write the cache to disk
-    #     """
-    #     print('\nwriting cache to disk')
-    #     load_time = time.time()
-    #     cache_cursor = self.cache.cursor()
-    #     cache_cursor.execute("SELECT * FROM tweets")
-    #     results = cache_cursor.fetchall()
-    #     self.cache.close()
-    #     results = [(i, h, t) for (i, h, t) in results if i > self.highest_loaded_id]
-    #     cursor = self.data.cursor()
-    #     cursor.executemany("INSERT INTO tweets VALUES (?, ?, ?)", results)
-    #     # remove from disk tweets deleted from the cache:
-    #     print('deleted %i tweets' % len(self.deleted_tweets))
-    #     for t in self.deleted_tweets:
-    #         cursor.execute("DELETE FROM tweets where id=:id",
-    #                        {"id": t})
-    #     self.data.commit()
-    #     # cache_cursor.execute("DELETE FROM tweets")
-    #     # self.cache.commit()
-    #     load_time = time.time() - load_time
-    #     print('saved %i tweets to disk in %s' %
-    #           (len(results), utils.format_seconds(load_time)))
-
     def finish(self):
         if not self.just_the_hits:
             # self.write_cache()
             self.write_cached_tweets()
             print('datahandler closing with %i tweets' % (len(self.hashes)))
+            print('write cache hit %i times' % self.debug_used_cache_count)
         if self.data:
             self.data.close()
         if self.cache:
@@ -318,7 +260,10 @@ class DataHandler(object):
 
 
 def trim_short_tweets(cutoff=20):
-    """utility function for deleting short tweets from our database"""
+    """
+    utility function for deleting short tweets from our database
+    cutoff represents the rough percentage of tweets to be deleted
+    """
     load_time = time.time()
     db = lite.connect(TWEET_DB_PATH)
     cursor = db.cursor()
