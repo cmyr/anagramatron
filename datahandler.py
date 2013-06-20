@@ -8,6 +8,8 @@ import cPickle as pickle
 import utils
 import twitterhandler
 
+from constants import ANAGRAM_WRITE_CACHE_SIZE
+
 TWEET_DB_PATH = 'data/tweets.db'
 HITS_DB_PATH = 'data/hits.db'
 
@@ -81,10 +83,9 @@ class DataHandler(object):
         return len(self.hashes)
 
     def add(self, tweet):
-        WRITE_CACHE_SIZE = 10000
         self.write_cache[tweet['hash']] = tweet
         self.write_cache_hashes.add(tweet['hash'])
-        if (len(self.write_cache_hashes) > WRITE_CACHE_SIZE):
+        if (len(self.write_cache_hashes) > ANAGRAM_WRITE_CACHE_SIZE):
             self.write_cached_tweets
 
 

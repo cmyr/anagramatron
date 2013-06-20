@@ -22,13 +22,15 @@ from twittercreds import (CONSUMER_KEY, CONSUMER_SECRET,
 from tumblrcreds import (TUMBLR_KEY, TUMBLR_SECRET,
                          TOKEN_KEY, TOKEN_SECRET, TUMBLR_BLOG_URL)
 
+from constants import ANAGRAM_STREAM_BUFFER_SIZE
+
 
 class StreamHandler(object):
     """
     handles twitter stream connections. Buffers incoming tweets and
     acts as an iter.
     """
-    def __init__(self, buffersize=10000, timeout=30):
+    def __init__(self, buffersize=ANAGRAM_STREAM_BUFFER_SIZE, timeout=30):
         self.buffersize = buffersize
         self.overflow = 0
         self.timeout = timeout
