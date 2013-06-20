@@ -110,7 +110,7 @@ class DataHandler(object):
             result = cursor.fetchone()
             if result:
                 tweet = {'id': long(result[0]), 'hash': str(result[1]), 'text': str(result[2])}
-        if !tweet:
+        if not tweet:
             logging.debug('failed to retreive tweet')
         return tweet
 
