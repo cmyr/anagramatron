@@ -187,14 +187,11 @@ class DataHandler(object):
 
     def finish(self):
         if not self.just_the_hits:
-            # self.write_cache()
             self.write_cached_tweets()
             print('datahandler closing with %i tweets' % (len(self.hashes)))
             print('write cache hit %i times' % self.debug_used_cache_count)
         if self.data:
             self.data.close()
-        if self.cache:
-            self.cache.close()
         if self.hitsdb:
             self.hitsdb.close()
 
