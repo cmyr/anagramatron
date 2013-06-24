@@ -61,7 +61,6 @@ class Anagramer(object):
         self.stream_handler = StreamHandler()
         self.stats = AnagramStats()
         self.data = None  # wait until we get run call to load data
-        # self.save_interval = (60*60) * 2
         self.time_to_save = self.set_save_time()
 
     def set_save_time(self):
@@ -82,7 +81,7 @@ class Anagramer(object):
         """
         starts the program's main run-loop
         """
-        self.data = DataHandler()
+        self.data = DataHandler(delegate=self)
         if not source:
             while 1:
                 try:
@@ -138,38 +137,34 @@ class Anagramer(object):
 
     def process_input(self, hashed_tweet):
         self.stats.new_hash(hashed_tweet['hash'])
-        if self.data.contains(hashed_tweet['hash']):
-            self.stats.new_hit(hashed_tweet['hash'])
-            self.process_hit(hashed_tweet)
-        else:
-            self.add_to_data(hashed_tweet)
+        self.data.process_tweet(hashed_tweet)
+    #     if self.data.contains(hashed_tweet['hash']):
+    #         self.stats.new_hit(hashed_tweet['hash'])
+    #         self.process_hit(hashed_tweet)
+    #     else:
+    #         self.add_to_data(hashed_tweet)
 
-    def add_to_data(self, hashed_tweet):
-        self.data.add(hashed_tweet)
+    # def add_to_data(self, hashed_tweet):
+    #     self.data.add(hashed_tweet)
 
-    def process_hit(self, new_tweet):
+    def process_hit(self, tweet_one, tweet_two):
         """
-        called when a duplicate is found, & does difference checking
+        called by datahandler when it has found a match in need of review.
         """
-        hit_tweet = self.data.get(new_tweet['hash'])
         self.stats.possible_hits += 1
-        if not hit_tweet:
-            print('error retrieving hit')
-            return
-
-        if self.compare(new_tweet['text'], hit_tweet['text']):
+        if self.compare(tweet_one['text'], tweet_two['text']):
             hit = {
                 "id": int(time.time()*1000),
                 "status": HIT_STATUS_REVIEW,
-                "tweet_one": new_tweet,
-                "tweet_two": hit_tweet,
+                "tweet_one": tweet_one,
+                "tweet_two": tweet_two,
             }
             self.data.remove(hit_tweet['hash'])
             self.data.add_hit(hit)
             self.stats.hits += 1
         else:
             pass
-        self.check_save()
+
 
     def compare(self, tweet_one, tweet_two):
         """

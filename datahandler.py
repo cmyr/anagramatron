@@ -8,7 +8,7 @@ import cPickle as pickle
 import utils
 import twitterhandler
 
-from constants import ANAGRAM_WRITE_CACHE_SIZE
+from constants import ANAGRAM_WRITE_CACHE_SIZE, ANAGRAM_FETCH_POOL_SIZE
 
 TWEET_DB_PATH = 'data/tweets.db'
 HITS_DB_PATH = 'data/hits.db'
@@ -25,12 +25,14 @@ class DataHandler(object):
     """
     handles storage and retrieval of tweets
     """
-    def __init__(self, just_the_hits=False):
+    def __init__(self, just_the_hits=False, delegate=None):
         self.just_the_hits = just_the_hits
         self.twitterhandler = twitterhandler.TwitterHandler()
         self.write_cache = dict()
         self.write_cache_hashes = set()
         self.data = None
+        self.fetch_pool = dict()
+        self.delegate = delegate
         self.hitsdb = None
         # self.cache = None
         self.hashes = None
@@ -73,6 +75,42 @@ class DataHandler(object):
         self.hashes = set([str(h) for (h,) in hashes])
         print('loaded %d hashes' % (len(hashes)))
 
+    def process_tweet(self, new_tweet):
+        """
+        called when a new tweet arrives.
+        if the tweet matches a hash saves it for the next db fetch
+        """
+        if (self.fetch_pool.get(new_tweet['hash'])):
+            # if there's a match in our existing fetch pool (unlikely) we're going to print them both and pass
+            # if we do a general refactoring this problem can be cleaned up.
+            print('/rHIT IN FETCH POOL?', new_tweet, self.fetch_pool[new_tweet['hash']])
+            return
+        if (new_tweet['hash'] in self.write_cache_hashes):
+            # if it's in the write cache return them both for checking
+            self.delegate.process_hit(new_tweet, self.write_cache[new_tweet['hash']])
+        if (self.contains(new_tweet['hash'])):
+            # stored_tweet = self.get(new_tweet['hash'])
+            self.fetch_pool[new_tweet['hash']] = new_tweet
+            if (len(self.fetch_pool) > ANAGRAM_FETCH_POOL_SIZE):
+                self.batch_fetch()
+        else:
+            self.add(new_tweet)
+
+    def batch_fetch(self):
+        """
+        fetches all of the tweets in our fetch pool and returns them to delegate
+        """
+        cursor = self.data.cursor()
+        hashes = ['"%s"' % self.fetch_pool[i]['hash'] for i in self.fetch_pool]
+        cursor.execute("SELECT * FROM tweets WHERE hash IN (%s)" % ",".join(hashes))
+        results = cursor.fetchall()
+        for result in results:
+            result = self.tweet_from_sql(result)
+            new_tweet = self.fetch_pool[result['hash']]
+            self.delegate.process_hit(result, new_tweet)
+
+        self.fetch_pool = dict()
+
     def contains(self, tweet_hash):
         if tweet_hash in self.hashes or tweet_hash in self.write_cache_hashes:
             return True
@@ -88,7 +126,6 @@ class DataHandler(object):
         if (len(self.write_cache_hashes) > ANAGRAM_WRITE_CACHE_SIZE):
             self.write_cached_tweets
 
-
     def write_cached_tweets(self):
         towrite = [(self.write_cache[d]['id'], self.write_cache[d]['hash'], self.write_cache[d]['text']) for d in self.write_cache]
         self.data.executemany("INSERT INTO tweets VALUES (?, ?, ?)", towrite)
@@ -96,6 +133,7 @@ class DataHandler(object):
         self.hashes |= self.write_cache_hashes
         self.write_cache = dict()
         self.write_cache_hashes = set()
+
 
     def get(self, tweet_hash):
         # if hit isn't in data, check if it's still in the cache
@@ -109,7 +147,7 @@ class DataHandler(object):
                                  {"hash": tweet_hash})
             result = cursor.fetchone()
             if result:
-                tweet = {'id': long(result[0]), 'hash': str(result[1]), 'text': str(result[2])}
+                tweet = self.tweet_from_sql(result)
         if not tweet:
             logging.debug('failed to retreive tweet')
         return tweet
@@ -185,6 +223,8 @@ class DataHandler(object):
                 'tweet_two': {'id': long(item[3]), 'text': str(item[5])}
                 }
 
+    def tweet_from_sql(self, sql_tweet):
+        return {'id': long(sql_tweet[0]), 'hash': str(sql_tweet[1]), 'text': str(sql_tweet[2])}
     def finish(self):
         if not self.just_the_hits:
             self.write_cached_tweets()
