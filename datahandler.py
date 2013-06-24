@@ -82,7 +82,7 @@ class DataHandler(object):
         """
         if (self.fetch_pool.get(new_tweet['hash'])):
             # if there's a match in our hit pool do a quick diff check
-            if (self.delegate.compare(new_tweet, self.fetch_pool[new_tweet['hash']])):
+            if (self.delegate.compare(new_tweet['text'], self.fetch_pool[new_tweet['hash']]['text'])):
                 print('HIT IN FETCH POOL?', new_tweet, self.fetch_pool[new_tweet['hash']])
                 logging.debug('HIT IN FETCH POOL? \n %s \n %s' % (new_tweet, self.fetch_pool[new_tweet['hash']]))
             return
