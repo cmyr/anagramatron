@@ -81,9 +81,10 @@ class DataHandler(object):
         if the tweet matches a hash saves it for the next db fetch
         """
         if (self.fetch_pool.get(new_tweet['hash'])):
-            # if there's a match in our existing fetch pool (unlikely) we're going to print them both and pass
-            # if we do a general refactoring this problem can be cleaned up.
-            print('/rHIT IN FETCH POOL?', new_tweet, self.fetch_pool[new_tweet['hash']])
+            # if there's a match in our hit pool do a quick diff check
+            if (self.delegate.compare(new_tweet, self.fetch_pool[new_tweet['hash']])):
+                print('HIT IN FETCH POOL?', new_tweet, self.fetch_pool[new_tweet['hash']])
+                logging.debug('HIT IN FETCH POOL? \n %s \n %s' % (new_tweet, self.fetch_pool[new_tweet['hash']]))
             return
         if (new_tweet['hash'] in self.write_cache_hashes):
             # if it's in the write cache return them both for checking
