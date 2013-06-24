@@ -159,7 +159,7 @@ class Anagramer(object):
                 "tweet_one": tweet_one,
                 "tweet_two": tweet_two,
             }
-            self.data.remove(hit_tweet['hash'])
+            self.data.remove(tweet_one['hash'])
             self.data.add_hit(hit)
             self.stats.hits += 1
         else:
