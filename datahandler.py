@@ -226,11 +226,14 @@ class DataHandler(object):
 
     def tweet_from_sql(self, sql_tweet):
         return {'id': long(sql_tweet[0]), 'hash': str(sql_tweet[1]), 'text': str(sql_tweet[2])}
+
     def finish(self):
         if not self.just_the_hits:
             self.write_cached_tweets()
             print('datahandler closing with %i tweets' % (len(self.hashes)))
             print('write cache hit %i times' % self.debug_used_cache_count)
+        if (len(self.fetch_pool)):
+            self.batch_fetch()
         if self.data:
             self.data.close()
         if self.hitsdb:
