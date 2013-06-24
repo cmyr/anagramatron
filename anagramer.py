@@ -101,10 +101,10 @@ class Anagramer(object):
                 finally:
                     self.stream_handler.close()
                     self.stream_handler = None
-                    self.stats.close()
-                    self.stats = None
                     self.data.finish()
                     self.data = None
+                    self.stats.close()
+                    self.stats = None                 
         else:
             # means we're running from local data
             self.run_with_data(source)
