@@ -88,6 +88,7 @@ class DataHandler(object):
             return
         if (new_tweet['hash'] in self.write_cache_hashes):
             # if it's in the write cache return them both for checking
+            self.debug_used_cache_count += 1
             self.delegate.process_hit(new_tweet, self.write_cache[new_tweet['hash']])
         if (self.contains(new_tweet['hash'])):
             # stored_tweet = self.get(new_tweet['hash'])
@@ -101,6 +102,7 @@ class DataHandler(object):
         """
         fetches all of the tweets in our fetch pool and returns them to delegate
         """
+        logging.debug("batch_fetch called, batch size: %i" % len(self.fetch_pool))
         cursor = self.data.cursor()
         hashes = ['"%s"' % self.fetch_pool[i]['hash'] for i in self.fetch_pool]
         cursor.execute("SELECT * FROM tweets WHERE hash IN (%s)" % ",".join(hashes))
