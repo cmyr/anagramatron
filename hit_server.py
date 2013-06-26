@@ -75,7 +75,10 @@ def get_hits():
     if not data:
         data = datahandler.DataHandler(just_the_hits=True)
     hits = data.get_all_hits()
-    hits = [h for h in hits if h['status'] not in [CLIENT_ACTION_POST, CLIENT_ACTION_REJECT, CLIENT_ACTION_FAILED]]
+    if (request.query.status):
+        hits = [h for h in hits if h['status'] == request.query.status]
+    else:
+        hits = [h for h in hits if h['status'] not in [CLIENT_ACTION_POST, CLIENT_ACTION_REJECT, CLIENT_ACTION_FAILED]]
     print("returned %i hits" % len(hits))
     return {'hits': hits}
 
