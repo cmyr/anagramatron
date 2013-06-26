@@ -355,15 +355,15 @@ if __name__ == "__main__":
     format='%(asctime)s - %(levelname)s:%(message)s',
     level=logging.DEBUG)
 
-    teststream = StreamHandler()
-    teststream.start()
-    count = 1
-    try:
-        for t in teststream:
-            print(count, "buffer size = %i" % teststream.Queue.qsize(), t.get('text'))
-            time.sleep(1)
-            if count > 10:
-                teststream.close()
-            count +=1
-    finally:
-        teststream.close()
+    # teststream = StreamHandler()
+    # teststream.start()
+    # count = 1
+    # try:
+    #     for t in teststream:
+    #         print(count, "buffer size = %i" % teststream.Queue.qsize(), t.get('text'))
+    #         time.sleep(1)
+    #         if count > 10:
+    #             teststream.close()
+    #         count +=1
+    # finally:
+    #     teststream.close()
