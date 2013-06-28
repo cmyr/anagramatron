@@ -75,9 +75,9 @@ class StreamHandler(object):
         try:
             streamiter = stream.statuses.sample(language='en', stall_warnings='true')
             for tweet in streamiter:
+                if self._stop_thread.is_set():
+                    break
                 if tweet is not None:
-                    if self._stop_thread.is_set():
-                        break
                     if tweet.get('warning'):
                         print('\n', tweet)
                         logging.warning(tweet)
@@ -85,16 +85,16 @@ class StreamHandler(object):
                     if tweet.get('text'):
                         self._handle_tweet(tweet)
         except SSLError as err:
-            print(err)
-            logging.error(err)
+            print('SSLError', err)
+            logging.error('SSLError %s' % err)
             return
         except TwitterHTTPError as err:
-            print(err)
-            logging.error(err)
+            print('TWitterHTTPError', err)
+            logging.error('TWitterHTTPError %s' % err)
             return
         except SocketError as err:
-            print(err)
-            logging.error(err)
+            print('SocketError', err)
+            logging.error('SocketError %s' % err)
             return
 
     def _run_with_data(self, data):
