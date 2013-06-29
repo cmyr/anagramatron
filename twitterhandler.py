@@ -13,7 +13,6 @@ import tumblpy
 
 import utils
 import time
-import sys # just for debug
 
 # my twitter OAuth key:
 from twittercreds import (CONSUMER_KEY, CONSUMER_SECRET,
