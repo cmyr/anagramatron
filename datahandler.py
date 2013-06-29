@@ -32,13 +32,10 @@ class DataHandler(object):
         self.write_cache_hashes = set()
         self.data = None
         self.fetch_pool = dict()
-        self.delegate = delegate
+        self.delegate = delegate  # for sending hits
         self.hitsdb = None
-        # self.cache = None
         self.hashes = None
         self.debug_used_cache_count = 0
-        # self.highest_loaded_id = 0
-        # self.deleted_tweets = set()
         self.setup()
 
     def setup(self):
@@ -136,7 +133,6 @@ class DataHandler(object):
         self.hashes |= self.write_cache_hashes
         self.write_cache = dict()
         self.write_cache_hashes = set()
-
 
     def get(self, tweet_hash):
         # if hit isn't in data, check if it's still in the cache
