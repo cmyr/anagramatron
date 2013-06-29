@@ -162,7 +162,7 @@ class DataHandler(object):
             self.write_cached_tweets()
         cursor = self.data.cursor()
         cursor.execute("DELETE FROM tweets WHERE hash=:hash",
-                             {"hash": tweet_hash})
+                       {"hash": tweet_hash})
         self.data.commit()
         # delete from hashes
         self.hashes.remove(tweet_hash)

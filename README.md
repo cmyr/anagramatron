@@ -1,5 +1,5 @@
 ## Anagramer hunts for anagrams on Twitter.
-
+![Anagramatron](http://www.cmyr.net/wptest/wp-content/uploads/2013/05/Untitled-1.png)
 http://anagramatron.tumblr.com
 
 http://twitter.com/anagramatron
