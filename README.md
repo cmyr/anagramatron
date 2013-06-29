@@ -1,4 +1,6 @@
+![Anagramatron](http://www.cmyr.net/wptest/wp-content/uploads/2013/05/Untitled-1.png)
 ## Anagramer hunts for anagrams on Twitter.
+
 
 http://anagramatron.tumblr.com
 

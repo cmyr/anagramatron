@@ -134,7 +134,7 @@ class Anagramer(object):
         called by datahandler when it has found a match in need of review.
         """
         self.stats.possible_hits += 1
-        self.stats.new_hit(hashed_tweet['hash'])
+        self.stats.new_hit(tweet_one['hash'])
         if self.compare(tweet_one['text'], tweet_two['text']):
             hit = {
                 "id": int(time.time()*1000),
