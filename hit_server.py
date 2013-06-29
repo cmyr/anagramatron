@@ -22,14 +22,11 @@ class MySSLCherryPy(ServerAdapter):
     def run(self, handler):
         import cherrypy
         from cherrypy import wsgiserver
-        # cherrypy.config.update('cherrypy.config')
-        # print(cherrypy.config.items())
         server = cherrypy.wsgiserver.CherryPyWSGIServer(
                                                         (self.host, self.port),
                                                         handler,
                                                         numthreads=1,
                                                         max=1)
-        # print(server.requests._threads)
         # If cert variable is has a valid path, SSL will be used
         # You can set it to None to disable SSL
         cert = 'data/server.pem'  # certificate path
@@ -43,18 +40,8 @@ class MySSLCherryPy(ServerAdapter):
 # Add our new MySSLCherryPy class to the supported servers
 # under the key 'mysslcherrypy'
 server_names['sslbottle'] = MySSLCherryPy
-
-# data = datahandler.DataHandler(just_the_hits=True)
-# HITS = data.get_all_hits()
 data = None
 app = Bottle()
-
-
-# def hit_for_id(hit_id):
-#     for hit in HITS:
-#         if hit['id'] == hit_id:
-#             return hit
-
 
 def authenticate(auth):
     if auth == AUTH_TOKEN:

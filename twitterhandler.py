@@ -13,7 +13,6 @@ import tumblpy
 
 import utils
 import time
-import sys # just for debug
 
 # my twitter OAuth key:
 from twittercreds import (CONSUMER_KEY, CONSUMER_SECRET,
@@ -115,14 +114,18 @@ class StreamHandler(object):
             self.stream_thread.start()
 
         print('creating new server connection')
+        logging.debug('creating new server connection')
         if self.stream_thread is not None:
             print('terminating existing thread')
+            logging.debug('terminating thread')
             self._stop_thread.set()
             self.stream_thread.join(5.0)
             if self.stream_thread.isAlive():
                 print('termination of existing connection thread failed')
+                logging.error('thread termination FAILED')
             else:
                 print('existing thread terminated succesfully')
+                logging.debug('thread terminated successfully')
         self._stop_thread.clear()
         self.stream_thread = threading.Thread(target=self._run)
         self.stream_thread.daemon = True
@@ -350,20 +353,4 @@ class TwitterHandler(object):
 
 
 if __name__ == "__main__":
-    logging.basicConfig(
-    filename='tests/stream.log',
-    format='%(asctime)s - %(levelname)s:%(message)s',
-    level=logging.DEBUG)
-
-    # teststream = StreamHandler()
-    # teststream.start()
-    # count = 1
-    # try:
-    #     for t in teststream:
-    #         print(count, "buffer size = %i" % teststream.Queue.qsize(), t.get('text'))
-    #         time.sleep(1)
-    #         if count > 10:
-    #             teststream.close()
-    #         count +=1
-    # finally:
-    #     teststream.close()
+    pass

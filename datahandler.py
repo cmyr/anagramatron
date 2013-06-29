@@ -32,13 +32,10 @@ class DataHandler(object):
         self.write_cache_hashes = set()
         self.data = None
         self.fetch_pool = dict()
-        self.delegate = delegate
+        self.delegate = delegate  # for sending hits
         self.hitsdb = None
-        # self.cache = None
         self.hashes = None
         self.debug_used_cache_count = 0
-        # self.highest_loaded_id = 0
-        # self.deleted_tweets = set()
         self.setup()
 
     def setup(self):
@@ -102,7 +99,7 @@ class DataHandler(object):
         """
         fetches all of the tweets in our fetch pool and returns them to delegate
         """
-        logging.debug("batch_fetch called, batch size: %i" % len(self.fetch_pool))
+        # logging.debug("batch_fetch called, batch size: %i" % len(self.fetch_pool))
         cursor = self.data.cursor()
         hashes = ['"%s"' % self.fetch_pool[i]['hash'] for i in self.fetch_pool]
         cursor.execute("SELECT * FROM tweets WHERE hash IN (%s)" % ",".join(hashes))
@@ -137,7 +134,6 @@ class DataHandler(object):
         self.write_cache = dict()
         self.write_cache_hashes = set()
 
-
     def get(self, tweet_hash):
         # if hit isn't in data, check if it's still in the cache
         tweet = None
@@ -166,7 +162,7 @@ class DataHandler(object):
             self.write_cached_tweets()
         cursor = self.data.cursor()
         cursor.execute("DELETE FROM tweets WHERE hash=:hash",
-                             {"hash": tweet_hash})
+                       {"hash": tweet_hash})
         self.data.commit()
         # delete from hashes
         self.hashes.remove(tweet_hash)

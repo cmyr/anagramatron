@@ -16,6 +16,9 @@ LOG_FILE_NAME = 'data/anagramer.log'
 
 class NeedsSave(Exception):
     """hacky exception raised when we need to save"""
+    # this isn't being used right now, but might be used to implement
+    # automated trimming / removal of old tweets from the permanent store
+    # when things are getting too slow.
     pass
 
 
@@ -49,6 +52,7 @@ class AnagramStats(object):
         self.end_time = time.time()
         filename = "data/stats/%s.p" % time.strftime("%b%d%H%M")
         pickle.dump(self, open(filename, 'wb'))
+        logging.debug('saved stats with %i hits' % len(self.hitlist))
 
 
 class Anagramer(object):
@@ -61,21 +65,7 @@ class Anagramer(object):
         self.stream_handler = StreamHandler()
         self.stats = AnagramStats()
         self.data = None  # wait until we get run call to load data
-        self.time_to_save = self.set_save_time()
-
-    def set_save_time(self):
-        """find out when it will next be 4am"""
-        # this was an embarassingly difficult problem -_-
-        now = time.localtime()
-        hour = now[3]
-        hours_to_four = 0
-        if hour < 4:
-            hours_to_four = 4 - hour
-        elif hour < 12:
-            hours_to_four = 24 - (hour - 4)
-        elif hour < 24:
-            hours_to_four = 28 - hour
-        return time.time() + ((60 * 60) * hours_to_four)
+        # self.time_to_save = self.set_save_time()
 
     def run(self, source=None):
         """
@@ -138,20 +128,13 @@ class Anagramer(object):
     def process_input(self, hashed_tweet):
         self.stats.new_hash(hashed_tweet['hash'])
         self.data.process_tweet(hashed_tweet)
-    #     if self.data.contains(hashed_tweet['hash']):
-    #         self.stats.new_hit(hashed_tweet['hash'])
-    #         self.process_hit(hashed_tweet)
-    #     else:
-    #         self.add_to_data(hashed_tweet)
-
-    # def add_to_data(self, hashed_tweet):
-    #     self.data.add(hashed_tweet)
 
     def process_hit(self, tweet_one, tweet_two):
         """
         called by datahandler when it has found a match in need of review.
         """
         self.stats.possible_hits += 1
+        self.stats.new_hit(hashed_tweet['hash'])
         if self.compare(tweet_one['text'], tweet_two['text']):
             hit = {
                 "id": int(time.time()*1000),
@@ -164,7 +147,6 @@ class Anagramer(object):
             self.stats.hits += 1
         else:
             pass
-
 
     def compare(self, tweet_one, tweet_two):
         """
