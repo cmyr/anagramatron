@@ -75,9 +75,9 @@ class StreamHandler(object):
         try:
             streamiter = stream.statuses.sample(language='en', stall_warnings='true')
             for tweet in streamiter:
-                if self._stop_thread.is_set():
-                    break
                 if tweet is not None:
+                    if self._stop_thread.is_set():
+                        break
                     if tweet.get('warning'):
                         print('\n', tweet)
                         logging.warning(tweet)
@@ -85,16 +85,16 @@ class StreamHandler(object):
                     if tweet.get('text'):
                         self._handle_tweet(tweet)
         except SSLError as err:
-            print('SSLError', err)
-            logging.error('SSLError %s' % err)
+            print(err)
+            logging.error(err)
             return
         except TwitterHTTPError as err:
-            print('TWitterHTTPError', err)
-            logging.error('TWitterHTTPError %s' % err)
+            print(err)
+            logging.error(err)
             return
         except SocketError as err:
-            print('SocketError', err)
-            logging.error('SocketError %s' % err)
+            print(err)
+            logging.error(err)
             return
 
     def _run_with_data(self, data):
@@ -115,14 +115,18 @@ class StreamHandler(object):
             self.stream_thread.start()
 
         print('creating new server connection')
+        logging.debug('creating new server connection')
         if self.stream_thread is not None:
             print('terminating existing thread')
+            logging.debug('terminating thread')
             self._stop_thread.set()
             self.stream_thread.join(5.0)
             if self.stream_thread.isAlive():
                 print('termination of existing connection thread failed')
+                logging.error('thread termination FAILED')
             else:
                 print('existing thread terminated succesfully')
+                logging.debug('thread terminated successfully')
         self._stop_thread.clear()
         self.stream_thread = threading.Thread(target=self._run)
         self.stream_thread.daemon = True
@@ -350,20 +354,4 @@ class TwitterHandler(object):
 
 
 if __name__ == "__main__":
-    logging.basicConfig(
-    filename='tests/stream.log',
-    format='%(asctime)s - %(levelname)s:%(message)s',
-    level=logging.DEBUG)
-
-    # teststream = StreamHandler()
-    # teststream.start()
-    # count = 1
-    # try:
-    #     for t in teststream:
-    #         print(count, "buffer size = %i" % teststream.Queue.qsize(), t.get('text'))
-    #         time.sleep(1)
-    #         if count > 10:
-    #             teststream.close()
-    #         count +=1
-    # finally:
-    #     teststream.close()
+    pass
