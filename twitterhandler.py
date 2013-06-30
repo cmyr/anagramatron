@@ -76,9 +76,9 @@ class StreamHandler(object):
         try:
             streamiter = stream.statuses.sample(language='en', stall_warnings='true')
             for tweet in streamiter:
+                if self._stop_thread.is_set():
+                    break
                 if tweet is not None:
-                    if self._stop_thread.is_set():
-                        break
                     if tweet.get('warning'):
                         print('\n', tweet)
                         logging.warning(tweet)
