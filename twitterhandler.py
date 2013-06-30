@@ -23,7 +23,8 @@ from tumblrcreds import (TUMBLR_KEY, TUMBLR_SECRET,
 
 from constants import (ANAGRAM_STREAM_BUFFER_SIZE,
                        ANAGRAM_LOW_CHAR_CUTOFF,
-                       ANAGRAM_LOW_UNIQUE_CHAR_CUTOFF)
+                       ANAGRAM_LOW_UNIQUE_CHAR_CUTOFF,
+                       ANAGRAM_ALPHA_RATIO_CUTOFF)
 
 
 class StreamHandler(object):
