@@ -21,7 +21,9 @@ from twittercreds import (CONSUMER_KEY, CONSUMER_SECRET,
 from tumblrcreds import (TUMBLR_KEY, TUMBLR_SECRET,
                          TOKEN_KEY, TOKEN_SECRET, TUMBLR_BLOG_URL)
 
-from constants import ANAGRAM_STREAM_BUFFER_SIZE
+from constants import (ANAGRAM_STREAM_BUFFER_SIZE,
+                       ANAGRAM_LOW_CHAR_CUTOFF,
+                       ANAGRAM_LOW_UNIQUE_CHAR_CUTOFF)
 
 
 class StreamHandler(object):
@@ -74,9 +76,9 @@ class StreamHandler(object):
         try:
             streamiter = stream.statuses.sample(language='en', stall_warnings='true')
             for tweet in streamiter:
+                if self._stop_thread.is_set():
+                    break
                 if tweet is not None:
-                    if self._stop_thread.is_set():
-                        break
                     if tweet.get('warning'):
                         print('\n', tweet)
                         logging.warning(tweet)
@@ -160,8 +162,6 @@ class StreamHandler(object):
         """
         filter out anagram-inappropriate tweets
         """
-        LOW_CHAR_CUTOFF = 12
-        MIN_UNIQUE_CHARS = 8
         #check for mentions
         if len(tweet.get('entities').get('user_mentions')) is not 0:
             return False
@@ -178,11 +178,11 @@ class StreamHandler(object):
             return False
         # ignore short tweets
         t = utils.stripped_string(tweet['text'])
-        if len(t) <= LOW_CHAR_CUTOFF:
+        if len(t) <= ANAGRAM_LOW_CHAR_CUTOFF:
             return False
         # ignore tweets with few characters
         st = set(t)
-        if len(st) < MIN_UNIQUE_CHARS:
+        if len(st) <= ANAGRAM_LOW_UNIQUE_CHAR_CUTOFF:
             return False
         return True
 
