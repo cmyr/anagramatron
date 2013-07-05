@@ -27,6 +27,7 @@ when hits are approved (manually) they are automatically posted to associated tw
 
 *Other questions and comments can be directed to [@cmyr](http://www.twitter.com/cmyr)*
 
+
 Q: Is this manually curated?
 
 A: Mostly for issues of volume ( there are a lot of variations of 'goooood mooornnniinng!', there are a lot of spam bots posting subtely different versions of the same message, etc) the bot doesn't automatically post every anagram it finds. Essentially there's an iphone client that reviews matches, which are manually approved or rejected. 
