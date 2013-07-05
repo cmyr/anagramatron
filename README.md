@@ -23,6 +23,22 @@ when hits are approved (manually) they are automatically posted to associated tw
 - The vast majority of 'hits' are tweets that are identical.
 - The vast majority of remaining hits are either tweets that have one letter switched ('I hate u' vs. 'I haet u') or that have the same words in a different order ('hi twitter!!' vs. 'twitter, hi?'). etc.
 
+#### FAQ
+
+**Other questions and comments can be directed to [@cmyr](http://www.twitter.com/cmyr)
+**
+
+Q: Is this manually curated?
+
+A: Mostly for issues of volume ( there are a lot of variations of 'goooood mooornnniinng!', there are a lot of spam bots posting subtely different versions of the same message, etc) the bot doesn't automatically post every anagram it finds. Essentially there's an iphone client that reviews matches, which are manually approved or rejected. 
+
+Q: How does this handle numerals / non-latin characters? 
+
+A: For practical reasons, this bot only parses tweets in English that contain only ascii characters, i.e. no emoji or em-dashes. Only letter characters are considered for anagram comparison, i.e. 'i have 2 friends' and '400000 friend I shave' are considered anagrams. Both of these solutions are pretty ham-fisted, and might change at some point.
+
+Q: What is the relationship between the twitter page and the tumblr?
+
+A: One-to-one. When a match is approved, it gets posted to both. 
 
 #### Dependencies:
 this script makes use of [python twitter tools](http://mike.verdone.ca/twitter/) for handling twitter interactions, [tumblpy](https://github.com/michaelhelmick/python-tumblpy) for posting to tumblr, and [bottle](http://bottlepy.org/docs/dev/) + [cherrypy](http://www.cherrypy.org/) to run a webserver.
