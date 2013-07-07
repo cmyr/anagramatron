@@ -25,7 +25,7 @@ when hits are approved (manually) they are automatically posted to associated tw
 
 #### FAQ
 
-*Other questions and comments can be directed to [@cmyr](http://www.twitter.com/cmyr)*
+*Other questions and comments can be directed to [@cmyr](http://www.twitter.com/cmyr) or [anagrams@cmyr.net](mailto:anagrams@cmyr.net)*
 
 
 Q: Is this manually curated?
