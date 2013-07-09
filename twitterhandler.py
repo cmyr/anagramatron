@@ -14,6 +14,7 @@ from twitter.api import Twitter, TwitterError, TwitterHTTPError
 import tumblpy
 
 import utils
+import anagramstats as stats
 import time
 
 # my twitter OAuth key:
@@ -43,6 +44,7 @@ class StreamHandler(object):
         self._tweets_seen = multiprocessing.Value('L', 0)  # for passing stats between processes
         self._passed_filter = multiprocessing.Value('L', 0)
         self._overflow = multiprocessing.Value('L', 0)
+        self._lock = multiprocessing.Lock()
 
     @property
     def tweets_seen(self):
@@ -56,12 +58,25 @@ class StreamHandler(object):
     def overflow(self):
         return long(self._overflow.value)
 
+    def update_stats(self):
+        with self._lock:
+            stats.tweets_seen(self._tweets_seen.value)
+            self._tweets_seen.value = 0
+            stats.passed_filter(self._passed_filter.value)
+            self._passed_filter.value = 0
+            if self._overflow.value:
+                stats.overflow(self._overflow.value)
+                self._overflow.value = 0
+
+        stats.set_buffer(self.bufferlength)
+
+
     def __iter__(self):
         # I think we really want to handle all our various errors and reconection scenarios here
 
         while 1:
             try:
-
+                self.update_stats()
                 yield self.queue.get(True, self.timeout)
                 if (self._process_should_end.is_set()):
                     break
@@ -74,7 +89,7 @@ class StreamHandler(object):
     def next(self):
         return self._iter.next()
 
-    def _run(self, queue, stop_flag, seen, passed, overflow):
+    def _run(self, queue, stop_flag, seen, passed, overflow, lock):
         stream = TwitterStream(
             auth=OAuth(ACCESS_KEY,
                        ACCESS_SECRET,
@@ -94,13 +109,16 @@ class StreamHandler(object):
                         continue
                     if tweet.get('text'):
                         # self._handle_tweet(tweet)
-                        seen.value += 1
+                        with lock:
+                            seen.value += 1
                         if self.filter_tweet(tweet):
-                            passed.value += 1
+                            with lock:
+                                passed.value += 1
                             try:
                                 queue.put(self.format_tweet(tweet), block=False)
                             except Queue.Full:
-                                overflow.value += 1
+                                with lock:
+                                    overflow.value += 1
                                 pass
         except SSLError as err:
             print(err)
@@ -151,7 +169,8 @@ class StreamHandler(object):
                                       self._process_should_end,
                                       self._tweets_seen,
                                       self._passed_filter,
-                                      self._overflow))
+                                      self._overflow,
+                                      self._lock))
         self.stream_process.daemon = True
         self.stream_process.start()
 
@@ -168,16 +187,16 @@ class StreamHandler(object):
         logging.debug("stream handler closing with overflow %i from buffer size %i" %
               (self.overflow, self.buffersize))
 
-    def _handle_tweet(self, tweet):
-        # currently unused as we consider our refactoring options
-        # self.tweets_seen += 1
-        # self.active_time = time.time()
-        if self.filter_tweet(tweet):
-            # self.passed_filter += 1
-            try:
-                self.queue.put(self.format_tweet(tweet), block=False)
-            except Queue.Full:
-                self.overflow += 1
+    # def _handle_tweet(self, tweet):
+    #     # currently unused as we consider our refactoring options
+    #     # self.tweets_seen += 1
+    #     # self.active_time = time.time()
+    #     if self.filter_tweet(tweet):
+    #         # self.passed_filter += 1
+    #         try:
+    #             self.queue.put(self.format_tweet(tweet), block=False)
+    #         except Queue.Full:
+    #             self.overflow += 1
 
     def bufferlength(self):
         return self.queue.qsize()
