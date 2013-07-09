@@ -46,17 +46,17 @@ class StreamHandler(object):
         self._overflow = multiprocessing.Value('L', 0)
         self._lock = multiprocessing.Lock()
 
-    @property
-    def tweets_seen(self):
-        return long(self._tweets_seen.value)
+    # @property
+    # def tweets_seen(self):
+    #     return long(self._tweets_seen.value)
 
-    @property
-    def passed_filter(self):
-        return long(self._passed_filter.value)
+    # @property
+    # def passed_filter(self):
+    #     return long(self._passed_filter.value)
 
-    @property
-    def overflow(self):
-        return long(self._overflow.value)
+    # @property
+    # def overflow(self):
+    #     return long(self._overflow.value)
 
     def update_stats(self):
         with self._lock:
@@ -67,9 +67,7 @@ class StreamHandler(object):
             if self._overflow.value:
                 stats.overflow(self._overflow.value)
                 self._overflow.value = 0
-
         stats.set_buffer(self.bufferlength)
-
 
     def __iter__(self):
         # I think we really want to handle all our various errors and reconection scenarios here
