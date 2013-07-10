@@ -218,27 +218,84 @@ class NeedsSave(Exception):
 #     #         print(hit['tweet_one']['text'], hit['tweet_one']['id'])
 #     #         print(hit['tweet_two']['text'], hit['tweet_two']['id'])
 
-def update_console():
-    info = stats.stats_dict()
-    seen_percent = 0
-    if info.get('tweets_seen') > 0:
-        seen_percent = int(100*(float(info['passed_filter'])/info['tweets_seen']))
-    runtime = time.time()-info['start_time']
+# def update_console():
+#     info = stats.stats_dict()
+#     seen_percent = 0
+#     if info.get('tweets_seen') > 0:
+#         seen_percent = int(100*(float(info['passed_filter'])/info['tweets_seen']))
+#     runtime = time.time()-info['start_time']
 
-    status = (
-        'tweets seen: ' + str(info['tweets_seen']) +
-        " passed filter: " + str(info['passed_filter']) +
-        " ({0}%)".format(seen_percent) +
-        " hits " + str(info['possible_hits']) +
-        " agrams: " + str(info['hits']) +
-        # " buffer: " + str(self.stream_handler.bufferlength()) +
-        " runtime: " + utils.format_seconds(runtime)
-    )
-    sys.stdout.write(status + '\r')
-    sys.stdout.flush()
+#     status = (
+#         'tweets seen: ' + str(info['tweets_seen']) +
+#         " passed filter: " + str(info['passed_filter']) +
+#         " ({0}%)".format(seen_percent) +
+#         " hits " + str(info['possible_hits']) +
+#         " agrams: " + str(info['hits']) +
+#         # " buffer: " + str(self.stream_handler.bufferlength()) +
+#         " runtime: " + utils.format_seconds(runtime)
+#     )
+#     sys.stdout.write(status + '\r')
+#     sys.stdout.flush()
 
 def process_input(tweet):
     pass
+
+# def process_hit(self, tweet_one, tweet_two):
+#     """
+#     called by datahandler when it has found a match in need of review.
+#     """
+#     anagramstats.possible_hits += 1
+#     anagramstats.new_hit(tweet_one['hash'])
+#     if self.compare(tweet_one['text'], tweet_two['text']):
+#         hit = {
+#             "id": int(time.time()*1000),
+#             "status": HIT_STATUS_REVIEW,
+#             "tweet_one": tweet_one,
+#             "tweet_two": tweet_two,
+#         }
+#         self.data.remove(tweet_one['hash'])
+#         self.data.add_hit(hit)
+#         anagramstats.hits += 1
+#     else:
+#         pass
+
+def compare(self, tweet_one, tweet_two):
+    """
+    most basic test, finds if tweets are just identical
+    """
+    if not self.compare_chars(tweet_one, tweet_two):
+        return False
+    if not self.compare_words(tweet_one, tweet_two):
+        return False
+    return True
+
+def compare_chars(self, tweet_one, tweet_two, cutoff=0.5):
+    """
+    basic test, looks for similarity on a char by char basis
+    """
+    stripped_one = utils.stripped_string(tweet_one)
+    stripped_two = utils.stripped_string(tweet_two)
+
+    total_chars = len(stripped_two)
+    same_chars = 0
+    for i in range(total_chars):
+        if stripped_one[i] == stripped_two[i]:
+            same_chars += 1
+
+    if (float(same_chars) / total_chars) < cutoff:
+        return True
+    return False
+
+def compare_words(self, tweet_one, tweet_two, cutoff=0.5):
+    """
+    looks for tweets containing the same words in different orders
+    """
+    words_one = utils.stripped_string(tweet_one, spaces=True).split()
+    words_two = utils.stripped_string(tweet_two, spaces=True).split()
+
+    word_count = len(words_one)
+    if len(words_two) < len(words_one):
+#             word_count = len(words_two)
 
 def main():
     # set up logging:

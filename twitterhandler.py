@@ -229,12 +229,16 @@ class StreamHandler(object):
 
     def format_tweet(self, tweet):
         """
-        makes a dict from the JSON properties we need
+        makes a dict from the JSON properties we want
+        converts &amp; &lt; etc to &, <.
         """
+        text = tweet['text']
+        # text = re.sub(r'&amp;', '&', text).lower()
+        # this needs testing guy
 
         tweet_id = long(tweet['id_str'])
         tweet_hash = self.make_hash(tweet['text'])
-        tweet_text = str(tweet['text'])
+        tweet_text = tweet['text']
         hashed_tweet = {
             'id': tweet_id,
             'hash': tweet_hash,
