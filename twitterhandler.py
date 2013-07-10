@@ -41,53 +41,39 @@ class StreamHandler(object):
         self.queue = multiprocessing.Queue()
         self._process_should_end = multiprocessing.Event()
         self._iter = self.__iter__()
-        self._tweets_seen = multiprocessing.Value('L', 0)  # for passing stats between processes
-        self._passed_filter = multiprocessing.Value('L', 0)
         self._overflow = multiprocessing.Value('L', 0)
         self._lock = multiprocessing.Lock()
 
-    # @property
-    # def tweets_seen(self):
-    #     return long(self._tweets_seen.value)
-
-    # @property
-    # def passed_filter(self):
-    #     return long(self._passed_filter.value)
-
-    # @property
-    # def overflow(self):
-    #     return long(self._overflow.value)
+    @property
+    def overflow(self):
+        return long(self._overflow.value)
 
     def update_stats(self):
         with self._lock:
-            stats.tweets_seen(self._tweets_seen.value)
-            self._tweets_seen.value = 0
-            stats.passed_filter(self._passed_filter.value)
-            self._passed_filter.value = 0
             if self._overflow.value:
                 stats.overflow(self._overflow.value)
                 self._overflow.value = 0
-        stats.set_buffer(self.bufferlength)
+        stats.set_buffer(self.bufferlength())
 
     def __iter__(self):
         # I think we really want to handle all our various errors and reconection scenarios here
-
         while 1:
             try:
                 self.update_stats()
                 yield self.queue.get(True, self.timeout)
-                if (self._process_should_end.is_set()):
-                    break
                 continue
             except Queue.Empty:
                 print('queue timeout, restarting thread')
                 # means we've timed out, and should try to reconnect
                 self.start()
+        print('exiting iter loop')
 
     def next(self):
         return self._iter.next()
 
-    def _run(self, queue, stop_flag, seen, passed, overflow, lock):
+    # def _run(self, queue, stop_flag, seen, passed, overflow, lock):
+    def _run(self, queue, stop_flag, overflow, lock):
+
         stream = TwitterStream(
             auth=OAuth(ACCESS_KEY,
                        ACCESS_SECRET,
@@ -97,27 +83,21 @@ class StreamHandler(object):
             block=True)
         try:
             streamiter = stream.statuses.sample(language='en', stall_warnings='true')
+            logging.debug('stream begun')
             for tweet in streamiter:
                 if stop_flag.is_set():
-                    break
+                    return
                 if tweet is not None:
                     if tweet.get('warning'):
                         print('\n', tweet)
                         logging.warning(tweet)
                         continue
                     if tweet.get('text'):
-                        # self._handle_tweet(tweet)
-                        with lock:
-                            seen.value += 1
-                        if self.filter_tweet(tweet):
+                        try:
+                            queue.put(dict(tweet), block=False)
+                        except Queue.Full:
                             with lock:
-                                passed.value += 1
-                            try:
-                                queue.put(self.format_tweet(tweet), block=False)
-                            except Queue.Full:
-                                with lock:
-                                    overflow.value += 1
-                                pass
+                                overflow.value += 1
         except SSLError as err:
             print(err)
             logging.error(err)
@@ -131,20 +111,11 @@ class StreamHandler(object):
             logging.error(err)
             return
 
-    def _run_with_data(self, data):
-        for tweet in data:
-            self._handle_tweet(tweet)
-
-    def start(self, source=None):
+    def start(self):
         """
         creates a new thread and starts a streaming connection.
         If a thread already exists, it is terminated.
         """
-        # self._should_terminate = False
-        if source:
-            #  this means we're running with debug tweets
-            print('running with source currently disabled')
-
         print('creating new server connection')
         logging.debug('creating new server connection')
         if self.stream_process is not None:
@@ -165,8 +136,8 @@ class StreamHandler(object):
                                 target=self._run,
                                 args=(self.queue, 
                                       self._process_should_end,
-                                      self._tweets_seen,
-                                      self._passed_filter,
+                                      # self._tweets_seen,
+                                      # self._passed_filter,
                                       self._overflow,
                                       self._lock))
         self.stream_process.daemon = True
@@ -180,80 +151,17 @@ class StreamHandler(object):
         """
         # self.stream_process.terminate()
         self._process_should_end.set()
+        self.stream_process.join(5.0)
         print("\nstream handler closing with overflow %i from buffer size %i" %
               (self.overflow, self.buffersize))
         logging.debug("stream handler closing with overflow %i from buffer size %i" %
               (self.overflow, self.buffersize))
 
-    # def _handle_tweet(self, tweet):
-    #     # currently unused as we consider our refactoring options
-    #     # self.tweets_seen += 1
-    #     # self.active_time = time.time()
-    #     if self.filter_tweet(tweet):
-    #         # self.passed_filter += 1
-    #         try:
-    #             self.queue.put(self.format_tweet(tweet), block=False)
-    #         except Queue.Full:
-    #             self.overflow += 1
-
     def bufferlength(self):
-        return self.queue.qsize()
-
-    def filter_tweet(self, tweet):
-        """
-        filter out anagram-inappropriate tweets
-        """
-        #check for mentions
-        if len(tweet.get('entities').get('user_mentions')) is not 0:
-            return False
-        #check for retweets
-        if tweet.get('retweeted_status'):
-            return False
-        # ignore tweets w/ non-ascii characters
         try:
-            tweet['text'].decode('ascii')
-        except UnicodeEncodeError:
-            return False
-        # check for links:
-        if len(tweet.get('entities').get('urls')) is not 0:
-            return False
-        # ignore short tweets
-        t = utils.stripped_string(tweet['text'])
-        if len(t) <= ANAGRAM_LOW_CHAR_CUTOFF:
-            return False
-        # ignore tweets with few characters
-        st = set(t)
-        if len(st) <= ANAGRAM_LOW_UNIQUE_CHAR_CUTOFF:
-            return False
-        return True
-
-    def format_tweet(self, tweet):
-        """
-        makes a dict from the JSON properties we want
-        converts &amp; &lt; etc to &, <.
-        """
-        text = tweet['text']
-        # text = re.sub(r'&amp;', '&', text).lower()
-        # this needs testing guy
-
-        tweet_id = long(tweet['id_str'])
-        tweet_hash = self.make_hash(tweet['text'])
-        tweet_text = tweet['text']
-        hashed_tweet = {
-            'id': tweet_id,
-            'hash': tweet_hash,
-            'text': tweet_text,
-        }
-        return hashed_tweet
-
-    def make_hash(self, text):
-        """
-        takes a tweet as input. returns a character-unique hash
-        from the tweet's text.
-        """
-        t_text = str(utils.stripped_string(text))
-        t_hash = ''.join(sorted(t_text, key=str.lower))
-        return t_hash
+            return self.queue.qsize()
+        except NotImplementedError:
+            return 'N/A'
 
 
 class TwitterHandler(object):
@@ -404,6 +312,7 @@ if __name__ == "__main__":
 
     for t in stream:
         count += 1
-        print(count, stream.tweets_seen, stream.passed_filter)
+        print(count)
+        print(t)
         if count > 100:
             stream.close()

@@ -12,6 +12,7 @@ _hits = 0
 _overflow = 0
 _start_time = time.time()
 _buffer = 0
+_max_buffer = 0
 hit_distributions = [0 for x in range(140)]
 hash_distributions = [0 for x in range(140)]
 hitlist = []
@@ -55,7 +56,10 @@ def overflow(over=1):
 
 
 def set_buffer(buffer_size):
+    global _buffer, _max_buffer
     _buffer = buffer_size
+    if _buffer > _max_buffer:
+        _max_buffer = _buffer
 
 
 def stats_dict():
@@ -85,6 +89,7 @@ def update_console():
         " hits " + str(_possible_hits) +
         " agrams: " + str(_hits) +
         " buffer: " + str(_buffer) +
+        ", max: " + str(_max_buffer) +
         " runtime: " + utils.format_seconds(runtime)
     )
     sys.stdout.write(status + '\r')
