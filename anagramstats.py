@@ -1,5 +1,8 @@
 from __future__ import print_function
 import time
+import sys
+
+import utils
 
 
 _tweets_seen = 0
@@ -66,39 +69,31 @@ def stats_dict():
             }
 
 
+def update_console():
+    global _tweets_seen, _passed_filter, _possible_hits, _hits, _overflow
+    global _buffer, _start_time
+
+    seen_percent = 0
+    if _tweets_seen > 0:
+        seen_percent = int(100*(float(_passed_filter)/_tweets_seen))
+    runtime = time.time()-_start_time
+
+    status = (
+        'tweets seen: ' + str(_tweets_seen) +
+        " passed filter: " + str(_passed_filter) +
+        " ({0}%)".format(seen_percent) +
+        " hits " + str(_possible_hits) +
+        " agrams: " + str(_hits) +
+        " buffer: " + str(_buffer) +
+        " runtime: " + utils.format_seconds(runtime)
+    )
+    sys.stdout.write(status + '\r')
+    sys.stdout.flush()
+
+
 def close():
     pass
-
-# class AnagramStats(object):
-#     """
-#     keeps track of stats for us
-#     """
-
-#     def __init__(self):
-#         self.tweets_seen = 0
-#         self.passed_filter = 0
-#         self.possible_hits = 0
-#         self.hits = 0
-#         self.overflow = 0
-#         self.start_time = 0
-#         self.hit_distributions = [0 for x in range(140)]
-#         self.hash_distributions = [0 for x in range(140)]
-#         self.hitlist = []
-
-#     def new_hash(self, hash_text):
-#         hashlength = len(hash_text)
-#         if (hashlength < 140):
-#             self.hash_distributions[hashlength] += 1
-
-#     def new_hit(self, hash_text):
-#         self.hitlist.append(hash_text)
-#         hashlength = len(hash_text)
-#         if (hashlength < 140):
-#             self.hit_distributions[hashlength] += 1
-
-#     def close(self):
-#         self.end_time = time.time()
-#         filename = "data/stats/%s.p" % time.strftime("%b%d%H%M")
-#         pickle.dump(self, open(filename, 'wb'))
-#         logging.debug('saved stats with %i hits' % len(self.hitlist))
-
+    # self.end_time = time.time()
+    # filename = "data/stats/%s.p" % time.strftime("%b%d%H%M")
+    # pickle.dump(self, open(filename, 'wb'))
+    # logging.debug('saved stats with %i hits' % len(self.hitlist))
