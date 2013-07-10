@@ -22,7 +22,6 @@ class NeedsSave(Exception):
     # when things are getting too slow.
     pass
 
-
 # class Anagramer(object):
 #     """
 #     Anagramer hunts for anagrams on twitter.
@@ -237,9 +236,6 @@ class NeedsSave(Exception):
 #     sys.stdout.write(status + '\r')
 #     sys.stdout.flush()
 
-def process_input(tweet):
-    pass
-
 # def process_hit(self, tweet_one, tweet_two):
 #     """
 #     called by datahandler when it has found a match in need of review.
@@ -259,6 +255,7 @@ def process_input(tweet):
 #     else:
 #         pass
 
+
 def compare(self, tweet_one, tweet_two):
     """
     most basic test, finds if tweets are just identical
@@ -268,6 +265,7 @@ def compare(self, tweet_one, tweet_two):
     if not self.compare_words(tweet_one, tweet_two):
         return False
     return True
+
 
 def compare_chars(self, tweet_one, tweet_two, cutoff=0.5):
     """
@@ -286,6 +284,7 @@ def compare_chars(self, tweet_one, tweet_two, cutoff=0.5):
         return True
     return False
 
+
 def compare_words(self, tweet_one, tweet_two, cutoff=0.5):
     """
     looks for tweets containing the same words in different orders
@@ -295,7 +294,81 @@ def compare_words(self, tweet_one, tweet_two, cutoff=0.5):
 
     word_count = len(words_one)
     if len(words_two) < len(words_one):
-#             word_count = len(words_two)
+            word_count = len(words_two)
+            same_words = 0
+        # compare words to each other:
+    for word in words_one:
+        if word in words_two:
+            same_words += 1
+        # if more then $CUTOFF words are the same, fail test
+        if (float(same_words) / word_count) < cutoff:
+            return True
+        else:
+            return False
+
+
+def filter_tweet(tweet):
+    """
+    filter out anagram-inappropriate tweets
+    """
+    #check for mentions
+    if len(tweet.get('entities').get('user_mentions')) is not 0:
+        return False
+    #check for retweets
+    if tweet.get('retweeted_status'):
+        return False
+    # ignore tweets w/ non-ascii characters
+    try:
+        tweet['text'].decode('ascii')
+    except UnicodeEncodeError:
+        return False
+    # check for links:
+    if len(tweet.get('entities').get('urls')) is not 0:
+        return False
+    # ignore short tweets
+    t = utils.stripped_string(tweet['text'])
+    if len(t) <= ANAGRAM_LOW_CHAR_CUTOFF:
+        return False
+    # ignore tweets with few characters
+    st = set(t)
+    if len(st) <= ANAGRAM_LOW_UNIQUE_CHAR_CUTOFF:
+        return False
+    return True
+
+
+def format_tweet(tweet):
+    """
+    makes a dict from the JSON properties we want
+    converts &amp; &lt; etc to &, <.
+    """
+    text = tweet['text']
+    # text = re.sub(r'&amp;', '&', text).lower()
+    # this needs testing guy
+
+    tweet_id = long(tweet['id_str'])
+    tweet_hash = make_hash(tweet['text'])
+    tweet_text = tweet['text']
+    hashed_tweet = {
+        'id': tweet_id,
+        'hash': tweet_hash,
+        'text': tweet_text,
+    }
+    return hashed_tweet
+
+
+def make_hash(text):
+    """
+    takes a tweet as input. returns a character-unique hash
+    from the tweet's text.
+    """
+    t_text = str(utils.stripped_string(text))
+    t_hash = ''.join(sorted(t_text, key=str.lower))
+    return t_hash
+
+
+def process_input(tweet):
+    stats.tweets_seen()
+
 
 def main():
     # set up logging:
@@ -306,7 +379,6 @@ def main():
     )
 
     stream_handler = StreamHandler()
-    # stats = AnagramStats()
 
     while 1:
         try:
@@ -315,7 +387,7 @@ def main():
             stream_handler.start()
             for tweet in stream_handler:
                 process_input(tweet)
-                update_console()
+                stats.update_console()
 
         except KeyboardInterrupt:
             break
