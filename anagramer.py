@@ -1,7 +1,7 @@
 from __future__ import print_function
 
 import sys
-# import re
+import re
 import time
 import logging
 import cPickle as pickle
@@ -12,6 +12,7 @@ import anagramstats as stats
 # from twitter.api import TwitterHTTPError
 import utils
 
+from constants import ANAGRAM_LOW_CHAR_CUTOFF, ANAGRAM_LOW_UNIQUE_CHAR_CUTOFF
 LOG_FILE_NAME = 'data/anagramer.log'
 
 
@@ -366,8 +367,58 @@ def make_hash(text):
     return t_hash
 
 
+def correct_encodings(text):
+    text = re.sub(r'&amp;', '&', text)
+    text = re.sub(r'&lt;', '<', text)
+    text = re.sub(r'&gt;', '>', text)
+
+import unicodedata
+
+def strip_accents(s):
+   return ''.join(c for c in unicodedata.normalize('NFD', s)
+                  if unicodedata.category(c) != 'Mn')
+
+def text_contains_tricky_chars(text):
+    if re.search(ur'[\u0080-\u024F]', text):
+        return True
+    return False
+
+def text_contains_html_entities(text):
+    if re.search(r'&amp;', text):
+        return True
+    if re.search(r'&lt;', text):
+        return True
+    if re.search(r'&gt;', text):
+        return True
+    return False
+
+
+def text_decodes_to_ascii(text):
+    try:
+        text.decode('ascii')
+    except UnicodeEncodeError:
+        return False
+    return True
+
 def process_input(tweet):
     stats.tweets_seen()
+    # so lots of stuff to do here.
+# we want to move away from really thinking abou ascii very much.
+# we want to respect unicode, and not universally try to decode it.
+# basically we want most 'weird' characters to just be ignored
+# but maybe critically we would like for this whole 'process input' thing to happen *before*
+# we filter? because we want to use it as a basis, in part, for filtering?
+# concerns: we don't want to be introducing characters to the hash that aren't in the tweets.
+    tweet_text = tweet.get('text')
+
+    # do the basic filters based on entities etc.
+    # then substitute amps lts and gts
+    # then check if we decode to ascii
+    # if we don't, unidecode questionable characters
+    # then check how many non standard characters we have, and filter based on that.
+
+    # so maybe we're back to just doing some accent chopping?
+    
 
 
 def main():
