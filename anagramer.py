@@ -5,6 +5,7 @@ import re
 import time
 import logging
 import cPickle as pickle
+import unicodedata
 
 from twitterhandler import TwitterHandler, StreamHandler
 from datahandler import DataHandler, HIT_STATUS_REVIEW
@@ -308,53 +309,52 @@ def compare_words(self, tweet_one, tweet_two, cutoff=0.5):
             return False
 
 
-def filter_tweet(tweet):
-    """
-    filter out anagram-inappropriate tweets
-    """
-    #check for mentions
-    if len(tweet.get('entities').get('user_mentions')) is not 0:
-        return False
-    #check for retweets
-    if tweet.get('retweeted_status'):
-        return False
-    # ignore tweets w/ non-ascii characters
-    try:
-        tweet['text'].decode('ascii')
-    except UnicodeEncodeError:
-        return False
-    # check for links:
-    if len(tweet.get('entities').get('urls')) is not 0:
-        return False
-    # ignore short tweets
-    t = utils.stripped_string(tweet['text'])
-    if len(t) <= ANAGRAM_LOW_CHAR_CUTOFF:
-        return False
-    # ignore tweets with few characters
-    st = set(t)
-    if len(st) <= ANAGRAM_LOW_UNIQUE_CHAR_CUTOFF:
-        return False
-    return True
+# def filter_tweet_old(tweet):
+#     """
+#     filter out anagram-inappropriate tweets
+#     """
+#     #check for mentions
+#     if len(tweet.get('entities').get('user_mentions')) is not 0:
+#         return False
+#     #check for retweets
+#     if tweet.get('retweeted_status'):
+#         return False
+#     # ignore tweets w/ non-ascii characters
+#     try:
+#         tweet['text'].decode('ascii')
+#     except UnicodeEncodeError:
+#         return False
+#     # check for links:
+#     if len(tweet.get('entities').get('urls')) is not 0:
+#         return False
+#     # ignore short tweets
+#     t = utils.stripped_string(tweet['text'])
+#     if len(t) <= ANAGRAM_LOW_CHAR_CUTOFF:
+#         return False
+#     # ignore tweets with few characters
+#     st = set(t)
+#     if len(st) <= ANAGRAM_LOW_UNIQUE_CHAR_CUTOFF:
+#         return False
+#     return True
 
 
-def format_tweet(tweet):
-    """
-    makes a dict from the JSON properties we want
-    converts &amp; &lt; etc to &, <.
-    """
-    text = tweet['text']
-    # text = re.sub(r'&amp;', '&', text).lower()
-    # this needs testing guy
+# def format_tweet(tweet):
+#     """
+#     makes a dict from the JSON properties we want
+#     """
+#     text = tweet['text']
+#     # text = re.sub(r'&amp;', '&', text).lower()
+#     # this needs testing guy
 
-    tweet_id = long(tweet['id_str'])
-    tweet_hash = make_hash(tweet['text'])
-    tweet_text = tweet['text']
-    hashed_tweet = {
-        'id': tweet_id,
-        'hash': tweet_hash,
-        'text': tweet_text,
-    }
-    return hashed_tweet
+#     tweet_id = long(tweet['id_str'])
+#     tweet_hash = make_hash(tweet['text'])
+#     tweet_text = tweet['text']
+#     hashed_tweet = {
+#         'id': tweet_id,
+#         'hash': tweet_hash,
+#         'text': tweet_text,
+#     }
+#     return hashed_tweet
 
 
 def make_hash(text):
@@ -367,58 +367,104 @@ def make_hash(text):
     return t_hash
 
 
-def correct_encodings(text):
+def _correct_encodings(text):
+    """
+    twitter auto converts &, <, > to &amp; &lt; &gt;
+    """
     text = re.sub(r'&amp;', '&', text)
     text = re.sub(r'&lt;', '<', text)
     text = re.sub(r'&gt;', '>', text)
+    return text
 
-import unicodedata
 
-def strip_accents(s):
-   return ''.join(c for c in unicodedata.normalize('NFD', s)
-                  if unicodedata.category(c) != 'Mn')
+def _strip_accents(s):
+    return ''.join(c for c in unicodedata.normalize('NFD', s)
+                   if unicodedata.category(c) != 'Mn')
 
-def text_contains_tricky_chars(text):
+
+def _text_contains_tricky_chars(text):
     if re.search(ur'[\u0080-\u024F]', text):
         return True
     return False
 
-def text_contains_html_entities(text):
-    if re.search(r'&amp;', text):
-        return True
-    if re.search(r'&lt;', text):
-        return True
-    if re.search(r'&gt;', text):
-        return True
-    return False
+# def text_contains_html_entities(text):
+#     if re.search(r'&amp;', text):
+#         return True
+#     if re.search(r'&lt;', text):
+#         return True
+#     if re.search(r'&gt;', text):
+#         return True
+#     return False
 
 
-def text_decodes_to_ascii(text):
+def _text_decodes_to_ascii(text):
     try:
         text.decode('ascii')
     except UnicodeEncodeError:
         return False
     return True
 
+
+def _basic_filters(tweet):
+    if len(tweet.get('entities').get('user_mentions')) is not 0:
+        return False
+    #check for retweets
+    if tweet.get('retweeted_status'):
+        return False
+    # check for links:
+    if len(tweet.get('entities').get('urls')) is not 0:
+        return False
+    return True
+
+
+def _low_letter_ratio(text, cutoff=0.8):
+    t = re.sub(r'[^a-zA-Z .,!?"\']', '', text)
+    if (float(len(t)) / len(text)) < cutoff:
+        return True
+    return False
+
+
+# def print_low_letter_ratio(text, cutoff=0.8):
+#     t = re.sub(r'[^a-zA-Z .,!?"\']', '', text)
+#     return (float(len(t)) / len(text))
+
+
+def filter_tweet(tweet):
+    """
+    filters out anagram-inappropriate tweets.
+    Returns the original tweet object and cleaned tweet text on success.
+    """
+
+    if len(tweet.get('entities').get('user_mentions')) is not 0:
+        return False
+    #check for retweets
+    if tweet.get('retweeted_status'):
+        return False
+    # check for links:
+    if len(tweet.get('entities').get('urls')) is not 0:
+        return False
+
+    tweet_text = _correct_encodings(tweet.get('text'))
+    if not _text_decodes_to_ascii(tweet_text):
+        # check for latin chars:
+        if _text_contains_tricky_chars(tweet_text):
+            tweet_text = _strip_accents(tweet_text)
+
+    if _low_letter_ratio(tweet_text):
+        return False
+
+    return(tweet, tweet_text)
+
+
 def process_input(tweet):
     stats.tweets_seen()
     # so lots of stuff to do here.
-# we want to move away from really thinking abou ascii very much.
-# we want to respect unicode, and not universally try to decode it.
-# basically we want most 'weird' characters to just be ignored
-# but maybe critically we would like for this whole 'process input' thing to happen *before*
-# we filter? because we want to use it as a basis, in part, for filtering?
-# concerns: we don't want to be introducing characters to the hash that aren't in the tweets.
-    tweet_text = tweet.get('text')
+    # do the basic filters
+    tweet, tweet_text = filter_tweet(tweet)
+    if tweet:
+        # format our tweet
+        # send it to our datahandler
 
-    # do the basic filters based on entities etc.
-    # then substitute amps lts and gts
-    # then check if we decode to ascii
-    # if we don't, unidecode questionable characters
-    # then check how many non standard characters we have, and filter based on that.
-
-    # so maybe we're back to just doing some accent chopping?
-    
 
 
 def main():
