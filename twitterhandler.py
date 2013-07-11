@@ -34,9 +34,10 @@ class StreamHandler(object):
     handles twitter stream connections. Buffers incoming tweets and
     acts as an iter.
     """
-    def __init__(self, buffersize=ANAGRAM_STREAM_BUFFER_SIZE, timeout=30):
+    def __init__(self, buffersize=ANAGRAM_STREAM_BUFFER_SIZE, timeout=30, languages=['en']):
         self.buffersize = buffersize
         self.timeout = timeout
+        self.languages = languages
         self.stream_process = None
         self.queue = multiprocessing.Queue()
         self._process_should_end = multiprocessing.Event()
@@ -72,8 +73,7 @@ class StreamHandler(object):
         return self._iter.next()
 
     # def _run(self, queue, stop_flag, seen, passed, overflow, lock):
-    def _run(self, queue, stop_flag, overflow, lock):
-
+    def _run(self, queue, stop_flag, overflow, lock, languages):
         stream = TwitterStream(
             auth=OAuth(ACCESS_KEY,
                        ACCESS_SECRET,
@@ -81,8 +81,16 @@ class StreamHandler(object):
                        CONSUMER_SECRET),
             api_version='1.1',
             block=True)
+
+        langs = None
+        if languages:
+            langs = ','.join(languages)
+
         try:
-            streamiter = stream.statuses.sample(language='en', stall_warnings='true')
+            if langs:
+                streamiter = stream.statuses.sample(language=langs, stall_warnings='true')
+            else:
+                streamiter = stream.statuses.sample(stall_warnings='true')
             logging.debug('stream begun')
             for tweet in streamiter:
                 if stop_flag.is_set():
@@ -139,7 +147,8 @@ class StreamHandler(object):
                                       # self._tweets_seen,
                                       # self._passed_filter,
                                       self._overflow,
-                                      self._lock))
+                                      self._lock,
+                                      self.languages))
         self.stream_process.daemon = True
         self.stream_process.start()
 
@@ -307,12 +316,13 @@ class TwitterHandler(object):
 
 if __name__ == "__main__":
     count = 0;
-    stream = StreamHandler()
+    stream = StreamHandler(languages=None)
     stream.start()
 
     for t in stream:
         count += 1
         print(count)
-        print(t)
+        if t.get('text'):
+            print(t.get('text'))
         if count > 100:
             stream.close()
