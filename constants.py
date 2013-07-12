@@ -33,4 +33,3 @@ ENGLISH_LETTER_FREQUENCIES = {
                         'q': 25,
                         'z': 26
 }
-

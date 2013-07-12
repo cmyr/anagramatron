@@ -8,7 +8,7 @@ import cPickle as pickle
 import unicodedata
 
 from twitterhandler import TwitterHandler, StreamHandler
-from datahandler import DataHandler, HIT_STATUS_REVIEW
+from datahandler import DataHandler, DataCoordinator
 import anagramstats as stats
 # from twitter.api import TwitterHTTPError
 import utils
@@ -263,23 +263,26 @@ class NeedsSave(Exception):
 #         pass
 
 
-def compare(self, tweet_one, tweet_two):
+def test_anagram(string_one, string_two):
     """
     most basic test, finds if tweets are just identical
     """
-    if not self.compare_chars(tweet_one, tweet_two):
+    stats.possible_hit()
+    if not _compare_chars(string_one, string_two):
         return False
-    if not self.compare_words(tweet_one, tweet_two):
+    if not _compare_words(string_one, string_two):
         return False
+
+    stats.hit()
     return True
 
 
-def compare_chars(self, tweet_one, tweet_two, cutoff=0.5):
+def _compare_chars(string_one, string_two, cutoff=0.5):
     """
     basic test, looks for similarity on a char by char basis
     """
-    stripped_one = utils.stripped_string(tweet_one)
-    stripped_two = utils.stripped_string(tweet_two)
+    stripped_one = utils.stripped_string(string_one)
+    stripped_two = utils.stripped_string(string_two)
 
     total_chars = len(stripped_two)
     same_chars = 0
@@ -292,17 +295,18 @@ def compare_chars(self, tweet_one, tweet_two, cutoff=0.5):
     return False
 
 
-def compare_words(self, tweet_one, tweet_two, cutoff=0.5):
+def _compare_words(string_one, string_two, cutoff=0.5):
     """
     looks for tweets containing the same words in different orders
     """
-    words_one = utils.stripped_string(tweet_one, spaces=True).split()
-    words_two = utils.stripped_string(tweet_two, spaces=True).split()
+    words_one = utils.stripped_string(string_one, spaces=True).split()
+    words_two = utils.stripped_string(string_two, spaces=True).split()
 
     word_count = len(words_one)
+    same_words = 0
+
     if len(words_two) < len(words_one):
             word_count = len(words_two)
-            same_words = 0
         # compare words to each other:
     for word in words_one:
         if word in words_two:
@@ -314,52 +318,52 @@ def compare_words(self, tweet_one, tweet_two, cutoff=0.5):
             return False
 
 
-# def filter_tweet_old(tweet):
-#     """
-#     filter out anagram-inappropriate tweets
-#     """
-#     #check for mentions
-#     if len(tweet.get('entities').get('user_mentions')) is not 0:
-#         return False
-#     #check for retweets
-#     if tweet.get('retweeted_status'):
-#         return False
-#     # ignore tweets w/ non-ascii characters
-#     try:
-#         tweet['text'].decode('ascii')
-#     except UnicodeEncodeError:
-#         return False
-#     # check for links:
-#     if len(tweet.get('entities').get('urls')) is not 0:
-#         return False
-#     # ignore short tweets
-#     t = utils.stripped_string(tweet['text'])
-#     if len(t) <= ANAGRAM_LOW_CHAR_CUTOFF:
-#         return False
-#     # ignore tweets with few characters
-#     st = set(t)
-#     if len(st) <= ANAGRAM_LOW_UNIQUE_CHAR_CUTOFF:
-#         return False
-#     return True
+def filter_tweet_old(tweet):
+    """
+    filter out anagram-inappropriate tweets
+    """
+    #check for mentions
+    if len(tweet.get('entities').get('user_mentions')) is not 0:
+        return False
+    #check for retweets
+    if tweet.get('retweeted_status'):
+        return False
+    # ignore tweets w/ non-ascii characters
+    try:
+        tweet['text'].decode('ascii')
+    except UnicodeEncodeError:
+        return False
+    # check for links:
+    if len(tweet.get('entities').get('urls')) is not 0:
+        return False
+    # ignore short tweets
+    t = utils.stripped_string(tweet['text'])
+    if len(t) <= ANAGRAM_LOW_CHAR_CUTOFF:
+        return False
+    # ignore tweets with few characters
+    st = set(t)
+    if len(st) <= ANAGRAM_LOW_UNIQUE_CHAR_CUTOFF:
+        return False
+    return format_tweet(tweet)
 
 
-# def format_tweet(tweet):
-#     """
-#     makes a dict from the JSON properties we want
-#     """
-#     text = tweet['text']
-#     # text = re.sub(r'&amp;', '&', text).lower()
-#     # this needs testing guy
+def format_tweet(tweet):
+    """
+    makes a dict from the JSON properties we want
+    """
+    text = tweet['text']
+    # text = re.sub(r'&amp;', '&', text).lower()
+    # this needs testing guy
 
-#     tweet_id = long(tweet['id_str'])
-#     tweet_hash = make_hash(tweet['text'])
-#     tweet_text = tweet['text']
-#     hashed_tweet = {
-#         'id': tweet_id,
-#         'hash': tweet_hash,
-#         'text': tweet_text,
-#     }
-#     return hashed_tweet
+    tweet_id = long(tweet['id_str'])
+    tweet_hash = make_hash(tweet['text'])
+    tweet_text = tweet['text']
+    hashed_tweet = {
+        'tweet_id': tweet_id,
+        'tweet_hash': tweet_hash,
+        'tweet_text': tweet_text,
+    }
+    return hashed_tweet
 
 
 def make_hash(text):
@@ -469,14 +473,7 @@ def filter_tweet(tweet):
     filters out anagram-inappropriate tweets.
     Returns the original tweet object and cleaned tweet text on success.
     """
-
-    if len(tweet.get('entities').get('user_mentions')) is not 0:
-        return False
-    #check for retweets
-    if tweet.get('retweeted_status'):
-        return False
-    # check for links:
-    if len(tweet.get('entities').get('urls')) is not 0:
+    if not _basic_filters(tweet):
         return False
 
     tweet_text = _correct_encodings(tweet.get('text'))
@@ -511,12 +508,13 @@ def main():
             stats.start_time = time.time()
             stream_handler.start()
             for tweet in stream_handler:
+                stats.tweets_seen()
                 processed_tweet = filter_tweet(tweet)
                 if processed_tweet:
-
-
+                    print(processed_tweet)
+                    stats.passed_filter()
+                    # data_coordinator.handle_input(processed_tweet)
                 stats.update_console()
-
         except KeyboardInterrupt:
             break
         finally:
@@ -525,5 +523,20 @@ def main():
             stats.close()
             # stats = None
 
+
+def test(source):
+    data_coordinator = DataCoordinator()
+    for tweet in source:
+        stats.tweets_seen()
+        processed_tweet = filter_tweet(tweet)
+        if processed_tweet:
+            stats.passed_filter()
+            data_coordinator.handle_input(processed_tweet)
+        stats.update_console()
+    data_coordinator.close()
+
 if __name__ == "__main__":
-    main()
+    # main()
+    source = pickle.load(open('tstdata/rawb1.p', 'r'))
+    source = pickle.load(open('tstdata/20ktst1.p'))
+    test(source)

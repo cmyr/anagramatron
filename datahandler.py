@@ -1,17 +1,25 @@
 from __future__ import print_function
 import sqlite3 as lite
 import os
+import sys
 import logging
 import time
 import cPickle as pickle
-
+import multiprocessing
 import utils
 import twitterhandler
+import anagramconfig
+import anagramer
 
 from constants import ANAGRAM_WRITE_CACHE_SIZE, ANAGRAM_FETCH_POOL_SIZE
 
-TWEET_DB_PATH = 'data/tweets.db'
-HITS_DB_PATH = 'data/hits.db'
+# TWEET_DB_PATH = 'data/tweets.db'
+# HITS_DB_PATH = 'data/hits.db'
+# CACHE_STORE_PATH = 'data/cachedump.p'
+
+DATA_PATH_COMPONENT = 'anagramdata'
+CACHE_PATH_COMPONENT = 'cachedump'
+HIT_PATH_COMPONENT = 'hitdata'
 
 HIT_STATUS_REVIEW = 'review'
 HIT_STATUS_REJECTED = 'rejected'
@@ -19,6 +27,130 @@ HIT_STATUS_POSTED = 'posted'
 HIT_STATUS_APPROVED = 'approved'
 HIT_STATUS_MISC = 'misc'
 HIT_STATUS_FAILED = 'failed'
+
+
+class DataCoordinator(object):
+    """
+    DataCoordinator handles the storage, retrieval and comparisons
+    of anagram candidates.
+    It caches newly returned or requested candidates to memory,
+    and maintains & manages a persistent database of older candidates.
+    """
+    def __init__(self, languages=['en']):
+        """
+        language selection is not currently implemented
+        """
+        self.languages = languages
+        self.cache = None
+        self.fetch_pool = dict()
+        self.hashes = set()
+        self.datastore = None
+        self.dbpath = (anagramconfig.STORAGE_DIRECTORY_PATH +
+                       DATA_PATH_COMPONENT +
+                       '_'.join(self.languages) + '.db')
+        self.cachepath = (anagramconfig.STORAGE_DIRECTORY_PATH +
+                          CACHE_PATH_COMPONENT +
+                          '_'.join(self.languages) + '.p')
+        self.hit_manager = HitManager(self.languages)
+        self.setup()
+
+    def setup(self):
+        """
+        - unpickle previous session's cache
+        - load / init database
+        - extract hashes
+        """
+        try:
+            self.cache = pickle.load(open('CACHE_STORE_PATH', 'r'))
+            ('cache loaded')
+        except IOError as e:
+            print('no loadable cache found')
+            self.cache = dict()
+        if not os.path.exists(self.dbpath):
+            self.datastore = lite.connect(self.dbpath)
+            cursor = self.datastore.cursor()
+            print('data not found, creating new database')
+            cursor.execute(
+                "CREATE TABLE tweets(tweet_hash TEXT PRIMARY KEY, tweet_id INTEGER, tweet_text TEXT)"
+            )
+        else:
+            self.datastore = lite.connect(self.dbpath)
+        # extract hashes
+        print('extracting hashes')
+        operation_start_time = time.time()
+        cursor = self.datastore.cursor()
+        cursor.execute('SELECT tweet_hash FROM tweets')
+        while True:
+            results = cursor.fetchmany(100000)
+            if not results:
+                break
+            for result in results:
+                self.hashes.add(str(result))
+        print('extracted %i hashes in %s' %
+              (len(self.hashes), utils.format_seconds(time.time()-operation_start_time)))
+
+
+    def handle_input(self, tweet):
+        """recieves a filtered tweet.
+        - checks if it exists in cache
+        - checks if in database
+        - if yes adds to fetch queue(checks if in fetch queue)
+        """
+        key = tweet['tweet_hash']
+        if self.cache.get(key):
+            hit_tweet = self.cache[key]['tweet']
+            if anagramer.test_anagram(tweet['tweet_text'], hit_tweet['tweet_text']):
+                self.cache['tweet_hash'] = None
+                self.hit_manager.new_hit(tweet, hit_tweet)
+            else:
+                self.cache[key]['tweet'] = tweet
+                self.cache[key]['hit_count'] += 1
+        elif key in self.hashes:
+            # add to fetch_pool
+            if self.fetch_pool.get(key):
+                # exists in fetch pool, run comps
+                hit_tweet = self.fetch_pool(key)
+                if anagramer.test_anagram(tweet['tweet_text'], hit_tweet['tweet_text']):
+                    # remove from fetch pool
+                    self.fetch_pool[key] = None
+                    self.hit_manager.new_hit(tweet, hit_tweet)
+            else:
+                self.fetch_pool[key] = tweet
+        else:
+            self.cache[key] = {'tweet': tweet,
+                                 'hit_count': 0}
+            # check if we need to write cache
+
+
+    def close(self):
+        self.datastore.close()
+        self.hit_manager.close()
+
+
+class HitManager(object):
+    """
+    handles storage of hits. runs webserver for remote review
+    """
+    def __init__(self, languages):
+        self.dbpath = (anagramconfig.STORAGE_DIRECTORY_PATH +
+                       HIT_PATH_COMPONENT +
+                       '_'.join(languages) + '.db')
+        self.debug_hits = []
+
+    def new_hit(self, first, second):
+        hit = {
+           "id": int(time.time()*1000),
+           "status": HIT_STATUS_REVIEW,
+           "tweet_one": first,
+           "tweet_two": second
+        }
+        self.debug_hits.append(hit)
+
+    def close(self):
+        print("debug found %i hits" % len(self.debug_hits))
+        for hit in self.debug_hits:
+            print(hit['tweet_one']['tweet_text'])
+            print(hit['tweet_two']['tweet_text'])
 
 
 class DataHandler(object):
@@ -349,6 +481,9 @@ def archive_old_tweets(cutoff=0.2):
 
 
 if __name__ == "__main__":
+    # dc = DataCoordinator()
+    # sys.exit(1)
+
     print(
         "Anagrams Data Utilities, Please Select From the Following Options:",
         "\n (R)eview Hits",
