@@ -50,6 +50,11 @@ def possible_hit(possible=1):
     _possible_hits += possible
 
 
+def hit(hit=1):
+    global _hits
+    _hits += hit
+
+
 def overflow(over=1):
     global _overflow
     _overflow += over
