@@ -13,7 +13,12 @@ import anagramstats as stats
 # from twitter.api import TwitterHTTPError
 import utils
 
-from constants import ANAGRAM_LOW_CHAR_CUTOFF, ANAGRAM_LOW_UNIQUE_CHAR_CUTOFF
+from constants import (ANAGRAM_LOW_CHAR_CUTOFF, ANAGRAM_LOW_UNIQUE_CHAR_CUTOFF,
+                       ENGLISH_LETTER_FREQUENCIES)
+
+ENGLISH_LETTER_LIST = sorted(ENGLISH_LETTER_FREQUENCIES.keys(),
+                             key=lambda t: ENGLISH_LETTER_FREQUENCIES[t])
+
 LOG_FILE_NAME = 'data/anagramer.log'
 
 
@@ -366,6 +371,38 @@ def make_hash(text):
     t_hash = ''.join(sorted(t_text, key=str.lower))
     return t_hash
 
+freqsort = ENGLISH_LETTER_FREQUENCIES
+
+
+def improved_hash(text, debug=False):
+    """
+    only very *minorly* improved. sorts based on letter frequencies.
+    """
+    CHR_COUNT_START = 64  # we convert to chars; char 65 is A
+    if debug: print(text)
+    t_text = str(utils.stripped_string(text))
+    if debug: print(t_text)
+    t_hash = ''.join(sorted(t_text, key=lambda t: freqsort[t]))
+    if debug: print(t_hash)
+    letset = set(t_hash)
+    if debug: print(letset)
+    break_letter = t_hash[-1:]
+    if debug: print('breaking on: %s' % break_letter)
+    compressed_hash = ''
+    for letter in ENGLISH_LETTER_LIST:
+        if letter in letset:
+            count = len(re.findall(letter, t_hash))
+            if debug: print('%s in letset %i times' % (letter, count))
+            compressed_hash += chr(count + CHR_COUNT_START)
+        else:
+            if freqsort[letter] > freqsort[break_letter]:
+                if debug: print('broke on: %s' % letter)
+                return compressed_hash
+            compressed_hash += chr(64)
+
+    return compressed_hash
+    # return t_hash
+
 
 def _correct_encodings(text):
     """
@@ -413,6 +450,13 @@ def _basic_filters(tweet):
         return False
     # check for links:
     if len(tweet.get('entities').get('urls')) is not 0:
+        return False
+    ft = utils.stripped_string(tweet['text'])
+    if len(t) <= ANAGRAM_LOW_CHAR_CUTOFF:
+        return False
+    # ignore tweets with few characters
+    st = set(t)
+    if len(st) <= ANAGRAM_LOW_UNIQUE_CHAR_CUTOFF:
         return False
     return True
 
@@ -464,6 +508,7 @@ def process_input(tweet):
     if tweet:
         # format our tweet
         # send it to our datahandler
+        pass
 
 
 
