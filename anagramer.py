@@ -424,15 +424,6 @@ def _text_contains_tricky_chars(text):
         return True
     return False
 
-# def text_contains_html_entities(text):
-#     if re.search(r'&amp;', text):
-#         return True
-#     if re.search(r'&lt;', text):
-#         return True
-#     if re.search(r'&gt;', text):
-#         return True
-#     return False
-
 
 def _text_decodes_to_ascii(text):
     try:
@@ -451,7 +442,7 @@ def _basic_filters(tweet):
     # check for links:
     if len(tweet.get('entities').get('urls')) is not 0:
         return False
-    ft = utils.stripped_string(tweet['text'])
+    t = utils.stripped_string(tweet['text'])
     if len(t) <= ANAGRAM_LOW_CHAR_CUTOFF:
         return False
     # ignore tweets with few characters
@@ -497,19 +488,10 @@ def filter_tweet(tweet):
     if _low_letter_ratio(tweet_text):
         return False
 
-    return(tweet, tweet_text)
-
-
-def process_input(tweet):
-    stats.tweets_seen()
-    # so lots of stuff to do here.
-    # do the basic filters
-    tweet, tweet_text = filter_tweet(tweet)
-    if tweet:
-        # format our tweet
-        # send it to our datahandler
-        pass
-
+    return {'tweet_hash': improved_hash(tweet_text),
+            'tweet_id': long(tweet['id_str']),
+            'tweet_text': tweet_text
+            }
 
 
 def main():
@@ -521,6 +503,7 @@ def main():
     )
 
     stream_handler = StreamHandler()
+    data_coordinator = DataCoordinator()
 
     while 1:
         try:
@@ -528,7 +511,10 @@ def main():
             stats.start_time = time.time()
             stream_handler.start()
             for tweet in stream_handler:
-                process_input(tweet)
+                processed_tweet = filter_tweet(tweet)
+                if processed_tweet:
+
+
                 stats.update_console()
 
         except KeyboardInterrupt:
