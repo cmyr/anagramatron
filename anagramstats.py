@@ -12,6 +12,9 @@ _overflow = 0
 _start_time = time.time()
 _buffer = 0
 _max_buffer = 0
+_cache_hits = 0
+_cache_size = 0
+_fetch_pool_size = 0
 # hit_distributions = [0 for x in range(140)]
 # hash_distributions = [0 for x in range(140)]
 # hitlist = []
@@ -79,6 +82,11 @@ def set_buffer(buffer_size):
         _max_buffer = _buffer
 
 
+def set_fetch_pool_size(size):
+    global _fetch_pool_size
+    _fetch_pool_size = size
+
+
 def stats_dict():
     return {
             'tweets_seen': _tweets_seen,
@@ -105,8 +113,7 @@ def update_console():
         " ({0}%)".format(seen_percent) +
         " hits " + str(_possible_hits) +
         " agrams: " + str(_hits) +
-        " buffer: " + str(_buffer) +
-        ", max: " + str(_max_buffer) +
+        " fetchpool: " + str(_fetch_pool_size) +
         " runtime: " + utils.format_seconds(runtime)
     )
     sys.stdout.write(status + '\r')

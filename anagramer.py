@@ -166,7 +166,7 @@ def improved_hash(text, debug=False):
         if letter in letset:
             count = len(re.findall(letter, t_hash))
             count = (count if count < 48 else 48)
-            # this is a hacky way of sanity checking our values. 
+            # this is a hacky way of sanity checking our values.
             # if this shows up as a match we'll ignore it
             if debug: print('%s in letset %i times' % (letter, count))
             compressed_hash += chr(count + CHR_COUNT_START)
