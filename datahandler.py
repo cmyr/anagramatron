@@ -75,7 +75,7 @@ class DataHandler(object):
             if not results:
                 break
             for result in results:
-                self.hashes.add(str(result))
+                self.hashes.add(str(result[0]))
         print('extracted %i hashes in %s' %
               (len(self.hashes), utils.format_seconds(time.time()-operation_start_time)))
 
