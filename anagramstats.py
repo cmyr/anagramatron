@@ -4,7 +4,6 @@ import sys
 
 import utils
 
-
 _tweets_seen = 0
 _passed_filter = 0
 _possible_hits = 0
@@ -13,26 +12,39 @@ _overflow = 0
 _start_time = time.time()
 _buffer = 0
 _max_buffer = 0
-hit_distributions = [0 for x in range(140)]
-hash_distributions = [0 for x in range(140)]
-hitlist = []
+# hit_distributions = [0 for x in range(140)]
+# hash_distributions = [0 for x in range(140)]
+# hitlist = []
 
 
-def new_hash(hash_text):
-    global hash_distributions
-    hashlength = len(hash_text)
-    if (hashlength < 140):
-        hash_distributions[hashlength] += 1
+def _clear_stats():
+    global _tweets_seen, _passed_filter, _possible_hits
+    global _hits, _overflow, _start_time, _buffer, _max_buffer
+    _tweets_seen = 0
+    _passed_filter = 0
+    _possible_hits = 0
+    _hits = 0
+    _overflow = 0
+    _start_time = time.time()
+    _buffer = 0
+    _max_buffer = 0
 
 
-def new_hit(self, hash_text):
-    global hitlist
-    global hit_distributions
+# def new_hash(hash_text):
+#     global hash_distributions
+#     hashlength = len(hash_text)
+#     if (hashlength < 140):
+#         hash_distributions[hashlength] += 1
 
-    hitlist.append(hash_text)
-    hashlength = len(hash_text)
-    if (hashlength < 140):
-        hit_distributions[hashlength] += 1
+
+# def new_hit(self, hash_text):
+#     global hitlist
+#     global hit_distributions
+
+#     hitlist.append(hash_text)
+#     hashlength = len(hash_text)
+#     if (hashlength < 140):
+#         hit_distributions[hashlength] += 1
 
 
 def tweets_seen(seen=1):
@@ -45,9 +57,9 @@ def passed_filter(passed=1):
     _passed_filter += passed
 
 
-def possible_hit(possible=1):
+def possible_hit():
     global _possible_hits
-    _possible_hits += possible
+    _possible_hits += 1
 
 
 def hit(hit=1):

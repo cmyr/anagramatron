@@ -6,6 +6,9 @@ import logging
 import time
 import cPickle as pickle
 import multiprocessing
+from operator import itemgetter
+
+
 import utils
 import twitterhandler
 import anagramconfig
@@ -29,6 +32,8 @@ HIT_STATUS_MISC = 'misc'
 HIT_STATUS_FAILED = 'failed'
 
 
+DEBUG_CACHE_SIZE = 10000
+
 class DataCoordinator(object):
     """
     DataCoordinator handles the storage, retrieval and comparisons
@@ -45,6 +50,7 @@ class DataCoordinator(object):
         self.fetch_pool = dict()
         self.hashes = set()
         self.datastore = None
+        self._should_trim_cache = False
         self.dbpath = (anagramconfig.STORAGE_DIRECTORY_PATH +
                        DATA_PATH_COMPONENT +
                        '_'.join(self.languages) + '.db')
@@ -71,7 +77,7 @@ class DataCoordinator(object):
             cursor = self.datastore.cursor()
             print('data not found, creating new database')
             cursor.execute(
-                "CREATE TABLE tweets(tweet_hash TEXT PRIMARY KEY, tweet_id INTEGER, tweet_text TEXT)"
+                "CREATE TABLE tweets(tweet_hash TEXT PRIMARY KEY ON CONFLICT REPLACE, tweet_id INTEGER, tweet_text TEXT)"
             )
         else:
             self.datastore = lite.connect(self.dbpath)
@@ -89,38 +95,132 @@ class DataCoordinator(object):
         print('extracted %i hashes in %s' %
               (len(self.hashes), utils.format_seconds(time.time()-operation_start_time)))
 
-
     def handle_input(self, tweet):
-        """recieves a filtered tweet.
+        """
+        recieves a filtered tweet.
         - checks if it exists in cache
         - checks if in database
         - if yes adds to fetch queue(checks if in fetch queue)
         """
+
         key = tweet['tweet_hash']
         if self.cache.get(key):
             hit_tweet = self.cache[key]['tweet']
             if anagramer.test_anagram(tweet['tweet_text'], hit_tweet['tweet_text']):
-                self.cache['tweet_hash'] = None
+                print('hit in cache')
+                del self.cache[key]
                 self.hit_manager.new_hit(tweet, hit_tweet)
             else:
                 self.cache[key]['tweet'] = tweet
                 self.cache[key]['hit_count'] += 1
         elif key in self.hashes:
             # add to fetch_pool
-            if self.fetch_pool.get(key):
-                # exists in fetch pool, run comps
-                hit_tweet = self.fetch_pool(key)
-                if anagramer.test_anagram(tweet['tweet_text'], hit_tweet['tweet_text']):
-                    # remove from fetch pool
-                    self.fetch_pool[key] = None
-                    self.hit_manager.new_hit(tweet, hit_tweet)
-            else:
-                self.fetch_pool[key] = tweet
+            self._add_to_fetch_pool(tweet)
         else:
             self.cache[key] = {'tweet': tweet,
-                                 'hit_count': 0}
-            # check if we need to write cache
+                               'hit_count': 0}
+            # debug cache writing
+            if len(self.cache) > DEBUG_CACHE_SIZE:
+                self._should_trim_cache = True
+            if self._should_trim_cache:
+                self._trim_cache()
 
+    def _add_to_fetch_pool(self, tweet):
+        key = tweet['tweet_hash']
+        if self.fetch_pool.get(key):
+            print('\ntweet in fetchpool')
+            # exists in fetch pool, run comps
+            hit_tweet = self.fetch_pool[key]
+            if anagramer.test_anagram(tweet['tweet_text'], hit_tweet['tweet_text']):
+                print('\nhit in fetch pool')
+                del self.fetch_pool[key]
+                self.hit_manager.new_hit(tweet, hit_tweet)
+            else:
+                pass
+        else:
+            self.fetch_pool[key] = tweet
+            if len(self.fetch_pool) > ANAGRAM_FETCH_POOL_SIZE:
+                self._batch_fetch()
+
+    def _batch_fetch(self):
+        """
+        fetches all the tweets in our fetch pool and runs comparisons
+        deleting from
+        """
+        cursor = self.datastore.cursor()
+        hashes = ['"%s"' % self.fetch_pool[i]['tweet_hash'] for i in self.fetch_pool]
+        hashes = ",".join(hashes)
+        cursor.execute("SELECT * FROM tweets WHERE tweet_hash IN (%s)" % hashes)
+        results = cursor.fetchall()
+        self.hashes -= set(hashes)
+
+        for result in results:
+            fetched_tweet = self._tweet_from_sql(result)
+            new_tweet = self.fetch_pool[fetched_tweet['tweet_hash']]
+            if anagramer.test_anagram(fetched_tweet['tweet_text'],
+                                      new_tweet['tweet_text']):
+                self.hit_manager.new_hit(fetched_tweet, new_tweet)
+            else:
+                self.cache[new_tweet['tweet_hash']] = {'tweet': new_tweet,
+                                                       'hit_count': 0}
+# reset our fetch_pool
+        self.fetch_pool = dict()
+
+    def _trim_cache(self, to_trim=None):
+        """
+        takes least frequently hit tweets from cache and writes to datastore
+        """
+        # find the oldest, least frequently hit items in cache:
+        cache_list = self.cache.values()
+        cache_list = [(x['tweet']['tweet_hash'],
+                       x['tweet']['tweet_id'],
+                       x['hit_count']) for x in cache_list]
+        s = sorted(cache_list, key=itemgetter(1))
+        cache_list = sorted(s, key=itemgetter(2))
+        if not to_trim:
+            to_trim = len(cache_list)/2
+        hashes_to_save = [x for (x, y, z) in cache_list[:to_trim]]
+
+        # write those caches to disk, delete from cache, add to hashes
+        to_write = [(self.cache[x]['tweet']['tweet_hash'],
+                     self.cache[x]['tweet']['tweet_id'],
+                     self.cache[x]['tweet']['tweet_text']) for x in hashes_to_save]
+        for x in hashes_to_save:
+            del self.cache[x]
+        self.datastore.executemany("INSERT INTO tweets VALUES (?, ?, ?)", to_write)
+        self.datastore.commit()
+        self.hashes |= set(hashes_to_save)
+
+    def _save_cache(self):
+        """
+        pickles the tweets currently in the cache.
+        doesn't save hit_count. we don't want to keep briefly popular
+        tweets in cache indefinitely
+        """
+        tweets_to_save = [t['tweet'] for t in self.cache]
+        try:
+            pickle.dump(tweets_to_save, open(self.cachepath, 'wb'))
+        except:
+            logging.error('unable to save cache, writing')
+            self._trim_cache(len(self.cache))
+
+    def _load_cache(self):
+        print('loading cache')
+        try:
+            loaded_tweets = pickle.load(open(self.cachepath, 'r'))
+            for t in loaded_tweets:
+                self.cache[t['tweet_hash']] = {'tweet': t, 'hit_count': 0}
+            print('loaded %i tweets to cache' % len(self.cache))
+        except:
+            logging.error('error loading cache :(')
+            # really not tons we can do ehre
+
+    def _tweet_from_sql(self, sql_tweet):
+        return {
+                'tweet_hash': sql_tweet[0],
+                'tweet_id': long(sql_tweet[1]),
+                'tweet_text': sql_tweet[2]
+                }
 
     def close(self):
         self.datastore.close()
