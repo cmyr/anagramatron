@@ -33,7 +33,7 @@ HIT_STATUS_MISC = 'misc'
 HIT_STATUS_FAILED = 'failed'
 
 
-DEBUG_CACHE_SIZE = 100
+DEBUG_CACHE_SIZE = 1000
 
 class DataCoordinator(object):
     """
@@ -105,7 +105,8 @@ class DataCoordinator(object):
         """
 
         key = tweet['tweet_hash']
-        if self.cache.get(key):
+        if key in self.cache.keys():
+            stats.cache_hit()
             hit_tweet = self.cache[key]['tweet']
             if anagramer.test_anagram(tweet['tweet_text'], hit_tweet['tweet_text']):
                 print('hit in cache')
@@ -114,17 +115,21 @@ class DataCoordinator(object):
             else:
                 self.cache[key]['tweet'] = tweet
                 self.cache[key]['hit_count'] += 1
-        elif key in self.hashes:
-            # add to fetch_pool
-            self._add_to_fetch_pool(tweet)
         else:
-            self.cache[key] = {'tweet': tweet,
-                               'hit_count': 0}
-            # debug cache writing
-            if len(self.cache) > DEBUG_CACHE_SIZE:
-                self._should_trim_cache = True
-            if self._should_trim_cache:
-                self._trim_cache()
+            # not in cache. in datastore?
+            if key in self.hashes:
+            # add to fetch_pool
+                self._add_to_fetch_pool(tweet)
+            else:
+                # not in datastore. add to cache
+                self.cache[key] = {'tweet': tweet,
+                                   'hit_count': 0}
+                stats.set_cache_size(len(self.cache))
+                # debug cache writing
+                if len(self.cache) > DEBUG_CACHE_SIZE:
+                    self._should_trim_cache = True
+                if self._should_trim_cache:
+                    self._trim_cache()
 
     def _add_to_fetch_pool(self, tweet):
         key = tweet['tweet_hash']
@@ -173,6 +178,7 @@ class DataCoordinator(object):
         """
         takes least frequently hit tweets from cache and writes to datastore
         """
+        self._should_trim_cache = False
         # find the oldest, least frequently hit items in cache:
         cache_list = self.cache.values()
         cache_list = [(x['tweet']['tweet_hash'],
@@ -226,6 +232,9 @@ class DataCoordinator(object):
                 }
 
     def close(self):
+        if len(self.fetch_pool):
+            self._batch_fetch()
+        stats.update_console()
         self.datastore.close()
         self.hit_manager.close()
 

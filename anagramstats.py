@@ -23,6 +23,8 @@ _fetch_pool_size = 0
 def _clear_stats():
     global _tweets_seen, _passed_filter, _possible_hits
     global _hits, _overflow, _start_time, _buffer, _max_buffer
+    global _cache_size, _cache_hits
+
     _tweets_seen = 0
     _passed_filter = 0
     _possible_hits = 0
@@ -31,6 +33,9 @@ def _clear_stats():
     _start_time = time.time()
     _buffer = 0
     _max_buffer = 0
+    _cache_hits = 0
+    _cache_size = 0
+
 
 
 # def new_hash(hash_text):
@@ -87,6 +92,16 @@ def set_fetch_pool_size(size):
     _fetch_pool_size = size
 
 
+def set_cache_size(size):
+    global _cache_size
+    _cache_size = size
+
+
+def cache_hit():
+    global _cache_hits
+    _cache_hits += 1
+
+
 def stats_dict():
     return {
             'tweets_seen': _tweets_seen,
@@ -100,7 +115,7 @@ def stats_dict():
 
 def update_console():
     global _tweets_seen, _passed_filter, _possible_hits, _hits, _overflow
-    global _buffer, _start_time
+    global _buffer, _start_time, _cache_hits, _cache_size
 
     seen_percent = 0
     if _tweets_seen > 0:
@@ -111,8 +126,9 @@ def update_console():
         'tweets seen: ' + str(_tweets_seen) +
         " passed filter: " + str(_passed_filter) +
         " ({0}%)".format(seen_percent) +
-        " hits " + str(_possible_hits) +
+        " hits " + str(_possible_hits) + '/' + str(_cache_hits) +
         " agrams: " + str(_hits) +
+        " cachesize: " + str(_cache_size) +
         " fetchpool: " + str(_fetch_pool_size) +
         " runtime: " + utils.format_seconds(runtime)
     )
