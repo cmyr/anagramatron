@@ -13,6 +13,7 @@ import utils
 import twitterhandler
 import anagramconfig
 import anagramer
+import anagramstats as stats
 
 from constants import ANAGRAM_WRITE_CACHE_SIZE, ANAGRAM_FETCH_POOL_SIZE
 
@@ -32,7 +33,7 @@ HIT_STATUS_MISC = 'misc'
 HIT_STATUS_FAILED = 'failed'
 
 
-DEBUG_CACHE_SIZE = 10000
+DEBUG_CACHE_SIZE = 100
 
 class DataCoordinator(object):
     """
@@ -91,7 +92,7 @@ class DataCoordinator(object):
             if not results:
                 break
             for result in results:
-                self.hashes.add(str(result))
+                self.hashes.add(str(result[0]))
         print('extracted %i hashes in %s' %
               (len(self.hashes), utils.format_seconds(time.time()-operation_start_time)))
 
@@ -141,6 +142,8 @@ class DataCoordinator(object):
             self.fetch_pool[key] = tweet
             if len(self.fetch_pool) > ANAGRAM_FETCH_POOL_SIZE:
                 self._batch_fetch()
+
+        stats.set_fetch_pool_size(len(self.fetch_pool))
 
     def _batch_fetch(self):
         """
