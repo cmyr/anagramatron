@@ -89,8 +89,9 @@ class Anagramer(object):
                     print('\nclosing stream for scheduled maintenance')
                     # todo: this is where we'd handle pruning etc
                 finally:
-                    self.stream_handler.close()
-                    self.stream_handler = None
+                    if self.stream_handler:
+                        self.stream_handler.close()
+                        self.stream_handler = None
                     self.data.finish()
                     self.data = None
                     self.stats.close()
