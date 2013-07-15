@@ -71,11 +71,11 @@ class DataHandler(object):
         cursor = self.data.cursor()
         cursor.execute('SELECT hash FROM tweets')
         while True:
-            results = cursor.fetchmany(100000)
+            results = cursor.fetchmany(1000000)
             if not results:
                 break
             for result in results:
-                self.hashes.add(str(result[0]))
+                self.hashes.add(str(result[1]))
         print('extracted %i hashes in %s' %
               (len(self.hashes), utils.format_seconds(time.time()-operation_start_time)))
 
