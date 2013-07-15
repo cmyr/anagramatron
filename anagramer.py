@@ -293,7 +293,7 @@ def db_conversion_utility():
                 continue
 
             formatted_tweet = (improved_hash(tweet_text),
-                                result[1],
+                                result[0],
                                 tweet_text)
             to_write.append(formatted_tweet)
             if not has_debug:
