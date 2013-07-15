@@ -266,9 +266,26 @@ class HitManager(object):
         self.dbpath = (anagramconfig.STORAGE_DIRECTORY_PATH +
                        HIT_PATH_COMPONENT +
                        '_'.join(languages) + '.db')
-        self.hitdb = None
-
+        self.hitsdb = None
+        self._server_process = None
+        self._setup()
         self.debug_hits = []
+
+    def _setup(self):
+        if not os.path.exists(self.dbpath):
+            self.hitsdb = lite.connect(self.dbpath)
+            cursor = self.hitsdb.cursor()
+            print('hits db not found, creating')
+            cursor.execute("""CREATE TABLE hits
+                (hit_id integer, hit_status text, hit_rating text, one_id text, two_id text, one_text text, two_text text)""")
+            self.hitsdb.commit()
+        else:
+            self.hitsdb = lite.connect(self.dbpath)
+
+        # setup the web server:
+        # self._server_process = multiprocessing.Process(target=server.run())
+
+
 
     def new_hit(self, first, second):
         hit = {
@@ -278,6 +295,61 @@ class HitManager(object):
            "tweet_two": second
         }
         self.debug_hits.append(hit)
+
+    #  def add_hit(self, hit):
+    #     cursor = self.hitsdb.cursor()
+    #     cursor.execute("INSERT INTO hits VALUES (?,?,?,?,?,?)",
+    #                   (str(hit['id']), hit['status'],
+    #                    str(hit['tweet_one']['id']),
+    #                    str(hit['tweet_two']['id']),
+    #                    hit['tweet_one']['text'],
+    #                    hit['tweet_two']['text'])
+    #                    )
+    #     self.hitsdb.commit()
+
+    # def get_hit(self, hit_id):
+    #     cursor = self.hitsdb.cursor()
+    #     cursor.execute("SELECT * FROM hits WHERE hit_id=:id",
+    #                    {"id": str(hit_id)})
+    #     result = cursor.fetchone()
+    #     return self.hit_from_sql(result)
+
+    # def remove_hit(self, hit_id):
+    #     cursor = self.hitsdb.cursor()
+    #     cursor.execute("DELETE FROM hits WHERE hit_id=:id",
+    #                    {"id": str(hit_id)})
+    #     self.hitsdb.commit()
+
+    # def set_hit_status(self, hit_id, status):
+    #     if status not in [HIT_STATUS_REVIEW, HIT_STATUS_MISC,
+    #                       HIT_STATUS_APPROVED, HIT_STATUS_POSTED,
+    #                       HIT_STATUS_REJECTED, HIT_STATUS_FAILED]:
+    #         return False
+    #     # get the hit, delete the hit, add it again with new status.
+    #     hit = self.get_hit(hit_id)
+    #     hit['status'] = status
+    #     self.remove_hit(hit_id)
+    #     self.add_hit(hit)
+
+    # def get_all_hits(self):
+    #     cursor = self.hitsdb.cursor()
+    #     cursor.execute("SELECT * FROM hits")
+    #     results = cursor.fetchall()
+    #     hits = []
+    #     for item in results:
+    #         hits.append(self.hit_from_sql(item))
+    #     return hits
+
+    # def hit_from_sql(self, item):
+    #     """
+    #     convenience method for converting the result of an sql query
+    #     into a python dictionary compatable with anagramer
+    #     """
+    #     return {'id': long(item[0]),
+    #             'status': str(item[1]),
+    #             'tweet_one': {'id': long(item[2]), 'text': str(item[4])},
+    #             'tweet_two': {'id': long(item[3]), 'text': str(item[5])}
+    #             }
 
     def close(self):
         print("debug found %i hits" % len(self.debug_hits))

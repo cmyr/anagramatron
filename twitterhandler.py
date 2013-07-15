@@ -2,12 +2,13 @@ from __future__ import print_function
 
 import httplib
 import logging
-# import threading
 import Queue
 import multiprocessing
-# from ctypes import c_ulong
+import time
+from collections import deque
 from ssl import SSLError
 from socket import error as SocketError
+
 from twitter.oauth import OAuth
 from twitter.stream import TwitterStream
 from twitter.api import Twitter, TwitterError, TwitterHTTPError
@@ -15,7 +16,7 @@ import tumblpy
 
 import utils
 import anagramstats as stats
-import time
+
 
 # my twitter OAuth key:
 from twittercreds import (CONSUMER_KEY, CONSUMER_SECRET,
@@ -40,7 +41,8 @@ class StreamHandler(object):
         self.languages = languages
         self.stream_process = None
         self.queue = multiprocessing.Queue()
-        self._process_should_end = multiprocessing.Event()
+        self._buffer = deque()
+        # self._process_should_end = multiprocessing.Event()
         self._iter = self.__iter__()
         self._overflow = multiprocessing.Value('L', 0)
         self._lock = multiprocessing.Lock()
@@ -57,12 +59,30 @@ class StreamHandler(object):
         stats.set_buffer(self.bufferlength())
 
     def __iter__(self):
+        """
+        the connection to twitter is handled in another process
+        new tweets are added to self.queue as they arrive.
+        on each call to iter we move any tweets in the queue to a fifo buffer
+        this makes keeping track of the buffer size a lot cleaner.
+        """
         # I think we really want to handle all our various errors and reconection scenarios here
         while 1:
+            # first add items from the queue to the buffer
+            while 1:
+                try:
+                    t = self.queue.get_nowait()
+                    if t.get('text'):
+                        self._buffer.append(t)
+                except Queue.Empty:
+                    break
             try:
                 self.update_stats()
-                yield self.queue.get(True, self.timeout)
-                continue
+                if len(self._buffer):
+                    yield self._buffer.popleft()
+                    # add elements to buffer from queue:
+                else:
+                    yield self.queue.get(True, self.timeout)
+                    continue
             except Queue.Empty:
                 print('queue timeout, restarting thread')
                 # means we've timed out, and should try to reconnect
@@ -129,23 +149,17 @@ class StreamHandler(object):
         if self.stream_process is not None:
             print('terminating existing server connection')
             logging.debug('terminating existing server connection')
-            # self._stop_thread.set()
-            self._process_should_end.set()
-            self.stream_process.join(10.0)
+            self.stream_process.terminate()
             if self.stream_process.is_alive():
-                print('termination of existing connection thread failed')
-                logging.error('thread termination FAILED')
-                self.stream_process.terminate()
+                pass
             else:
                 print('existing thread terminated succesfully')
                 logging.debug('thread terminated successfully')
-        self._process_should_end.clear()
+        # self._process_should_end.clear()
         self.stream_process = multiprocessing.Process(
                                 target=self._run,
                                 args=(self.queue, 
                                       self._process_should_end,
-                                      # self._tweets_seen,
-                                      # self._passed_filter,
                                       self._overflow,
                                       self._lock,
                                       self.languages))
@@ -158,19 +172,14 @@ class StreamHandler(object):
         """
         terminates existing connection and returns
         """
-        # self.stream_process.terminate()
-        self._process_should_end.set()
-        self.stream_process.join(5.0)
+        self.stream_process.terminate()
         print("\nstream handler closing with overflow %i from buffer size %i" %
               (self.overflow, self.buffersize))
         logging.debug("stream handler closing with overflow %i from buffer size %i" %
               (self.overflow, self.buffersize))
 
     def bufferlength(self):
-        try:
-            return self.queue.qsize()
-        except NotImplementedError:
-            return 'N/A'
+        return len(self._buffer)
 
 
 class TwitterHandler(object):
@@ -323,6 +332,6 @@ if __name__ == "__main__":
         count += 1
         print(count)
         if t.get('text'):
-            print(t.get('text'))
+            print('buffer length: %i' % len(stream._buffer))
         if count > 100:
             stream.close()
