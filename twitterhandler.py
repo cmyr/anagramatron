@@ -15,7 +15,7 @@ from twitter.api import Twitter, TwitterError, TwitterHTTPError
 import tumblpy
 
 import utils
-import anagramstats as stats
+# import anagramstats as stats
 
 
 # my twitter OAuth key:
@@ -51,12 +51,12 @@ class StreamHandler(object):
     def overflow(self):
         return long(self._overflow.value)
 
-    def update_stats(self):
-        with self._lock:
-            if self._overflow.value:
-                stats.overflow(self._overflow.value)
-                self._overflow.value = 0
-        stats.set_buffer(self.bufferlength())
+    # def update_stats(self):
+    #     with self._lock:
+    #         if self._overflow.value:
+    #             stats.overflow(self._overflow.value)
+    #             self._overflow.value = 0
+    #     stats.set_buffer(self.bufferlength())
 
     def __iter__(self):
         """
@@ -76,7 +76,7 @@ class StreamHandler(object):
                 except Queue.Empty:
                     break
             try:
-                self.update_stats()
+                # self.update_stats()
                 if len(self._buffer):
                     yield self._buffer.popleft()
                     # add elements to buffer from queue:
