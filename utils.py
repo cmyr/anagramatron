@@ -1,4 +1,69 @@
 import re
+import anagramstats as stats
+import sqlite3 as lite
+
+
+def test_anagram(string_one, string_two):
+    """
+    most basic test, finds if tweets are just identical
+    """
+    stats.possible_hit()
+    if not _char_diff_test(string_one, string_two):
+        return False
+    if not _word_diff_test(string_one, string_two):
+        return False
+
+    stats.hit()
+    return True
+
+
+def _char_diff_test(string_one, string_two, cutoff=0.5):
+    """
+    basic test, looks for similarity on a char by char basis
+    """
+    stripped_one = stripped_string(string_one)
+    stripped_two = stripped_string(string_two)
+
+    total_chars = len(stripped_two)
+    same_chars = 0
+
+    if len(stripped_one) != len(stripped_two):
+        print('diff check called on unequal length strings')
+        print(string_one, string_two)
+        return False
+
+    for i in range(total_chars):
+        if stripped_one[i] == stripped_two[i]:
+            same_chars += 1
+    try:
+        if (float(same_chars) / total_chars) < cutoff:
+            return True
+    except ZeroDivisionError:
+        print(string_one, string_two)
+    return False
+
+
+def _word_diff_test(string_one, string_two, cutoff=0.5):
+    """
+    looks for tweets containing the same words in different orders
+    """
+    words_one = stripped_string(string_one, spaces=True).split()
+    words_two = stripped_string(string_two, spaces=True).split()
+
+    word_count = len(words_one)
+    same_words = 0
+
+    if len(words_two) < len(words_one):
+            word_count = len(words_two)
+        # compare words to each other:
+    for word in words_one:
+        if word in words_two:
+            same_words += 1
+        # if more then $CUTOFF words are the same, fail test
+    if (float(same_words) / word_count) < cutoff:
+        return True
+    else:
+        return False
 
 
 def format_seconds(seconds):

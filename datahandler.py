@@ -12,14 +12,11 @@ from operator import itemgetter
 import utils
 import twitterhandler
 import anagramconfig
-import anagramer
+# import anagramer
 import anagramstats as stats
 
 from constants import ANAGRAM_WRITE_CACHE_SIZE, ANAGRAM_FETCH_POOL_SIZE
 
-# TWEET_DB_PATH = 'data/tweets.db'
-# HITS_DB_PATH = 'data/hits.db'
-# CACHE_STORE_PATH = 'data/cachedump.p'
 
 DATA_PATH_COMPONENT = 'anagramdata'
 CACHE_PATH_COMPONENT = 'cachedump'
@@ -33,7 +30,8 @@ HIT_STATUS_MISC = 'misc'
 HIT_STATUS_FAILED = 'failed'
 
 
-DEBUG_CACHE_SIZE = 1000
+DEBUG_CACHE_SIZE = 10000
+
 
 class DataCoordinator(object):
     """
@@ -52,6 +50,7 @@ class DataCoordinator(object):
         self.hashes = set()
         self.datastore = None
         self._should_trim_cache = False
+        self._lock = multiprocessing.Lock()
         self.dbpath = (anagramconfig.STORAGE_DIRECTORY_PATH +
                        DATA_PATH_COMPONENT +
                        '_'.join(self.languages) + '.db')
@@ -105,10 +104,10 @@ class DataCoordinator(object):
         """
 
         key = tweet['tweet_hash']
-        if key in self.cache.keys():
+        if key in self.cache:
             stats.cache_hit()
             hit_tweet = self.cache[key]['tweet']
-            if anagramer.test_anagram(tweet['tweet_text'], hit_tweet['tweet_text']):
+            if utils.test_anagram(tweet['tweet_text'], hit_tweet['tweet_text']):
                 print('hit in cache')
                 del self.cache[key]
                 self.hit_manager.new_hit(tweet, hit_tweet)
@@ -134,10 +133,10 @@ class DataCoordinator(object):
     def _add_to_fetch_pool(self, tweet):
         key = tweet['tweet_hash']
         if self.fetch_pool.get(key):
-            print('\ntweet in fetchpool')
+            # print('\ntweet in fetchpool')
             # exists in fetch pool, run comps
             hit_tweet = self.fetch_pool[key]
-            if anagramer.test_anagram(tweet['tweet_text'], hit_tweet['tweet_text']):
+            if utils.test_anagram(tweet['tweet_text'], hit_tweet['tweet_text']):
                 print('\nhit in fetch pool')
                 del self.fetch_pool[key]
                 self.hit_manager.new_hit(tweet, hit_tweet)
@@ -158,14 +157,15 @@ class DataCoordinator(object):
         cursor = self.datastore.cursor()
         hashes = ['"%s"' % self.fetch_pool[i]['tweet_hash'] for i in self.fetch_pool]
         hashes = ",".join(hashes)
-        cursor.execute("SELECT * FROM tweets WHERE tweet_hash IN (%s)" % hashes)
+        with self._lock:
+            cursor.execute("SELECT * FROM tweets WHERE tweet_hash IN (%s)" % hashes)
         results = cursor.fetchall()
         self.hashes -= set(hashes)
 
         for result in results:
             fetched_tweet = self._tweet_from_sql(result)
             new_tweet = self.fetch_pool[fetched_tweet['tweet_hash']]
-            if anagramer.test_anagram(fetched_tweet['tweet_text'],
+            if utils.test_anagram(fetched_tweet['tweet_text'],
                                       new_tweet['tweet_text']):
                 self.hit_manager.new_hit(fetched_tweet, new_tweet)
             else:
@@ -178,17 +178,22 @@ class DataCoordinator(object):
         """
         takes least frequently hit tweets from cache and writes to datastore
         """
+        # self._debug_print_cache()
         self._should_trim_cache = False
-        # find the oldest, least frequently hit items in cache:
-        cache_list = self.cache.values()
-        cache_list = [(x['tweet']['tweet_hash'],
-                       x['tweet']['tweet_id'],
-                       x['hit_count']) for x in cache_list]
-        s = sorted(cache_list, key=itemgetter(1))
-        cache_list = sorted(s, key=itemgetter(2))
-        if not to_trim:
-            to_trim = len(cache_list)/2
-        hashes_to_save = [x for (x, y, z) in cache_list[:to_trim]]
+        # first just grab hashes with zero hits. If that's less then 1/2 total
+        # do a more complex filter
+        hashes_to_save = [x for x in self.cache if not self.cache[x]['hit_count']]
+        if len(hashes_to_save) < len(self.cache)/2:
+            # find the oldest, least frequently hit items in cache:
+            cache_list = self.cache.values()
+            cache_list = [(x['tweet']['tweet_hash'],
+                           x['tweet']['tweet_id'],
+                           x['hit_count']) for x in cache_list]
+            s = sorted(cache_list, key=itemgetter(1))
+            cache_list = sorted(s, key=itemgetter(2))
+            if not to_trim:
+                to_trim = len(cache_list)/2
+            hashes_to_save = [x for (x, y, z) in cache_list[:to_trim]]
 
         # write those caches to disk, delete from cache, add to hashes
         to_write = [(self.cache[x]['tweet']['tweet_hash'],
@@ -196,9 +201,22 @@ class DataCoordinator(object):
                      self.cache[x]['tweet']['tweet_text']) for x in hashes_to_save]
         for x in hashes_to_save:
             del self.cache[x]
-        self.datastore.executemany("INSERT INTO tweets VALUES (?, ?, ?)", to_write)
-        self.datastore.commit()
         self.hashes |= set(hashes_to_save)
+        _write_process = multiprocessing.Process(
+                                                 target=self._perform_write,
+                                                 args=(to_write,
+                                                 self._lock,
+                                                 self.datastore))
+        _write_process.start()
+
+    def _perform_write(self, to_write, lock, database):
+        with lock:
+            cursor = database.cursor()
+            cursor.executemany("INSERT INTO tweets VALUES (?, ?, ?)", to_write)
+            database.commit()
+
+    def _perform_fetch(self, to_fetch):
+        pass
 
     def _save_cache(self):
         """
@@ -231,6 +249,7 @@ class DataCoordinator(object):
                 'tweet_text': sql_tweet[2]
                 }
 
+
     def close(self):
         if len(self.fetch_pool):
             self._batch_fetch()
@@ -247,6 +266,8 @@ class HitManager(object):
         self.dbpath = (anagramconfig.STORAGE_DIRECTORY_PATH +
                        HIT_PATH_COMPONENT +
                        '_'.join(languages) + '.db')
+        self.hitdb = None
+
         self.debug_hits = []
 
     def new_hit(self, first, second):

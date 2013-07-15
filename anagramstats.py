@@ -23,7 +23,7 @@ _fetch_pool_size = 0
 def _clear_stats():
     global _tweets_seen, _passed_filter, _possible_hits
     global _hits, _overflow, _start_time, _buffer, _max_buffer
-    global _cache_size, _cache_hits
+    global _cache_size, _cache_hits, _fetch_pool_size
 
     _tweets_seen = 0
     _passed_filter = 0
@@ -35,6 +35,7 @@ def _clear_stats():
     _max_buffer = 0
     _cache_hits = 0
     _cache_size = 0
+    _fetch_pool_size = 0
 
 
 
