@@ -277,35 +277,27 @@ def db_conversion_utility():
     operation_start_time = time.time()
     oldcurs = olddb.cursor()
     oldcurs.execute('SELECT * FROM tweets')
-    converted = 0
-    trimmed = 0
+    blocks_converted = 0
 
     while True:
-        results = oldcurs.fetchmany(100000)
+        results = oldcurs.fetchmany(1000000)
         if not results:
             break
         to_write = []
         for result in results:
             tweet_text = _correct_encodings(result[2])
             if not _text_decodes_to_ascii(tweet_text):
-                # check for latin chars:
-                if _text_contains_tricky_chars(tweet_text):
-                    tweet_text = _strip_accents(tweet_text)
-            if _low_letter_ratio(tweet_text):
-                trimmed += 1
                 continue
 
             formatted_tweet = (improved_hash(tweet_text),
                                 result[1],
                                 tweet_text)
             to_write.append(formatted_tweet)
-            converted += 1
         newcurs.executemany("INSERT INTO tweets VALUES (?, ?, ?)", to_write)
-    newdb.commit()
-    print('converted %i tweets in db in %s. ignored %i tweets' %
-          (converted,
-           utils.format_seconds(time.time()-operation_start_time),
-           trimmed))
+        newdb.commit()
+        blocks_converted += 1
+        print('block converted %i, runtime %s' % 
+            (blocks_converted, time.time() - operation_start_time))
 
     
 
