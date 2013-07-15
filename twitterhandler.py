@@ -68,13 +68,13 @@ class StreamHandler(object):
         # I think we really want to handle all our various errors and reconection scenarios here
         while 1:
             # first add items from the queue to the buffer
-            while 1:
-                try:
-                    t = self.queue.get_nowait()
-                    if t.get('text'):
-                        self._buffer.append(t)
-                except Queue.Empty:
-                    break
+            # while 1:
+                # try:
+                #     t = self.queue.get_nowait()
+                #     if t.get('text'):
+                #         self._buffer.append(t)
+                # except Queue.Empty:
+                #     break
             try:
                 # self.update_stats()
                 if len(self._buffer):
