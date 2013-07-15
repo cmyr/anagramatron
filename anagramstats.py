@@ -130,6 +130,7 @@ def update_console():
         " hits " + str(_possible_hits) + '/' + str(_cache_hits) +
         " agrams: " + str(_hits) +
         " cachesize: " + str(_cache_size) +
+        " buffer: " + str(_buffer) +
         " fetchpool: " + str(_fetch_pool_size) +
         " runtime: " + utils.format_seconds(runtime)
     )

@@ -93,7 +93,7 @@ class StreamHandler(object):
         return self._iter.next()
 
     # def _run(self, queue, stop_flag, seen, passed, overflow, lock):
-    def _run(self, queue, stop_flag, overflow, lock, languages):
+    def _run(self, queue, overflow, lock, languages):
         stream = TwitterStream(
             auth=OAuth(ACCESS_KEY,
                        ACCESS_SECRET,
@@ -113,8 +113,6 @@ class StreamHandler(object):
                 streamiter = stream.statuses.sample(stall_warnings='true')
             logging.debug('stream begun')
             for tweet in streamiter:
-                if stop_flag.is_set():
-                    return
                 if tweet is not None:
                     if tweet.get('warning'):
                         print('\n', tweet)
@@ -159,7 +157,6 @@ class StreamHandler(object):
         self.stream_process = multiprocessing.Process(
                                 target=self._run,
                                 args=(self.queue, 
-                                      self._process_should_end,
                                       self._overflow,
                                       self._lock,
                                       self.languages))
@@ -172,7 +169,9 @@ class StreamHandler(object):
         """
         terminates existing connection and returns
         """
-        self.stream_process.terminate()
+        
+        if self.stream_process:
+            self.stream_process.terminate()
         print("\nstream handler closing with overflow %i from buffer size %i" %
               (self.overflow, self.buffersize))
         logging.debug("stream handler closing with overflow %i from buffer size %i" %

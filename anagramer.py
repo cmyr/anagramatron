@@ -225,9 +225,9 @@ def main():
                 stats.tweets_seen()
                 processed_tweet = filter_tweet(tweet)
                 if processed_tweet:
-                    print(processed_tweet)
+                    # print(processed_tweet)
                     stats.passed_filter()
-                    # data_coordinator.handle_input(processed_tweet)
+                    data_coordinator.handle_input(processed_tweet)
                 stats.update_console()
         except KeyboardInterrupt:
             break
@@ -312,8 +312,8 @@ def db_conversion_utility():
     
 
 if __name__ == "__main__":
-    # main()
+    main()
     # source = pickle.load(open('testdata/tst2.p', 'r'))
     # source = pickle.load(open('tstdata/20ktst1.p'))
     # test(source, False)
-    db_conversion_utility()
+    # db_conversion_utility()
