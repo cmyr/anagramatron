@@ -8,6 +8,7 @@ import cPickle as pickle
 
 from twitterhandler import TwitterHandler, StreamHandler
 from datahandler import DataHandler, HIT_STATUS_REVIEW
+from constants import ANAGRAM_LOW_CHAR_CUTOFF, ANAGRAM_LOW_UNIQUE_CHAR_CUTOFF
 # from twitter.api import TwitterHTTPError
 import utils
 
@@ -89,8 +90,9 @@ class Anagramer(object):
                     print('\nclosing stream for scheduled maintenance')
                     # todo: this is where we'd handle pruning etc
                 finally:
-                    self.stream_handler.close()
-                    self.stream_handler = None
+                    if self.stream_handler:
+                        self.stream_handler.close()
+                        self.stream_handler = None
                     self.data.finish()
                     self.data = None
                     self.stats.close()
@@ -106,8 +108,8 @@ class Anagramer(object):
         self.stats.start_time = time.time()
         self.stream_handler.start()
         for tweet in self.stream_handler:
+            self._process_input(tweet)
             self.update_console()
-            self.process_input(tweet)
 
     def run_with_data(self, data):
         """
@@ -125,10 +127,65 @@ class Anagramer(object):
         logging.debug('hits %g matches %g' % (self.stats.possible_hits, self.stats.hits))
         self.data.finish()
 
-    def process_input(self, hashed_tweet):
-        self.stats.new_hash(hashed_tweet['hash'])
-        self.data.process_tweet(hashed_tweet)
+    def _process_input(self, tweet):
+        self.stats.tweets_seen += 1
+        if self.filter_tweet(tweet):
+            self.stats.passed_filter += 1
+            hashed_tweet = self.format_tweet(tweet)
+            self.stats.new_hash(hashed_tweet['hash'])
+            self.data.process_tweet(hashed_tweet)
 
+    def filter_tweet(self, tweet):
+        """
+        filter out anagram-inappropriate tweets
+        """
+        #check for mentions
+        if len(tweet.get('entities').get('user_mentions')) is not 0:
+            return False
+        #check for retweets
+        if tweet.get('retweeted_status'):
+            return False
+        # ignore tweets w/ non-ascii characters
+        try:
+            tweet['text'].decode('ascii')
+        except UnicodeEncodeError:
+            return False
+        # check for links:
+        if len(tweet.get('entities').get('urls')) is not 0:
+            return False
+        # ignore short tweets
+        t = utils.stripped_string(tweet['text'])
+        if len(t) <= ANAGRAM_LOW_CHAR_CUTOFF:
+            return False
+        # ignore tweets with few characters
+        st = set(t)
+        if len(st) <= ANAGRAM_LOW_UNIQUE_CHAR_CUTOFF:
+            return False
+        return True
+
+    def format_tweet(self, tweet):
+        """
+        makes a dict from the JSON properties we need
+        """
+
+        tweet_id = long(tweet['id_str'])
+        tweet_hash = self.make_hash(tweet['text'])
+        tweet_text = str(tweet['text'])
+        hashed_tweet = {
+            'id': tweet_id,
+            'hash': tweet_hash,
+            'text': tweet_text,
+        }
+        return hashed_tweet
+
+    def make_hash(self, text):
+        """
+        takes a tweet as input. returns a character-unique hash
+        from the tweet's text.
+        """
+        t_text = str(utils.stripped_string(text))
+        t_hash = ''.join(sorted(t_text, key=str.lower))
+        return t_hash
     def process_hit(self, tweet_one, tweet_two):
         """
         called by datahandler when it has found a match in need of review.
@@ -211,12 +268,12 @@ class Anagramer(object):
         # what all do we want to have, here? let's blueprint:
         # tweets seen: $IN_HAS_TEXT passed filter: $PASSED_F% Hits: $HITS
         seen_percent = int(100*(float(
-            self.stream_handler.passed_filter)/self.stream_handler.tweets_seen))
+            self.stats.passed_filter)/self.stats.tweets_seen))
         runtime = time.time()-self.stats.start_time
 
         status = (
-            'tweets seen: ' + str(self.stream_handler.tweets_seen) +
-            " passed filter: " + str(self.stream_handler.passed_filter) +
+            'tweets seen: ' + str(self.stats.tweets_seen) +
+            " passed filter: " + str(self.stats.passed_filter) +
             " ({0}%)".format(seen_percent) +
             " hits " + str(self.stats.possible_hits) +
             " agrams: " + str(self.stats.hits) +
