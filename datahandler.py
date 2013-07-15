@@ -70,7 +70,7 @@ class DataHandler(object):
         cursor.execute("SELECT hash FROM tweets")
         hashes = cursor.fetchall()
         self.hashes = set([str(h) for (h,) in hashes])
-        print('loaded %d hashes' % (len(hashes)))
+        print('loaded %d hashes' % (len(self.hashes)))
 
     def process_tweet(self, new_tweet):
         """
