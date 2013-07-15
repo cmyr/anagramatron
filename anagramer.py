@@ -282,8 +282,9 @@ def db_conversion_utility():
     has_debug = False
 
     while True:
-        results = oldcurs.fetchmany(1000000)
         print('starting block %i' % blocks_converted)
+        results = oldcurs.fetchmany(100000)
+        print('fetched block, processing')
         if not results:
             break
         to_write = []
@@ -300,7 +301,8 @@ def db_conversion_utility():
                 # only need to see debug info once
                 print('result: ', result, 'formatted: ', formatted_tweet)
                 has_debug = True
-        newcurs = newdb.curs()
+        print('converted block, saving to disk')
+        newcurs = newdb.cursor()
         newcurs.executemany("INSERT INTO tweets VALUES (?, ?, ?)", to_write)
         newdb.commit()
         blocks_converted += 1
