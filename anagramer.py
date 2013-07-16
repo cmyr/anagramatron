@@ -239,6 +239,7 @@ def main():
                 server_process.terminate()
             stream_handler.close()
             stream_handler = None
+            data_coordinator.close()
             stats.close()
 
 
