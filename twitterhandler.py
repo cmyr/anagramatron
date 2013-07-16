@@ -5,10 +5,12 @@ import logging
 import Queue
 import multiprocessing
 import time
+import sys
 from collections import deque
 from ssl import SSLError
 from socket import error as SocketError
-
+from urllib2 import HTTPError
+from cPickle import UnpickleableError
 from twitter.oauth import OAuth
 from twitter.stream import TwitterStream
 from twitter.api import Twitter, TwitterError, TwitterHTTPError
@@ -35,17 +37,19 @@ class StreamHandler(object):
     handles twitter stream connections. Buffers incoming tweets and
     acts as an iter.
     """
-    def __init__(self, buffersize=ANAGRAM_STREAM_BUFFER_SIZE, timeout=30, languages=['en']):
+    def __init__(self, buffersize=ANAGRAM_STREAM_BUFFER_SIZE, timeout=90, languages=['en']):
         self.buffersize = buffersize
         self.timeout = timeout
         self.languages = languages
         self.stream_process = None
         self.queue = multiprocessing.Queue()
+        self._error_queue = multiprocessing.Queue()
         self._buffer = deque()
         self._should_return = False
         self._iter = self.__iter__()
         self._overflow = multiprocessing.Value('L', 0)
         self._lock = multiprocessing.Lock()
+        self._backoff_time = 0
 
     @property
     def overflow(self):
@@ -84,20 +88,112 @@ class StreamHandler(object):
                     # add elements to buffer from queue:
                 else:
                     yield self.queue.get(True, self.timeout)
+                    self._backoff_time = 0
                     continue
             except Queue.Empty:
                 print('queue timeout, restarting thread')
                 # means we've timed out, and should try to reconnect
-                self.start()
+                self._stream_did_timeout()
         print('exiting iter loop')
 
     def next(self):
         return self._iter.next()
 
-    # def _run(self, queue, stop_flag, seen, passed, overflow, lock):
-    def _run(self, queue, overflow, lock, languages):
+    def start(self):
+        """
+        creates a new thread and starts a streaming connection.
+        If a thread already exists, it is terminated.
+        """
+        print('creating new server connection')
+        logging.debug('creating new server connection')
+        if self.stream_process is not None:
+            print('terminating existing server connection')
+            logging.debug('terminating existing server connection')
+            self.stream_process.terminate()
+            if self.stream_process.is_alive():
+                pass
+            else:
+                print('existing thread terminated succesfully')
+                logging.debug('thread terminated successfully')
+        # self._process_should_end.clear()
+        self.stream_process = multiprocessing.Process(
+                                target=self._run,
+                                args=(self.queue,
+                                      self._error_queue,
+                                      self._backoff_time,
+                                      self._overflow,
+                                      self._lock,
+                                      self.languages))
+        self.stream_process.daemon = True
+        self.stream_process.start()
+
+        print('created process %i' % self.stream_process.pid)
+
+    def _stream_did_timeout(self):
+        """
+        check for errors and choose a reconnection strategy.
+        see: (https://dev.twitter.com/docs/streaming-apis/connecting#Stalls)
+        """
+        err = None
+        while 1:
+            # we could possible have more then one error? 
+            try:
+                err = self._error_queue.get_nowait()
+                logging.error('received error from stream process', err)
+                print(err, 'backoff time:', self._backoff_time)
+            except Queue.Empty:
+                break
+        if err:
+            print(err)
+            error_code = err.get('code')
+
+            if error_code == 420:
+                if not self._backoff_time:
+                    self._backoff_time = 60
+                else:
+                    self._backoff_time *= 2
+            else:
+                # a placeholder, for now
+                # elif error_code in [400, 401, 403, 404, 405, 406, 407, 408, 410]:
+                if not self._backoff_time:
+                    self._backoff_time = 5
+                else:
+                    self._backoff_time *= 2
+                if self._backoff_time > 320:
+                    self._backoff_time = 320
+            # if error_code == 'TCP/IP level network error':
+            #     self._backoff_time += 0.25
+            #     if self._backoff_time > 16.0:
+            #         self._backoff_time = 16.0
+        self.start()
+
+    def close(self):
+        """
+        terminates existing connection and returns
+        """
+        self._should_return = True
+        if self.stream_process:
+            self.stream_process.terminate()
+        print("\nstream handler closing with overflow %i from buffer size %i" %
+              (self.overflow, self.buffersize))
+        logging.debug("stream handler closing with overflow %i from buffer size %i" %
+              (self.overflow, self.buffersize))
+
+    def bufferlength(self):
+        return len(self._buffer)
+
+    def _run(self, queue, errors, backoff_time, overflow, lock, languages):
+        """
+        handle connection to streaming endpoint.
+        adds incoming tweets to queue.
+        runs in own process.
+        errors is a queue we use to transmit exceptions to parent process.
+        """
+        # if we've been given a backoff time, sleep
+        if backoff_time:
+            time.sleep(backoff_time)
         stream = TwitterStream(
-            auth=OAuth(ACCESS_KEY,
+            auth=OAuth('butts',
                        ACCESS_SECRET,
                        CONSUMER_KEY,
                        CONSUMER_SECRET),
@@ -119,6 +215,11 @@ class StreamHandler(object):
                     if tweet.get('warning'):
                         print('\n', tweet)
                         logging.warning(tweet)
+                        errors.put(dict(tweet))
+                        continue
+                    if tweet.get('disconnect'):
+                        logging.warning(tweet)
+                        errors.put(dict(tweet))
                         continue
                     if tweet.get('text'):
                         try:
@@ -126,61 +227,12 @@ class StreamHandler(object):
                         except Queue.Full:
                             with lock:
                                 overflow.value += 1
-        except SSLError as err:
+
+        except (HTTPError, SSLError, TwitterHTTPError, SocketError) as err:
+            print(type(err))
             print(err)
-            logging.error(err)
-            return
-        except TwitterHTTPError as err:
-            print(err)
-            logging.error(err)
-            return
-        except SocketError as err:
-            print(err)
-            logging.error(err)
-            return
-
-    def start(self):
-        """
-        creates a new thread and starts a streaming connection.
-        If a thread already exists, it is terminated.
-        """
-        print('creating new server connection')
-        logging.debug('creating new server connection')
-        if self.stream_process is not None:
-            print('terminating existing server connection')
-            logging.debug('terminating existing server connection')
-            self.stream_process.terminate()
-            if self.stream_process.is_alive():
-                pass
-            else:
-                print('existing thread terminated succesfully')
-                logging.debug('thread terminated successfully')
-        # self._process_should_end.clear()
-        self.stream_process = multiprocessing.Process(
-                                target=self._run,
-                                args=(self.queue, 
-                                      self._overflow,
-                                      self._lock,
-                                      self.languages))
-        self.stream_process.daemon = True
-        self.stream_process.start()
-
-        print('created process %i' % self.stream_process.pid)
-
-    def close(self):
-        """
-        terminates existing connection and returns
-        """
-        self._should_return = True
-        if self.stream_process:
-            self.stream_process.terminate()
-        print("\nstream handler closing with overflow %i from buffer size %i" %
-              (self.overflow, self.buffersize))
-        logging.debug("stream handler closing with overflow %i from buffer size %i" %
-              (self.overflow, self.buffersize))
-
-    def bufferlength(self):
-        return len(self._buffer)
+            error_dict = {'error': str(err), 'code': err.code}
+            errors.put(error_dict)
 
 
 class TwitterHandler(object):
@@ -334,5 +386,5 @@ if __name__ == "__main__":
         # print(count)
         if t.get('text'):
             print(t.get('text'), 'buffer length: %i' % len(stream._buffer))
-        if count > 100:
-            stream.close()
+        # if count > 100:
+        #     stream.close()
