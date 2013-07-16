@@ -73,7 +73,6 @@ class StreamHandler(object):
             # first add items from the queue to the buffer
             while 1:
                 try:
-                    print('trying to dequeue to buffer')
                     t = self.queue.get_nowait()
                     if t.get('text'):
                         self._buffer.append(t)
@@ -82,11 +81,9 @@ class StreamHandler(object):
             try:
                 # self.update_stats()
                 if len(self._buffer):
-                    print('yielding from buffer')
                     yield self._buffer.popleft()
                     # add elements to buffer from queue:
                 else:
-                    print('yielding from queue')
                     yield self.queue.get(True, self.timeout)
                     continue
             except Queue.Empty:
