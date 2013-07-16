@@ -216,7 +216,7 @@ def main():
 
     stream_handler = StreamHandler()
     data_coordinator = DataCoordinator()
-    server_process = subprocess.Popen('hit_server.py')
+    # server_process = subprocess.call('python hit_server.py')
 
     while 1:
         try:
@@ -234,7 +234,8 @@ def main():
         except KeyboardInterrupt:
             break
         finally:
-            server_process.terminate()
+            if server_process:
+                server_process.terminate()
             stream_handler.close()
             stream_handler = None
             stats.close()
