@@ -76,9 +76,8 @@ class StreamHandler(object):
                 raise StopIteration
             while 1:
                 try:
-                    t = self.queue.get_nowait()
-                    if t.get('text'):
-                        self._buffer.append(t)
+                    # t = self.queue.get_nowait()
+                        self._buffer.append(self.queue.get_nowait())
                 except Queue.Empty:
                     break
             try:
@@ -193,7 +192,7 @@ class StreamHandler(object):
         if backoff_time:
             time.sleep(backoff_time)
         stream = TwitterStream(
-            auth=OAuth('butts',
+            auth=OAuth(ACCESS_KEY,
                        ACCESS_SECRET,
                        CONSUMER_KEY,
                        CONSUMER_SECRET),
@@ -222,17 +221,39 @@ class StreamHandler(object):
                         errors.put(dict(tweet))
                         continue
                     if tweet.get('text'):
-                        try:
-                            queue.put(dict(tweet), block=False)
-                        except Queue.Full:
-                            with lock:
-                                overflow.value += 1
+                        if _basic_filters(tweet):
+                            try:
+                                queue.put(dict(tweet), block=False)
+                            except Queue.Full:
+                                with lock:
+                                    overflow.value += 1
 
         except (HTTPError, SSLError, TwitterHTTPError, SocketError) as err:
             print(type(err))
             print(err)
             error_dict = {'error': str(err), 'code': err.code}
             errors.put(error_dict)
+
+# this is here temporarily so we can do more filtering in run
+
+def _basic_filters(tweet):
+    if len(tweet.get('entities').get('user_mentions')) is not 0:
+        return False
+    #check for retweets
+    if tweet.get('retweeted_status'):
+        return False
+    # check for links:
+    if len(tweet.get('entities').get('urls')) is not 0:
+        return False
+    t = utils.stripped_string(tweet['text'])
+    if len(t) <= ANAGRAM_LOW_CHAR_CUTOFF:
+        return False
+    # ignore tweets with few characters
+    st = set(t)
+    if len(st) <= ANAGRAM_LOW_UNIQUE_CHAR_CUTOFF:
+        return False
+    return True
+
 
 
 class TwitterHandler(object):
