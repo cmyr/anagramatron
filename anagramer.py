@@ -6,6 +6,7 @@ import time
 import logging
 import cPickle as pickle
 import unicodedata
+import subprocess
 
 from twitterhandler import TwitterHandler, StreamHandler
 from datahandler import DataCoordinator
@@ -215,6 +216,7 @@ def main():
 
     stream_handler = StreamHandler()
     data_coordinator = DataCoordinator()
+    server_process = subprocess.Popen('hit_server.py')
 
     while 1:
         try:
@@ -232,10 +234,10 @@ def main():
         except KeyboardInterrupt:
             break
         finally:
+            server_process.terminate()
             stream_handler.close()
             stream_handler = None
             stats.close()
-            # stats = None
 
 
 def test(source, raw=True):
@@ -309,7 +311,7 @@ def db_conversion_utility():
         print('block converted %i, runtime %s' % 
             (blocks_converted, time.time() - operation_start_time))
 
-    
+
 
 if __name__ == "__main__":
     main()

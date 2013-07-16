@@ -10,6 +10,7 @@ from operator import itemgetter
 
 
 import utils
+import hitmanager
 import twitterhandler
 import anagramconfig
 # import anagramer
@@ -20,7 +21,6 @@ from constants import ANAGRAM_WRITE_CACHE_SIZE, ANAGRAM_FETCH_POOL_SIZE
 
 DATA_PATH_COMPONENT = 'anagramdata'
 CACHE_PATH_COMPONENT = 'cachedump'
-HIT_PATH_COMPONENT = 'hitdata'
 
 HIT_STATUS_REVIEW = 'review'
 HIT_STATUS_REJECTED = 'rejected'
@@ -57,7 +57,6 @@ class DataCoordinator(object):
         self.cachepath = (anagramconfig.STORAGE_DIRECTORY_PATH +
                           CACHE_PATH_COMPONENT +
                           '_'.join(self.languages) + '.p')
-        self.hit_manager = HitManager(self.languages)
         self.setup()
 
     def setup(self):
@@ -69,7 +68,7 @@ class DataCoordinator(object):
         try:
             self.cache = pickle.load(open('CACHE_STORE_PATH', 'r'))
             ('cache loaded')
-        except IOError as e:
+        except IOError:
             print('no loadable cache found')
             self.cache = dict()
         if not os.path.exists(self.dbpath):
@@ -94,6 +93,8 @@ class DataCoordinator(object):
                 self.hashes.add(str(result[0]))
         print('extracted %i hashes in %s' %
               (len(self.hashes), utils.format_seconds(time.time()-operation_start_time)))
+        # setup hit manager:
+        hitmanager._setup(self.languages)
 
     def handle_input(self, tweet):
         """
@@ -110,7 +111,7 @@ class DataCoordinator(object):
             if utils.test_anagram(tweet['tweet_text'], hit_tweet['tweet_text']):
                 print('hit in cache')
                 del self.cache[key]
-                self.hit_manager.new_hit(tweet, hit_tweet)
+                hitmanager.new_hit(tweet, hit_tweet)
             else:
                 self.cache[key]['tweet'] = tweet
                 self.cache[key]['hit_count'] += 1
@@ -139,7 +140,7 @@ class DataCoordinator(object):
             if utils.test_anagram(tweet['tweet_text'], hit_tweet['tweet_text']):
                 print('\nhit in fetch pool')
                 del self.fetch_pool[key]
-                self.hit_manager.new_hit(tweet, hit_tweet)
+                hitmanager.new_hit(tweet, hit_tweet)
             else:
                 pass
         else:
@@ -167,7 +168,7 @@ class DataCoordinator(object):
             new_tweet = self.fetch_pool[fetched_tweet['tweet_hash']]
             if utils.test_anagram(fetched_tweet['tweet_text'],
                                       new_tweet['tweet_text']):
-                self.hit_manager.new_hit(fetched_tweet, new_tweet)
+                hitmanager.new_hit(fetched_tweet, new_tweet)
             else:
                 self.cache[new_tweet['tweet_hash']] = {'tweet': new_tweet,
                                                        'hit_count': 0}
@@ -249,113 +250,11 @@ class DataCoordinator(object):
                 'tweet_text': sql_tweet[2]
                 }
 
-
     def close(self):
         if len(self.fetch_pool):
             self._batch_fetch()
         stats.update_console()
         self.datastore.close()
-        self.hit_manager.close()
-
-
-class HitManager(object):
-    """
-    handles storage of hits. runs webserver for remote review
-    """
-    def __init__(self, languages):
-        self.dbpath = (anagramconfig.STORAGE_DIRECTORY_PATH +
-                       HIT_PATH_COMPONENT +
-                       '_'.join(languages) + '.db')
-        self.hitsdb = None
-        self._server_process = None
-        self._setup()
-        self.debug_hits = []
-
-    def _setup(self):
-        if not os.path.exists(self.dbpath):
-            self.hitsdb = lite.connect(self.dbpath)
-            cursor = self.hitsdb.cursor()
-            print('hits db not found, creating')
-            cursor.execute("""CREATE TABLE hits
-                (hit_id integer, hit_status text, hit_rating text, one_id text, two_id text, one_text text, two_text text)""")
-            self.hitsdb.commit()
-        else:
-            self.hitsdb = lite.connect(self.dbpath)
-
-        # setup the web server:
-        # self._server_process = multiprocessing.Process(target=server.run())
-
-
-
-    def new_hit(self, first, second):
-        hit = {
-           "id": int(time.time()*1000),
-           "status": HIT_STATUS_REVIEW,
-           "tweet_one": first,
-           "tweet_two": second
-        }
-        self.debug_hits.append(hit)
-
-    #  def add_hit(self, hit):
-    #     cursor = self.hitsdb.cursor()
-    #     cursor.execute("INSERT INTO hits VALUES (?,?,?,?,?,?)",
-    #                   (str(hit['id']), hit['status'],
-    #                    str(hit['tweet_one']['id']),
-    #                    str(hit['tweet_two']['id']),
-    #                    hit['tweet_one']['text'],
-    #                    hit['tweet_two']['text'])
-    #                    )
-    #     self.hitsdb.commit()
-
-    # def get_hit(self, hit_id):
-    #     cursor = self.hitsdb.cursor()
-    #     cursor.execute("SELECT * FROM hits WHERE hit_id=:id",
-    #                    {"id": str(hit_id)})
-    #     result = cursor.fetchone()
-    #     return self.hit_from_sql(result)
-
-    # def remove_hit(self, hit_id):
-    #     cursor = self.hitsdb.cursor()
-    #     cursor.execute("DELETE FROM hits WHERE hit_id=:id",
-    #                    {"id": str(hit_id)})
-    #     self.hitsdb.commit()
-
-    # def set_hit_status(self, hit_id, status):
-    #     if status not in [HIT_STATUS_REVIEW, HIT_STATUS_MISC,
-    #                       HIT_STATUS_APPROVED, HIT_STATUS_POSTED,
-    #                       HIT_STATUS_REJECTED, HIT_STATUS_FAILED]:
-    #         return False
-    #     # get the hit, delete the hit, add it again with new status.
-    #     hit = self.get_hit(hit_id)
-    #     hit['status'] = status
-    #     self.remove_hit(hit_id)
-    #     self.add_hit(hit)
-
-    # def get_all_hits(self):
-    #     cursor = self.hitsdb.cursor()
-    #     cursor.execute("SELECT * FROM hits")
-    #     results = cursor.fetchall()
-    #     hits = []
-    #     for item in results:
-    #         hits.append(self.hit_from_sql(item))
-    #     return hits
-
-    # def hit_from_sql(self, item):
-    #     """
-    #     convenience method for converting the result of an sql query
-    #     into a python dictionary compatable with anagramer
-    #     """
-    #     return {'id': long(item[0]),
-    #             'status': str(item[1]),
-    #             'tweet_one': {'id': long(item[2]), 'text': str(item[4])},
-    #             'tweet_two': {'id': long(item[3]), 'text': str(item[5])}
-    #             }
-
-    def close(self):
-        print("debug found %i hits" % len(self.debug_hits))
-        for hit in self.debug_hits:
-            print(hit['tweet_one']['tweet_text'])
-            print(hit['tweet_two']['tweet_text'])
 
 
 class DataHandler(object):

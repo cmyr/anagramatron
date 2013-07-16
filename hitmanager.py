@@ -35,7 +35,17 @@ def _setup(languages=['en']):
         hitsdb = lite.connect(dbpath)
 
 
-def add_hit(hit):
+def new_hit(first, second):
+    hit = {
+           "id": int(time.time()*1000),
+           "status": HIT_STATUS_REVIEW,
+           "tweet_one": first,
+           "tweet_two": second
+        }
+    _add_hit(hit)
+
+
+def _add_hit(hit):
     cursor = hitsdb.cursor()
     cursor.execute("INSERT INTO hits VALUES (?,?,?,?,?,?,?,?,?,?)",
                   (str(hit['id']),
@@ -76,7 +86,7 @@ def set_hit_status(hit_id, status):
     hit = get_hit(hit_id)
     hit['status'] = status
     remove_hit(hit_id)
-    add_hit(hit)
+    _add_hit(hit)
 
 
 def all_hits():
