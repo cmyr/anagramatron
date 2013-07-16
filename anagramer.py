@@ -308,7 +308,7 @@ def db_conversion_utility():
         newcurs.executemany("INSERT INTO tweets VALUES (?, ?, ?)", to_write)
         newdb.commit()
         blocks_converted += 1
-        print('block converted %i, runtime %s' % 
+        print('block converted %i, runtime %s' %
             (blocks_converted, time.time() - operation_start_time))
 
 
