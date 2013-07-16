@@ -42,7 +42,7 @@ class StreamHandler(object):
         self.stream_process = None
         self.queue = multiprocessing.Queue()
         self._buffer = deque()
-        # self._process_should_end = multiprocessing.Event()
+        self._should_return = False
         self._iter = self.__iter__()
         self._overflow = multiprocessing.Value('L', 0)
         self._lock = multiprocessing.Lock()
@@ -75,6 +75,8 @@ class StreamHandler(object):
                 #         self._buffer.append(t)
                 # except Queue.Empty:
                 #     break
+            if self._should_return:
+                raise StopIteration
             try:
                 # self.update_stats()
                 if len(self._buffer):
@@ -162,6 +164,7 @@ class StreamHandler(object):
                                       self.languages))
         self.stream_process.daemon = True
         self.stream_process.start()
+        self._should_return = False
 
         print('created process %i' % self.stream_process.pid)
 
@@ -169,6 +172,7 @@ class StreamHandler(object):
         """
         terminates existing connection and returns
         """
+        self._should_return = True
         if self.stream_process:
             self.stream_process.terminate()
         print("\nstream handler closing with overflow %i from buffer size %i" %
