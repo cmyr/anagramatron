@@ -46,6 +46,7 @@ def new_hit(first, second):
     hit = {
            "id": int(time.time()*1000),
            "status": HIT_STATUS_REVIEW,
+           "hash": first['tweet_hash'],
            "tweet_one": first,
            "tweet_two": second
         }
@@ -54,11 +55,12 @@ def new_hit(first, second):
 
 def _add_hit(hit):
     cursor = hitsdb.cursor()
+
     cursor.execute("INSERT INTO hits VALUES (?,?,?,?,?,?,?,?,?,?)",
                   (str(hit['id']),
                    hit['status'],
                    str(time.time()),
-                   str(hit['tweet_one']['tweet_hash']),
+                   str(hit['hash']),
                    '0',
                    '0',
                    str(hit['tweet_one']['tweet_id']),
@@ -121,8 +123,8 @@ def hit_from_sql(item):
             'hash': str(item[3]),
             'rating': str(item[4]),
             'flags': str(item[5]),
-            'tweet_one': {'id': long(item[6]), 'text': str(item[8])},
-            'tweet_two': {'id': long(item[7]), 'text': str(item[9])}
+            'tweet_one': {'tweet_id': long(item[6]), 'tweet_text': item[8]},
+            'tweet_two': {'tweet_id': long(item[7]), 'tweet_text': item[9]}
             }
 
 
