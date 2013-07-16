@@ -87,7 +87,7 @@ class DataHandler(object):
             # if it's in the write cache return them both for checking
             self.debug_used_cache_count += 1
             self.delegate.process_hit(new_tweet, self.write_cache[new_tweet['hash']])
-        if (self.contains(new_tweet['hash'])):
+        if (new_tweet['hash'] in self.hashes):
             # stored_tweet = self.get(new_tweet['hash'])
             self.fetch_pool[new_tweet['hash']] = new_tweet
             if (len(self.fetch_pool) > ANAGRAM_FETCH_POOL_SIZE):
