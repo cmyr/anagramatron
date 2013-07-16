@@ -3,7 +3,7 @@ import os
 import time
 
 import anagramconfig
-
+from twitterhandler import TwitterHandler
 HIT_PATH_COMPONENT = 'hitdata'
 
 HIT_STATUS_REVIEW = 'review'
@@ -15,6 +15,7 @@ HIT_STATUS_FAILED = 'failed'
 
 dbpath = None
 hitsdb = None
+twitter_handler = None
 
 
 def _setup(languages=['en']):
@@ -35,7 +36,13 @@ def _setup(languages=['en']):
         hitsdb = lite.connect(dbpath)
 
 
+def _checkit():
+    if not dbpath or hitsdb:
+        _setup()
+
+
 def new_hit(first, second):
+    _checkit()
     hit = {
            "id": int(time.time()*1000),
            "status": HIT_STATUS_REVIEW,
@@ -63,6 +70,7 @@ def _add_hit(hit):
 
 
 def get_hit(hit_id):
+    _checkit()
     cursor = hitsdb.cursor()
     cursor.execute("SELECT * FROM hits WHERE hit_id=:id",
                    {"id": str(hit_id)})
@@ -71,6 +79,7 @@ def get_hit(hit_id):
 
 
 def remove_hit(hit_id):
+    _checkit()
     cursor = hitsdb.cursor()
     cursor.execute("DELETE FROM hits WHERE hit_id=:id",
                    {"id": str(hit_id)})
@@ -78,6 +87,7 @@ def remove_hit(hit_id):
 
 
 def set_hit_status(hit_id, status):
+    _checkit()
     if status not in [HIT_STATUS_REVIEW, HIT_STATUS_MISC,
                       HIT_STATUS_APPROVED, HIT_STATUS_POSTED,
                       HIT_STATUS_REJECTED, HIT_STATUS_FAILED]:
@@ -90,6 +100,7 @@ def set_hit_status(hit_id, status):
 
 
 def all_hits():
+    _checkit()
     cursor = hitsdb.cursor()
     cursor.execute("SELECT * FROM hits")
     results = cursor.fetchall()
@@ -116,6 +127,7 @@ def hit_from_sql(item):
 
 
 def add_to_blacklist(bad_hash):
+    _checkit()
     cursor = hitsdb.cursor()
     cursor.execute("INSERT INTO blacklist VALUES (?)", (bad_hash,))
     cursor.commit()
@@ -127,13 +139,14 @@ def reject_hit(hit_id):
 
 
 def post_hit(hit_id):
-    pass
-    # if self.twitterhandler.post_hit(self.get_hit(hit_id)):
-    #     self.set_hit_status(hit_id, HIT_STATUS_POSTED)
-    #     return True
-    # else:
-    #     self.set_hit_status(hit_id, HIT_STATUS_FAILED)
-    #     return False
+    if not twitter_handler:
+        twitter_handler = TwitterHandler()
+    if twitter_handler.post_hit(get_hit(hit_id)):
+        set_hit_status(hit_id, HIT_STATUS_POSTED)
+        return True
+    else:
+        set_hit_status(hit_id, HIT_STATUS_FAILED)
+        return False
 
 def approve_hit(hit_id):
     self.set_hit_status(hit_id, HIT_STATUS_APPROVED)
