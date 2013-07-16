@@ -176,9 +176,9 @@ class StreamHandler(object):
         if self.stream_process:
             self.stream_process.terminate()
         print("\nstream handler closing with overflow %i from buffer size %i" %
-              (self.overflow, self.buffersize))
+              (self._overflow.value, self.buffersize))
         logging.debug("stream handler closing with overflow %i from buffer size %i" %
-              (self.overflow, self.buffersize))
+              (self._overflow.value, self.buffersize))
 
     def bufferlength(self):
         return len(self._buffer)
