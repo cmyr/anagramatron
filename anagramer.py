@@ -216,6 +216,7 @@ def main():
 
     stream_handler = StreamHandler()
     data_coordinator = DataCoordinator()
+    server_process = None
     # server_process = subprocess.call('python hit_server.py')
 
     while 1:
