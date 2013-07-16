@@ -105,6 +105,7 @@ class Anagramer(object):
         """
         main run loop
         """
+        print('starting stream')
         self.stats.start_time = time.time()
         self.stream_handler.start()
         for tweet in self.stream_handler:
@@ -186,6 +187,7 @@ class Anagramer(object):
         t_text = str(utils.stripped_string(text))
         t_hash = ''.join(sorted(t_text, key=str.lower))
         return t_hash
+
     def process_hit(self, tweet_one, tweet_two):
         """
         called by datahandler when it has found a match in need of review.

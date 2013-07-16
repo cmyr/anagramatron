@@ -323,7 +323,7 @@ class TwitterHandler(object):
 
 if __name__ == "__main__":
     count = 0;
-    stream = StreamHandler(languages=None)
+    stream = StreamHandler()
     stream.start()
 
     for t in stream:
