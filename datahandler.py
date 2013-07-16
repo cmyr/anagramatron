@@ -10,7 +10,7 @@ import twitterhandler
 
 from constants import ANAGRAM_WRITE_CACHE_SIZE, ANAGRAM_FETCH_POOL_SIZE
 
-TWEET_DB_PATH = 'data/tweets2.db'
+TWEET_DB_PATH = 'data/tweets.db'
 HITS_DB_PATH = 'data/hits.db'
 
 HIT_STATUS_REVIEW = 'review'
@@ -177,7 +177,10 @@ class DataHandler(object):
                        {"hash": tweet_hash})
         self.data.commit()
         # delete from hashes
-        self.hashes.remove(tweet_hash)
+        try:
+            self.hashes.remove(tweet_hash)
+        except KeyError:
+            print('error deleting hash %s' % tweet_hash)
 
     def add_hit(self, hit):
         cursor = self.hitsdb.cursor()

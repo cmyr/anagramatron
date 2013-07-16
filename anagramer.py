@@ -105,11 +105,9 @@ class Anagramer(object):
         """
         main run loop
         """
-        print('starting stream')
         self.stats.start_time = time.time()
         self.stream_handler.start()
         for tweet in self.stream_handler:
-            print('saw tweet')
             self._process_input(tweet)
             self.update_console()
 
