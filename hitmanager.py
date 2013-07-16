@@ -121,8 +121,8 @@ def hit_from_sql(item):
             'hash': str(item[3]),
             'rating': str(item[4]),
             'flags': str(item[5]),
-            'tweet_one': {'id': long(item[6]), 'text': str(item[8])},
-            'tweet_two': {'id': long(item[7]), 'text': str(item[9])}
+            'tweet_one': {'id': long(item[6]), 'text': item[8]},
+            'tweet_two': {'id': long(item[7]), 'text': item[9]}
             }
 
 
