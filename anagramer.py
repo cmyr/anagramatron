@@ -96,7 +96,7 @@ class Anagramer(object):
                     self.data.finish()
                     self.data = None
                     self.stats.close()
-                    self.stats = None                 
+                    self.stats = None
         else:
             # means we're running from local data
             self.run_with_data(source)
@@ -109,6 +109,7 @@ class Anagramer(object):
         self.stats.start_time = time.time()
         self.stream_handler.start()
         for tweet in self.stream_handler:
+            print('saw tweet')
             self._process_input(tweet)
             self.update_console()
 

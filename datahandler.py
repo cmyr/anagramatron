@@ -10,7 +10,7 @@ import twitterhandler
 
 from constants import ANAGRAM_WRITE_CACHE_SIZE, ANAGRAM_FETCH_POOL_SIZE
 
-TWEET_DB_PATH = 'data/tweets.db'
+TWEET_DB_PATH = 'data/tweets2.db'
 HITS_DB_PATH = 'data/hits.db'
 
 HIT_STATUS_REVIEW = 'review'
