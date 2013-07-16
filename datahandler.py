@@ -165,7 +165,10 @@ class DataHandler(object):
                        {"hash": tweet_hash})
         self.data.commit()
         # delete from hashes
-        self.hashes.remove(tweet_hash)
+        try:
+            self.hashes.remove(tweet_hash)
+        except KeyError:
+            print('error removing hash %s' % tweet_hash)
 
     def add_hit(self, hit):
         cursor = self.hitsdb.cursor()
