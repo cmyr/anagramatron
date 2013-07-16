@@ -42,7 +42,7 @@ class StreamHandler(object):
         self.stream_process = None
         self.queue = multiprocessing.Queue()
         self._buffer = deque()
-        # self._process_should_end = multiprocessing.Event()
+        self._should_return = False
         self._iter = self.__iter__()
         self._overflow = multiprocessing.Value('L', 0)
         self._lock = multiprocessing.Lock()
@@ -68,6 +68,8 @@ class StreamHandler(object):
         # I think we really want to handle all our various errors and reconection scenarios here
         while 1:
             # first add items from the queue to the buffer
+            if self._should_return:
+                raise StopIteration
             while 1:
                 try:
                     t = self.queue.get_nowait()
@@ -169,7 +171,7 @@ class StreamHandler(object):
         """
         terminates existing connection and returns
         """
-        
+        self._should_return = True
         if self.stream_process:
             self.stream_process.terminate()
         print("\nstream handler closing with overflow %i from buffer size %i" %
@@ -329,8 +331,8 @@ if __name__ == "__main__":
 
     for t in stream:
         count += 1
-        print(count)
+        # print(count)
         if t.get('text'):
-            print('buffer length: %i' % len(stream._buffer))
+            print(t.get('text'), 'buffer length: %i' % len(stream._buffer))
         if count > 100:
             stream.close()
