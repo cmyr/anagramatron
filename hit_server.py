@@ -86,21 +86,21 @@ def modify_hit():
         # if data.post_hit(hit_id):
         print('post requested')
         if hitmanager.post_hit(hit_id):
-            return {'hit': data.get_hit(hit_id), 'response': True}
+            return {'hit': hitmanager.get_hit(hit_id), 'response': True}
         else:
-            return {'hit': data.get_hit(hit_id), 'response': False}
+            return {'hit': hitmanager.get_hit(hit_id), 'response': False}
     if action == CLIENT_ACTION_APPROVE:
         print('approve requested')
         if hitmanager.approve_hit(hit_id):
-            return {'hit': data.get_hit(hit_id), 'response': True}
+            return {'hit': hitmanager.get_hit(hit_id), 'response': True}
         else:
-            return {'hit': data.get_hit(hit_id), 'response': False}
+            return {'hit': hitmanager.get_hit(hit_id), 'response': False}
     if action == CLIENT_ACTION_REJECT:
         print('reject requested')
         if hitmanager.reject_hit(hit_id):
-            return {'hit': data.get_hit(hit_id), 'response': True}
+            return {'hit': hitmanager.get_hit(hit_id), 'response': True}
         else:
-            return {'hit': data.get_hit(hit_id), 'response': False}
+            return {'hit': hitmanager.get_hit(hit_id), 'response': False}
 
 
 run(app, host='0.0.0.0', port=TEST_PORT, debug=True, server='sslbottle')
