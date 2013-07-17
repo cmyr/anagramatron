@@ -38,8 +38,8 @@ def _setup(languages=['en']):
         cursor = hitsdb.cursor()
         print('hits db not found, creating')
         cursor.execute("""CREATE TABLE hits
-            (hit_id integer, hit_status text, hit_date INTEGER, hit_hash TEXT, hit_rating text, flags TEXT, one_id text, two_id text, one_text text, two_text text)""")
-        cursor.execute("CREATE TABLE blacklist (bad_hash TEXT)")
+            (hit_id INTEGER, hit_status TEXT, hit_date INTEGER, hit_hash TEXT, hit_rating text, flags TEXT, one_id text, two_id text, one_text text, two_text text)""")
+        cursor.execute("CREATE TABLE blacklist (bad_hash TEXT UNIQUE)")
         hitsdb.commit()
     else:
         hitsdb = lite.connect(dbpath)
@@ -61,8 +61,6 @@ def new_hit(first, second):
         }
 
     if _hit_on_blacklist(hit):
-        print('hit on blacklist:', hit)
-        logging.debug('hit on blacklist', hit)
         return
     if _hit_collides_with_previous_hit(hit):
         return
@@ -74,6 +72,7 @@ def _hit_on_blacklist(hit):
     cursor.execute("SELECT count(*) FROM blacklist WHERE bad_hash=?", (hit['hash'],))
     result = cursor.fetchone()[0]
     if result == 1:
+        logging.debug('hit on blacklist: %s' % hit['tweet_one']['tweet_text'])
         return True
     return False
 
@@ -155,10 +154,13 @@ def set_hit_status(hit_id, status):
     _add_hit(hit)
 
 
-def all_hits():
+def all_hits(with_status=None):
     _checkit()
     cursor = hitsdb.cursor()
-    cursor.execute("SELECT * FROM hits")
+    if not filter:
+        cursor.execute("SELECT * FROM hits")
+    else:
+        cursor.execute("SELECT * FROM hits WHERE hit_status = (?)", (with_status,))
     results = cursor.fetchall()
     hits = []
     for item in results:
@@ -192,7 +194,7 @@ def hit_from_sql(item):
 def add_to_blacklist(bad_hash):
     _checkit()
     cursor = hitsdb.cursor()
-    cursor.execute("INSERT INTO blacklist VALUES (?)", (bad_hash,))
+    cursor.execute("INSERT OR IGNORE INTO blacklist VALUES (?)", (bad_hash,))
     hitsdb.commit()
 
 
