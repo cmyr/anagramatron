@@ -100,6 +100,16 @@ def modify_hit():
             return {'hit': hitmanager.get_hit(hit_id), 'response': False}
 
 
+@app.route('/blacklist')
+def add_to_blacklist():
+    auth = requested.get_header('Authorization')
+    if not authenticate(auth):
+        return
+    bad_hash = str(request.query.hash)
+    if hitmanager.add_to_blacklist(bad_hash):
+        return {'success': True}
+    return {'success': False}
+
 run(app, host='0.0.0.0', port=TEST_PORT, debug=True, server='sslbottle')
 
 # if __name__ == "__main__":
