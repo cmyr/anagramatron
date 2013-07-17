@@ -50,8 +50,35 @@ def new_hit(first, second):
            "tweet_one": first,
            "tweet_two": second
         }
+
+    if _hit_on_blacklist(hit):
+        print('hit on blacklist:', hit)
+        logging.debug('hit on blacklist', hit)
+        return
+# check if hit is in existing hits:
+
+    if _hit_collides_with_previous_hit(hit):
+        return
+
     _add_hit(hit)
 
+def _hit_on_blacklist(hit):
+    cursor = hitsdb.cursor()
+    cursor.execute("SELECT count(*) FROM blacklist WHERE bad_hash=?", (hit['hash'],))
+    result = cursor.fetchone()[0]
+    if result == 1:
+        return True
+    return False
+
+def _hit_collides_with_previous_hit(hit):
+    cursor = hitsdb.cursor()
+    cursor.execute("SELECT * FROM hits WHERE hit_hash=?",(hit['hash'],))
+    result = cursor.fetchone()
+    if result:
+        # do some comparisons
+        result = hit_from_sql(result)
+
+    return True
 
 def _add_hit(hit):
     cursor = hitsdb.cursor()
