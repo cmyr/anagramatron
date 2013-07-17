@@ -102,10 +102,11 @@ def modify_hit():
 
 @app.route('/blacklist')
 def add_to_blacklist():
-    auth = requested.get_header('Authorization')
+    auth = request.get_header('Authorization')
     if not authenticate(auth):
         return
     bad_hash = str(request.query.hash)
+    print('blacklisting hash: %s' % bad_hash)
     if hitmanager.add_to_blacklist(bad_hash):
         return {'success': True}
     return {'success': False}
