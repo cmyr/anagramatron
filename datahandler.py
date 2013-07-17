@@ -92,7 +92,7 @@ class DataCoordinator(object):
             for result in results:
                 self.hashes.add(str(result[0]))
         print('extracted %i hashes in %s' %
-              (len(self.hashes), utils.format_seconds(time.time()-operation_start_time)))
+              (len(self.hashes), anagramfunctions.format_seconds(time.time()-operation_start_time)))
         # setup hit manager:
         hitmanager._setup(self.languages)
 

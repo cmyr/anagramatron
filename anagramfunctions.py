@@ -47,7 +47,7 @@ def improved_hash(text, debug=False):
     only very *minorly* improved. sorts based on letter frequencies.
     """
     CHR_COUNT_START = 64  # we convert to chars; char 65 is A
-    t_text = utils.stripped_string(text)
+    t_text = stripped_string(text)
     t_hash = ''.join(sorted(t_text, key=lambda t: freqsort[t]))
     letset = set(t_hash)
     break_letter = t_hash[-1:]
@@ -114,7 +114,7 @@ def _basic_filters(tweet):
     # check for links:
     if len(tweet.get('entities').get('urls')) is not 0:
         return False
-    t = utils.stripped_string(tweet['text'])
+    t = stripped_string(tweet['text'])
     if len(t) <= ANAGRAM_LOW_CHAR_CUTOFF:
         return False
     # ignore tweets with few characters

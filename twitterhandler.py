@@ -63,10 +63,10 @@ class StreamHandler(object):
                 stats.overflow(self._overflow.value)
                 self._overflow.value = 0
             if self._tweets_seen.value:
-                stats.tweet_seen(self._tweets_seen.value)
+                stats.tweets_seen(self._tweets_seen.value)
                 self._tweets_seen.value = 0
             if self._passed_filter.value:
-                stats.tweet_seen(self._passed_filter.value)
+                stats.passed_filter(self._passed_filter.value)
                 self._passed_filter.value = 0
         stats.set_buffer(self.bufferlength())
 

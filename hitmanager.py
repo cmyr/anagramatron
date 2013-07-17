@@ -4,6 +4,8 @@ import time
 
 import anagramconfig
 import anagramfunctions
+import logging
+
 from twitterhandler import TwitterHandler
 HIT_PATH_COMPONENT = 'hitdata'
 
@@ -17,9 +19,15 @@ HIT_STATUS_FAILED = 'failed'
 dbpath = None
 hitsdb = None
 twitter_handler = None
-
+LOG_FILE_NAME = 'data/hitman.log'
 
 def _setup(languages=['en']):
+    logging.basicConfig(
+        filename=LOG_FILE_NAME,
+        format='%(asctime)s - %(levelname)s:%(message)s',
+        level=logging.DEBUG
+    )
+
     global dbpath, hitsdb
     dbpath = (anagramconfig.STORAGE_DIRECTORY_PATH +
               HIT_PATH_COMPONENT +
@@ -56,8 +64,6 @@ def new_hit(first, second):
         print('hit on blacklist:', hit)
         logging.debug('hit on blacklist', hit)
         return
-# check if hit is in existing hits:
-
     if _hit_collides_with_previous_hit(hit):
         return
 
@@ -78,8 +84,28 @@ def _hit_collides_with_previous_hit(hit):
     if result:
         # do some comparisons
         result = hit_from_sql(result)
+        r1 = result['tweet_one']
+        r2 = result['tweet_two']
+        t1 = hit['tweet_one']
+        t2 = hit['tweet_two']
+        if anagramfunctions.test_anagram(r1, t1):
+            print('hit collision:', hit, result)
+            logging.debug('hit collision: %s %s' % (r1, t1))
+            return True
+        if anagramfunctions.test_anagram(r1, t2):
+            print('hit collision:', hit, result)
+            logging.debug('hit collision: %s %s' % (r1, t2))
+            return True
+        if anagramfunctions.test_anagram(r2, t1):
+            print('hit collision:', hit, result)
+            logging.debug('hit collision: %s %s' % (r2, t1))
+            return True
+        if anagramfunctions.test_anagram(r2, t2):
+            print('hit collision:', hit, result)
+            logging.debug('hit collision: %s %s' % (r2, t2))
+            return True
 
-    return True
+    return False
 
 def _add_hit(hit):
     cursor = hitsdb.cursor()
