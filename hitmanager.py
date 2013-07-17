@@ -3,6 +3,7 @@ import os
 import time
 
 import anagramconfig
+import anagramfunctions
 from twitterhandler import TwitterHandler
 HIT_PATH_COMPONENT = 'hitdata'
 

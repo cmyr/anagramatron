@@ -2,7 +2,7 @@ from __future__ import print_function
 import time
 import sys
 
-import utils
+import anagramfunctions
 
 _tweets_seen = 0
 _passed_filter = 0
@@ -38,7 +38,6 @@ def _clear_stats():
     _fetch_pool_size = 0
 
 
-
 # def new_hash(hash_text):
 #     global hash_distributions
 #     hashlength = len(hash_text)
@@ -55,7 +54,6 @@ def _clear_stats():
 #     if (hashlength < 140):
 #         hit_distributions[hashlength] += 1
 
-
 def tweets_seen(seen=1):
     global _tweets_seen
     _tweets_seen += seen
@@ -66,9 +64,9 @@ def passed_filter(passed=1):
     _passed_filter += passed
 
 
-def possible_hit():
+def possible_hit(possible=1):
     global _possible_hits
-    _possible_hits += 1
+    _possible_hits += possible
 
 
 def hit(hit=1):
@@ -132,7 +130,7 @@ def update_console():
         " cachesize: " + str(_cache_size) +
         " buffer: " + str(_buffer) +
         " fetchpool: " + str(_fetch_pool_size) +
-        " runtime: " + utils.format_seconds(runtime)
+        " runtime: " + anagramfunctions.format_seconds(runtime)
     )
     sys.stdout.write(status + '\r')
     sys.stdout.flush()

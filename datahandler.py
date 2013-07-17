@@ -9,7 +9,7 @@ import multiprocessing
 from operator import itemgetter
 
 
-import utils
+import anagramfunctions
 import hitmanager
 import twitterhandler
 import anagramconfig
@@ -108,7 +108,7 @@ class DataCoordinator(object):
         if key in self.cache:
             stats.cache_hit()
             hit_tweet = self.cache[key]['tweet']
-            if utils.test_anagram(tweet['tweet_text'], hit_tweet['tweet_text']):
+            if anagramfunctions.test_anagram(tweet['tweet_text'], hit_tweet['tweet_text']):
                 print('hit in cache')
                 del self.cache[key]
                 hitmanager.new_hit(tweet, hit_tweet)
@@ -137,7 +137,7 @@ class DataCoordinator(object):
             # print('\ntweet in fetchpool')
             # exists in fetch pool, run comps
             hit_tweet = self.fetch_pool[key]
-            if utils.test_anagram(tweet['tweet_text'], hit_tweet['tweet_text']):
+            if anagramfunctions.test_anagram(tweet['tweet_text'], hit_tweet['tweet_text']):
                 print('\nhit in fetch pool')
                 del self.fetch_pool[key]
                 hitmanager.new_hit(tweet, hit_tweet)
@@ -166,7 +166,7 @@ class DataCoordinator(object):
         for result in results:
             fetched_tweet = self._tweet_from_sql(result)
             new_tweet = self.fetch_pool[fetched_tweet['tweet_hash']]
-            if utils.test_anagram(fetched_tweet['tweet_text'],
+            if anagramfunctions.test_anagram(fetched_tweet['tweet_text'],
                                       new_tweet['tweet_text']):
                 hitmanager.new_hit(fetched_tweet, new_tweet)
             else:
@@ -515,7 +515,7 @@ class DataHandler(object):
             while 1:
                 inp = raw_input("(a)ccept, (r)eject, (s)kip, (i)llustrate, (q)uit:")
                 if inp == 'i':
-                    utils.show_anagram(hit['tweet_one']['text'], hit['tweet_two']['text'])
+                    anagramfunctions.show_anagram(hit['tweet_one']['text'], hit['tweet_two']['text'])
                     continue
                 if inp not in ['a', 'r', 's', 'q', 'i']:
                     print("invalid input. Please enter 'a', 'r', 's', 'i' or 'q'.")
@@ -546,7 +546,7 @@ def trim_short_tweets(cutoff=20):
     cursor.execute("SELECT hash FROM tweets")
     hashes = cursor.fetchall()
     hashes = set([str(h) for (h,) in hashes])
-    print('extracted %i hashes in %s' % (len(hashes), utils.format_seconds(time.time()-load_time)))
+    print('extracted %i hashes in %s' % (len(hashes), anagramfunctions.format_seconds(time.time()-load_time)))
     short_hashes = [h for h in hashes if len(h) < cutoff]
     print("found %i of %i hashes below %i character cutoff" % (len(short_hashes), len(hashes), cutoff))
     load_time = time.time()
@@ -554,7 +554,7 @@ def trim_short_tweets(cutoff=20):
     db.execute("DELETE FROM tweets WHERE hash IN (%s)" % ",".join(hashvals))
     # self.cache.executemany("DELETE FROM tweets WHERE hash=(?)", iter(short_hashes))
     db.commit()
-    print('deleted %i hashes in %s' % (len(short_hashes), utils.format_seconds(time.time()-load_time)))
+    print('deleted %i hashes in %s' % (len(short_hashes), anagramfunctions.format_seconds(time.time()-load_time)))
     # short_hashes = set(short_hashes)
     # self.hashes = self.hashes.difference(short_hashes)
 
@@ -567,7 +567,7 @@ def archive_old_tweets(cutoff=0.2):
     cursor.execute("SELECT id FROM tweets")
     ids = cursor.fetchall()
     ids = [str(h) for (h,) in ids]
-    print('extracted %i ids in %s' % (len(ids), utils.format_seconds(time.time()-load_time)))
+    print('extracted %i ids in %s' % (len(ids), anagramfunctions.format_seconds(time.time()-load_time)))
     ids = sorted(ids)
     tocull = int(len(ids) * cutoff)
     ids = ids[:tocull]
@@ -581,7 +581,7 @@ def archive_old_tweets(cutoff=0.2):
     db.commit()
     filename = "data/culled_%s.p" % time.strftime("%b%d%H%M")
     pickle.dump(results, open(filename, 'wb'))
-    print('archived %i hashes in %s' % (len(ids), utils.format_seconds(time.time()-load_time)))
+    print('archived %i hashes in %s' % (len(ids), anagramfunctions.format_seconds(time.time()-load_time)))
 
 
 if __name__ == "__main__":
