@@ -89,19 +89,19 @@ def _hit_collides_with_previous_hit(hit):
         t1 = hit['tweet_one']['tweet_text']
         t2 = hit['tweet_two']['tweet_text']
         if anagramfunctions.test_anagram(r1, t1):
-            print('hit collision:', hit, result)
+            # print('hit collision:', hit, result)
             logging.debug('hit collision: %s %s' % (r1, t1))
             return True
         if anagramfunctions.test_anagram(r1, t2):
-            print('hit collision:', hit, result)
+            # print('hit collision:', hit, result)
             logging.debug('hit collision: %s %s' % (r1, t2))
             return True
         if anagramfunctions.test_anagram(r2, t1):
-            print('hit collision:', hit, result)
+            # print('hit collision:', hit, result)
             logging.debug('hit collision: %s %s' % (r2, t1))
             return True
         if anagramfunctions.test_anagram(r2, t2):
-            print('hit collision:', hit, result)
+            # print('hit collision:', hit, result)
             logging.debug('hit collision: %s %s' % (r2, t2))
             return True
 

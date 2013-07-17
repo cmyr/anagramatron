@@ -104,7 +104,6 @@ class DataCoordinator(object):
             stats.cache_hit()
             hit_tweet = self.cache[key]['tweet']
             if anagramfunctions.test_anagram(tweet['tweet_text'], hit_tweet['tweet_text']):
-                print('hit in cache')
                 del self.cache[key]
                 hitmanager.new_hit(tweet, hit_tweet)
             else:
@@ -133,7 +132,6 @@ class DataCoordinator(object):
             # exists in fetch pool, run comps
             hit_tweet = self.fetch_pool[key]
             if anagramfunctions.test_anagram(tweet['tweet_text'], hit_tweet['tweet_text']):
-                print('\nhit in fetch pool')
                 del self.fetch_pool[key]
                 hitmanager.new_hit(tweet, hit_tweet)
             else:
