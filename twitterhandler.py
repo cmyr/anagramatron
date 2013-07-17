@@ -16,7 +16,7 @@ from twitter.stream import TwitterStream
 from twitter.api import Twitter, TwitterError, TwitterHTTPError
 import tumblpy
 
-import utils
+import anagramfunctions
 import anagramstats as stats
 
 
@@ -48,6 +48,8 @@ class StreamHandler(object):
         self._should_return = False
         self._iter = self.__iter__()
         self._overflow = multiprocessing.Value('L', 0)
+        self._tweets_seen = multiprocessing.Value('L', 0)
+        self._passed_filter = multiprocessing.Value('L', 0)
         self._lock = multiprocessing.Lock()
         self._backoff_time = 0
 
@@ -60,6 +62,12 @@ class StreamHandler(object):
             if self._overflow.value:
                 stats.overflow(self._overflow.value)
                 self._overflow.value = 0
+            if self._tweets_seen.value:
+                stats.tweet_seen(self._tweets_seen.value)
+                self._tweets_seen.value = 0
+            if self._passed_filter.value:
+                stats.tweet_seen(self._passed_filter.value)
+                self._passed_filter.value = 0
         stats.set_buffer(self.bufferlength())
 
     def __iter__(self):
@@ -121,6 +129,8 @@ class StreamHandler(object):
                                       self._error_queue,
                                       self._backoff_time,
                                       self._overflow,
+                                      self._tweets_seen,
+                                      self._passed_filter,
                                       self._lock,
                                       self.languages))
         self.stream_process.daemon = True
@@ -181,7 +191,7 @@ class StreamHandler(object):
     def bufferlength(self):
         return len(self._buffer)
 
-    def _run(self, queue, errors, backoff_time, overflow, lock, languages):
+    def _run(self, queue, errors, backoff_time, overflow, seen, passed, lock, languages):
         """
         handle connection to streaming endpoint.
         adds incoming tweets to queue.
@@ -221,9 +231,14 @@ class StreamHandler(object):
                         errors.put(dict(tweet))
                         continue
                     if tweet.get('text'):
-                        if _basic_filters(tweet):
+                        with lock:
+                            seen.value += 1
+                        processed_tweet = anagramfunctions.filter_tweet(tweet)
+                        if processed_tweet:
+                            with lock:
+                                passed.value += 1
                             try:
-                                queue.put(dict(tweet), block=False)
+                                queue.put(processed_tweet, block=False)
                             except Queue.Full:
                                 with lock:
                                     overflow.value += 1
@@ -233,26 +248,6 @@ class StreamHandler(object):
             print(err)
             error_dict = {'error': str(err), 'code': err.code}
             errors.put(error_dict)
-
-# this is here temporarily so we can do more filtering in run
-
-def _basic_filters(tweet):
-    if len(tweet.get('entities').get('user_mentions')) is not 0:
-        return False
-    #check for retweets
-    if tweet.get('retweeted_status'):
-        return False
-    # check for links:
-    if len(tweet.get('entities').get('urls')) is not 0:
-        return False
-    t = utils.stripped_string(tweet['text'])
-    if len(t) <= ANAGRAM_LOW_CHAR_CUTOFF:
-        return False
-    # ignore tweets with few characters
-    st = set(t)
-    if len(st) <= ANAGRAM_LOW_UNIQUE_CHAR_CUTOFF:
-        return False
-    return True
 
 
 
