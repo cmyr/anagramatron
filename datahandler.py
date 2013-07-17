@@ -30,7 +30,7 @@ HIT_STATUS_MISC = 'misc'
 HIT_STATUS_FAILED = 'failed'
 
 
-DEBUG_CACHE_SIZE = 10000
+DEBUG_CACHE_SIZE = 50000
 
 
 class DataCoordinator(object):
@@ -45,7 +45,7 @@ class DataCoordinator(object):
         language selection is not currently implemented
         """
         self.languages = languages
-        self.cache = None
+        self.cache = dict()
         self.fetch_pool = dict()
         self.hashes = set()
         self.datastore = None
@@ -65,12 +65,7 @@ class DataCoordinator(object):
         - load / init database
         - extract hashes
         """
-        try:
-            self.cache = pickle.load(open('CACHE_STORE_PATH', 'r'))
-            ('cache loaded')
-        except IOError:
-            print('no loadable cache found')
-            self.cache = dict()
+        self.cache = self._load_cache()
         if not os.path.exists(self.dbpath):
             self.datastore = lite.connect(self.dbpath)
             cursor = self.datastore.cursor()
@@ -225,7 +220,7 @@ class DataCoordinator(object):
         doesn't save hit_count. we don't want to keep briefly popular
         tweets in cache indefinitely
         """
-        tweets_to_save = [t['tweet'] for t in self.cache]
+        tweets_to_save = [self.cache[t]['tweet'] for t in self.cache]
         try:
             pickle.dump(tweets_to_save, open(self.cachepath, 'wb'))
         except:
@@ -234,14 +229,19 @@ class DataCoordinator(object):
 
     def _load_cache(self):
         print('loading cache')
+        cache = dict()
         try:
             loaded_tweets = pickle.load(open(self.cachepath, 'r'))
+            # print(loaded_tweets)
             for t in loaded_tweets:
-                self.cache[t['tweet_hash']] = {'tweet': t, 'hit_count': 0}
-            print('loaded %i tweets to cache' % len(self.cache))
-        except:
+                cache[t['tweet_hash']] = {'tweet': t, 'hit_count': 0}
+            print('loaded %i tweets to cache' % len(cache))
+            return cache
+        except IOError:
             logging.error('error loading cache :(')
+            return cache
             # really not tons we can do ehre
+
 
     def _tweet_from_sql(self, sql_tweet):
         return {
@@ -253,6 +253,7 @@ class DataCoordinator(object):
     def close(self):
         if len(self.fetch_pool):
             self._batch_fetch()
+        self._save_cache()
         stats.update_console()
         self.datastore.close()
 
