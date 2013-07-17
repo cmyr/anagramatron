@@ -132,7 +132,7 @@ def add_to_blacklist(bad_hash):
     _checkit()
     cursor = hitsdb.cursor()
     cursor.execute("INSERT INTO blacklist VALUES (?)", (bad_hash,))
-    cursor.commit()
+    hitsdb.commit()
 
 
 def reject_hit(hit_id):
