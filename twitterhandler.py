@@ -352,9 +352,9 @@ class TwitterHandler(object):
         """
         handles retweeting a pair of tweets & various possible failures
         """
-        if not self.retweet(hit['tweet_one']['id']):
+        if not self.retweet(hit['tweet_one']['tweet_id']):
             return False
-        if not self.retweet(hit['tweet_two']['id']):
+        if not self.retweet(hit['tweet_two']['tweet_id']):
             self.delete_last_tweet()
             return False
         return True
@@ -380,8 +380,8 @@ class TwitterHandler(object):
         return True
 
     def post_hit(self, hit):
-        t1 = self.fetch_tweet(hit['tweet_one']['id'])
-        t2 = self.fetch_tweet(hit['tweet_two']['id'])
+        t1 = self.fetch_tweet(hit['tweet_one']['tweet_id'])
+        t2 = self.fetch_tweet(hit['tweet_two']['tweet_id'])
         if not t1 or not t2:
             print('failed to fetch tweets')
             # tweet doesn't exist or is unavailable
