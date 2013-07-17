@@ -125,7 +125,7 @@ def update_console():
         'tweets seen: ' + str(_tweets_seen) +
         " passed filter: " + str(_passed_filter) +
         " ({0}%)".format(seen_percent) +
-        " hits " + str(_possible_hits) + '/' + str(_cache_hits) +
+        " hits " + str(_possible_hits + _fetch_pool_size) + '/' + str(_cache_hits) +
         " agrams: " + str(_hits) +
         " cachesize: " + str(_cache_size) +
         " buffer: " + str(_buffer) +
