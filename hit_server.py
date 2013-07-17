@@ -70,9 +70,6 @@ def get_hits():
 
 @app.route('/mod')
 def modify_hit():
-    # global data
-    # if not data:
-    #     data = datahandler.DataHandler(just_the_hits=True)
     print(request)
     auth = request.get_header('Authorization')
     if not authenticate(auth):

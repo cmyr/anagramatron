@@ -141,6 +141,7 @@ def reject_hit(hit_id):
 
 
 def post_hit(hit_id):
+    global twitter_handler
     if not twitter_handler:
         twitter_handler = TwitterHandler()
     if twitter_handler.post_hit(get_hit(hit_id)):
