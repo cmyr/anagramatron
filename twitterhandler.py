@@ -400,7 +400,7 @@ if __name__ == "__main__":
     for t in stream:
         count += 1
         # print(count)
-        if t.get('text'):
-            print(t.get('text'), 'buffer length: %i' % len(stream._buffer))
+        
+        print(t['tweet_text'], 'buffer length: %i' % len(stream._buffer))
         # if count > 100:
         #     stream.close()
