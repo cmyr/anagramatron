@@ -84,10 +84,10 @@ def _hit_collides_with_previous_hit(hit):
     if result:
         # do some comparisons
         result = hit_from_sql(result)
-        r1 = result['tweet_one']
-        r2 = result['tweet_two']
-        t1 = hit['tweet_one']
-        t2 = hit['tweet_two']
+        r1 = result['tweet_one']['tweet_text']
+        r2 = result['tweet_two']['tweet_text']
+        t1 = hit['tweet_one']['tweet_text']
+        t2 = hit['tweet_two']['tweet_text']
         if anagramfunctions.test_anagram(r1, t1):
             print('hit collision:', hit, result)
             logging.debug('hit collision: %s %s' % (r1, t1))
@@ -164,6 +164,13 @@ def all_hits():
     for item in results:
         hits.append(hit_from_sql(item))
     return hits
+
+
+def blacklist():
+    cursor = hitsdb.cursor()
+    cursor.execute("SELECT * from blacklist")
+    results = cursor.fetchall()
+    return results
 
 
 def hit_from_sql(item):
