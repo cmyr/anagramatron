@@ -11,10 +11,15 @@ from ssl import SSLError
 from socket import error as SocketError
 from urllib2 import HTTPError
 from cPickle import UnpickleableError
-from twitter.oauth import OAuth
-from twitter.stream import TwitterStream
-from twitter.api import Twitter, TwitterError, TwitterHTTPError
+# from twitter.oauth import OAuth
+# from twitter.stream import TwitterStream
+# from twitter.api import Twitter, TwitterError, TwitterHTTPError
 import tumblpy
+import json
+
+from tweepy import OAuthHandler
+from tweepy import Stream
+from tweepy.streaming import StreamListener
 
 import anagramfunctions
 import anagramstats as stats
@@ -30,6 +35,7 @@ from tumblrcreds import (TUMBLR_KEY, TUMBLR_SECRET,
 from constants import (ANAGRAM_STREAM_BUFFER_SIZE,
                        ANAGRAM_LOW_CHAR_CUTOFF,
                        ANAGRAM_LOW_UNIQUE_CHAR_CUTOFF)
+
 
 
 class StreamHandler(object):
@@ -124,7 +130,7 @@ class StreamHandler(object):
                 logging.debug('thread terminated successfully')
         # self._process_should_end.clear()
         self.stream_process = multiprocessing.Process(
-                                target=self._run,
+                                target=spawn_stream,
                                 args=(self.queue,
                                       self._error_queue,
                                       self._backoff_time,
@@ -250,6 +256,66 @@ class StreamHandler(object):
             errors.put(error_dict)
 
 
+def spawn_stream(queue, errors, backoff_time, overflow,
+                 seen, passed, lock, languages):
+    stream = TweepyStream(queue, errors, backoff_time, overflow,
+                          seen, passed, lock, languages)
+
+class TweepyStream(StreamListener):
+
+    def __init__(self, queue, errors,
+                 backoff_time, overflow,
+                 seen, passed, lock, languages=None):
+        super(TweepyStream, self).__init__()
+        self.decoder = json.JSONDecoder()
+        self._queue = queue
+        self._errors = errors
+        self._backoff_time = backoff_time
+        self._overflow = overflow
+        self._tweets_seen = seen
+        self._passed_filter = passed
+        self._lock = lock
+        self._languages = languages
+        self.stream = self._setup_stream()
+
+    def on_data(self, data):
+        # utf8_buf = self.buf.decode('utf8').lstrip()
+        #         res, ptr = self.decoder.raw_decode(utf8_buf)
+        if type(data) is not str:
+            return True
+        data, b = self.decoder.raw_decode(data)
+        if type(data) is not dict:
+            return True
+        if data.get('warning'):
+            print('\n', data)
+            self._errors.put(data)
+        if data.get('disconnect'):
+            logging.warning(data)
+            self._errors.put(dict(data))
+        if data.get('text'):
+            with self._lock:
+                self._tweets_seen.value += 1
+            processed_tweet = anagramfunctions.filter_tweet(data)
+            if processed_tweet:
+                with self._lock:
+                    self._passed_filter.value += 1
+                try:
+                    self._queue.put(processed_tweet, block=False)
+                except Queue.Full:
+                    with self._lock:
+                        overflow.value += 1
+        return True
+
+    def on_error(self, error):
+        self._errors.put(error)
+
+    def _setup_stream(self, gzip=True):
+        auth = OAuthHandler(CONSUMER_KEY, CONSUMER_SECRET)
+        auth.set_access_token(ACCESS_KEY, ACCESS_SECRET)
+        stream = Stream(auth, self)
+        self.stream = stream
+        self.stream.sample(languages=self._languages)
+        print('stream setup')
 
 class TwitterHandler(object):
     """
@@ -393,6 +459,9 @@ class TwitterHandler(object):
 
 
 if __name__ == "__main__":
+    # listner = AnagramStream()
+    # listner._setup_stream()
+
     count = 0;
     stream = StreamHandler(languages=None)
     stream.start()
