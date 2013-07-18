@@ -11,9 +11,9 @@ from ssl import SSLError
 from socket import error as SocketError
 from urllib2 import HTTPError
 from cPickle import UnpickleableError
-# from twitter.oauth import OAuth
-# from twitter.stream import TwitterStream
-# from twitter.api import Twitter, TwitterError, TwitterHTTPError
+from twitter.oauth import OAuth
+from twitter.stream import TwitterStream
+from twitter.api import Twitter, TwitterError, TwitterHTTPError
 import tumblpy
 import json
 
@@ -43,7 +43,12 @@ class StreamHandler(object):
     handles twitter stream connections. Buffers incoming tweets and
     acts as an iter.
     """
-    def __init__(self, buffersize=ANAGRAM_STREAM_BUFFER_SIZE, timeout=90, languages=['en']):
+    def __init__(self,
+                 buffersize=ANAGRAM_STREAM_BUFFER_SIZE,
+                 timeout=90,
+                 languages=['en'],
+                 use_tweepy=False
+                 ):
         self.buffersize = buffersize
         self.timeout = timeout
         self.languages = languages
@@ -58,6 +63,7 @@ class StreamHandler(object):
         self._passed_filter = multiprocessing.Value('L', 0)
         self._lock = multiprocessing.Lock()
         self._backoff_time = 0
+        self.use_tweepy = use_tweepy
 
     @property
     def overflow(self):
@@ -128,9 +134,11 @@ class StreamHandler(object):
             else:
                 print('existing thread terminated succesfully')
                 logging.debug('thread terminated successfully')
-        # self._process_should_end.clear()
+
+        # we can target either tweepy or python twitter tools (default)
+        targ = self._run if not self.use_tweepy else spawn_stream
         self.stream_process = multiprocessing.Process(
-                                target=spawn_stream,
+                                target=targ,
                                 args=(self.queue,
                                       self._error_queue,
                                       self._backoff_time,
@@ -151,7 +159,7 @@ class StreamHandler(object):
         """
         err = None
         while 1:
-            # we could possible have more then one error? 
+            # we could possible have more then one error?
             try:
                 err = self._error_queue.get_nowait()
                 logging.error('received error from stream process', err)
@@ -465,7 +473,7 @@ if __name__ == "__main__":
     # listner._setup_stream()
 
     count = 0;
-    stream = StreamHandler()
+    stream = StreamHandler(use_tweepy=True)
     stream.start()
 
     for t in stream:
