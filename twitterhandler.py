@@ -2,17 +2,28 @@ from __future__ import print_function
 
 import httplib
 import logging
-import threading
 import Queue
+import multiprocessing
+import time
+import sys
+from collections import deque
 from ssl import SSLError
 from socket import error as SocketError
+from urllib2 import HTTPError
+from cPickle import UnpickleableError
 from twitter.oauth import OAuth
 from twitter.stream import TwitterStream
 from twitter.api import Twitter, TwitterError, TwitterHTTPError
 import tumblpy
+import json
 
-import utils
-import time
+from tweepy import OAuthHandler
+from tweepy import Stream
+from tweepy.streaming import StreamListener
+
+import anagramfunctions
+import anagramstats as stats
+
 
 # my twitter OAuth key:
 from twittercreds import (CONSUMER_KEY, CONSUMER_SECRET,
@@ -23,7 +34,9 @@ from tumblrcreds import (TUMBLR_KEY, TUMBLR_SECRET,
 
 from constants import (ANAGRAM_STREAM_BUFFER_SIZE,
                        ANAGRAM_LOW_CHAR_CUTOFF,
-                       ANAGRAM_LOW_UNIQUE_CHAR_CUTOFF)
+                       ANAGRAM_LOW_UNIQUE_CHAR_CUTOFF,
+                       ANAGRAM_ALPHA_RATIO_CUTOFF)
+
 
 
 class StreamHandler(object):
@@ -31,41 +44,178 @@ class StreamHandler(object):
     handles twitter stream connections. Buffers incoming tweets and
     acts as an iter.
     """
-    def __init__(self, buffersize=ANAGRAM_STREAM_BUFFER_SIZE, timeout=30):
+    def __init__(self,
+                 buffersize=ANAGRAM_STREAM_BUFFER_SIZE,
+                 timeout=90,
+                 languages=['en'],
+                 use_tweepy=False
+                 ):
         self.buffersize = buffersize
-        self.overflow = 0
         self.timeout = timeout
-        self.active_time = None
-        self.stream_thread = None
-        self.Queue = Queue.Queue(maxsize=buffersize)
-        self._should_terminate = False
-        self._stop_thread = threading.Event()
+        self.languages = languages
+        self.stream_process = None
+        self.queue = multiprocessing.Queue()
+        self._error_queue = multiprocessing.Queue()
+        self._buffer = deque()
+        self._should_return = False
         self._iter = self.__iter__()
+        self._overflow = multiprocessing.Value('L', 0)
+        self._tweets_seen = multiprocessing.Value('L', 0)
+        self._passed_filter = multiprocessing.Value('L', 0)
+        self._lock = multiprocessing.Lock()
+        self._backoff_time = 0
+        self.use_tweepy = use_tweepy
 
-        self.tweets_seen = 0
-        self.passed_filter = 0
+    @property
+    def overflow(self):
+        return long(self._overflow.value)
+
+    def update_stats(self):
+        with self._lock:
+            if self._overflow.value:
+                stats.overflow(self._overflow.value)
+                self._overflow.value = 0
+            if self._tweets_seen.value:
+                stats.tweets_seen(self._tweets_seen.value)
+                self._tweets_seen.value = 0
+            if self._passed_filter.value:
+                stats.passed_filter(self._passed_filter.value)
+                self._passed_filter.value = 0
+        stats.set_buffer(self.bufferlength())
 
     def __iter__(self):
+        """
+        the connection to twitter is handled in another process
+        new tweets are added to self.queue as they arrive.
+        on each call to iter we move any tweets in the queue to a fifo buffer
+        this makes keeping track of the buffer size a lot cleaner.
+        """
         # I think we really want to handle all our various errors and reconection scenarios here
-
         while 1:
+            # first add items from the queue to the buffer
+            if self._should_return:
+                print('breaking iteration')
+                raise StopIteration
+            while 1:
+                try:
+                        self._buffer.append(self.queue.get_nowait())
+                except Queue.Empty:
+                    break
             try:
-                if self._should_terminate:
-                    break
-                yield self.Queue.get(True, self.timeout)
-                self.Queue.task_done()
-                continue
+                self.update_stats()
+                if len(self._buffer):
+                    yield self._buffer.popleft()
+                    # add elements to buffer from queue:
+                else:
+                    yield self.queue.get(True, self.timeout)
+                    self._backoff_time = 0
+                    continue
             except Queue.Empty:
-                if (self._stop_thread.is_set()):
-                    break
                 print('queue timeout, restarting thread')
                 # means we've timed out, and should try to reconnect
-                self.start()
+                self._stream_did_timeout()
+        print('exiting iter loop')
 
     def next(self):
         return self._iter.next()
 
-    def _run(self):
+    def start(self):
+        """
+        creates a new thread and starts a streaming connection.
+        If a thread already exists, it is terminated.
+        """
+        print('creating new server connection')
+        logging.debug('creating new server connection')
+        if self.stream_process is not None:
+            print('terminating existing server connection')
+            logging.debug('terminating existing server connection')
+            self.stream_process.terminate()
+            if self.stream_process.is_alive():
+                pass
+            else:
+                print('existing thread terminated succesfully')
+                logging.debug('thread terminated successfully')
+
+        # we can target either tweepy or python twitter tools (default)
+        targ = self._run if not self.use_tweepy else spawn_stream
+        self.stream_process = multiprocessing.Process(
+                                target=targ,
+                                args=(self.queue,
+                                      self._error_queue,
+                                      self._backoff_time,
+                                      self._overflow,
+                                      self._tweets_seen,
+                                      self._passed_filter,
+                                      self._lock,
+                                      self.languages))
+        self.stream_process.daemon = True
+        self.stream_process.start()
+
+        print('created process %i' % self.stream_process.pid)
+
+    def _stream_did_timeout(self):
+        """
+        check for errors and choose a reconnection strategy.
+        see: (https://dev.twitter.com/docs/streaming-apis/connecting#Stalls)
+        """
+        err = None
+        while 1:
+            # we could possible have more then one error?
+            try:
+                err = self._error_queue.get_nowait()
+                logging.error('received error from stream process', err)
+                print(err, 'backoff time:', self._backoff_time)
+            except Queue.Empty:
+                break
+        if err:
+            print(err)
+            error_code = err.get('code')
+
+            if error_code == 420:
+                if not self._backoff_time:
+                    self._backoff_time = 60
+                else:
+                    self._backoff_time *= 2
+            else:
+                # a placeholder, for now
+                # elif error_code in [400, 401, 403, 404, 405, 406, 407, 408, 410]:
+                if not self._backoff_time:
+                    self._backoff_time = 5
+                else:
+                    self._backoff_time *= 2
+                if self._backoff_time > 320:
+                    self._backoff_time = 320
+            # if error_code == 'TCP/IP level network error':
+            #     self._backoff_time += 0.25
+            #     if self._backoff_time > 16.0:
+            #         self._backoff_time = 16.0
+        self.start()
+
+    def close(self):
+        """
+        terminates existing connection and returns
+        """
+        self._should_return = True
+        if self.stream_process:
+            self.stream_process.terminate()
+        print("\nstream handler closed with overflow %i from buffer size %i" %
+              (self.overflow, self.buffersize))
+        logging.debug("stream handler closed with overflow %i from buffer size %i" %
+              (self.overflow, self.buffersize))
+
+    def bufferlength(self):
+        return len(self._buffer)
+
+    def _run(self, queue, errors, backoff_time, overflow, seen, passed, lock, languages):
+        """
+        handle connection to streaming endpoint.
+        adds incoming tweets to queue.
+        runs in own process.
+        errors is a queue we use to transmit exceptions to parent process.
+        """
+        # if we've been given a backoff time, sleep
+        if backoff_time:
+            time.sleep(backoff_time)
         stream = TwitterStream(
             auth=OAuth(ACCESS_KEY,
                        ACCESS_SECRET,
@@ -73,143 +223,110 @@ class StreamHandler(object):
                        CONSUMER_SECRET),
             api_version='1.1',
             block=True)
+
+        langs = None
+        if languages:
+            langs = ','.join(languages)
+
         try:
-            streamiter = stream.statuses.sample(language='en', stall_warnings='true')
+            if langs:
+                streamiter = stream.statuses.sample(language=langs, stall_warnings='true')
+            else:
+                streamiter = stream.statuses.sample(stall_warnings='true')
+            logging.debug('stream begun')
             for tweet in streamiter:
-                if self._stop_thread.is_set():
-                    break
                 if tweet is not None:
                     if tweet.get('warning'):
                         print('\n', tweet)
                         logging.warning(tweet)
+                        errors.put(dict(tweet))
+                        continue
+                    if tweet.get('disconnect'):
+                        logging.warning(tweet)
+                        errors.put(dict(tweet))
                         continue
                     if tweet.get('text'):
-                        self._handle_tweet(tweet)
-        except SSLError as err:
+                        with lock:
+                            seen.value += 1
+                        processed_tweet = anagramfunctions.filter_tweet(tweet)
+                        if processed_tweet:
+                            with lock:
+                                passed.value += 1
+                            try:
+                                queue.put(processed_tweet, block=False)
+                            except Queue.Full:
+                                with lock:
+                                    overflow.value += 1
+
+        except (HTTPError, SSLError, TwitterHTTPError, SocketError) as err:
+            print(type(err))
             print(err)
-            logging.error(err)
-            return
-        except TwitterHTTPError as err:
-            print(err)
-            logging.error(err)
-            return
-        except SocketError as err:
-            print(err)
-            logging.error(err)
-            return
+            error_dict = {'error': str(err), 'code': err.code}
+            errors.put(error_dict)
 
-    def _run_with_data(self, data):
-        for tweet in data:
-            self._handle_tweet(tweet)
 
-    def start(self, source=None):
-        """
-        creates a new thread and starts a streaming connection.
-        If a thread already exists, it is terminated.
-        """
-        self._should_terminate = False
-        if source:
-            #  this means we're running with debug tweets
-            print('running tests with %i tweets' % len(source))
-            self.stream_thread = threading.Thread(target=self._run_with_data(source))
-            self.stream_thread.daemon = True
-            self.stream_thread.start()
+def spawn_stream(queue, errors, backoff_time, overflow,
+                 seen, passed, lock, languages):
+    print(languages)
+    stream = TweepyStream(queue, errors, backoff_time, overflow,
+                          seen, passed, lock, languages)
 
-        print('creating new server connection')
-        logging.debug('creating new server connection')
-        if self.stream_thread is not None:
-            print('terminating existing thread')
-            logging.debug('terminating thread')
-            self._stop_thread.set()
-            self.stream_thread.join(5.0)
-            if self.stream_thread.isAlive():
-                print('termination of existing connection thread failed')
-                logging.error('thread termination FAILED')
-            else:
-                print('existing thread terminated succesfully')
-                logging.debug('thread terminated successfully')
-        self._stop_thread.clear()
-        self.stream_thread = threading.Thread(target=self._run)
-        self.stream_thread.daemon = True
-        self.stream_thread.start()
-        print('created thread %i' % self.stream_thread.ident)
 
-    def close(self):
-        """
-        terminates existing connection and returns
-        """
-        # self._stop_thread.set()
-        self._should_terminate = True
-        print("\nstream handler closing with overflow %i from buffer size %i" %
-              (self.overflow, self.buffersize))
-        logging.debug("stream handler closing with overflow %i from buffer size %i" %
-              (self.overflow, self.buffersize))
+class TweepyStream(StreamListener):
 
-    def _handle_tweet(self, tweet):
-        self.tweets_seen += 1
-        self.active_time = time.time()
-        if self.filter_tweet(tweet):
-            self.passed_filter += 1
-            try:
-                self.Queue.put(self.format_tweet(tweet), block=False)
-            except Queue.Full:
-                self.overflow += 1
+    def __init__(self, queue, errors,
+                 backoff_time, overflow,
+                 seen, passed, lock, languages=['en']):
+        super(TweepyStream, self).__init__()
+        self.decoder = json.JSONDecoder()
+        self._queue = queue
+        self._errors = errors
+        self._backoff_time = backoff_time
+        self._overflow = overflow
+        self._tweets_seen = seen
+        self._passed_filter = passed
+        self._lock = lock
+        self._languages = languages
+        self.stream = self._setup_stream()
 
-    def bufferlength(self):
-        return self.Queue.qsize()
 
-    def filter_tweet(self, tweet):
-        """
-        filter out anagram-inappropriate tweets
-        """
-        #check for mentions
-        if len(tweet.get('entities').get('user_mentions')) is not 0:
-            return False
-        #check for retweets
-        if tweet.get('retweeted_status'):
-            return False
-        # ignore tweets w/ non-ascii characters
-        try:
-            tweet['text'].decode('ascii')
-        except UnicodeEncodeError:
-            return False
-        # check for links:
-        if len(tweet.get('entities').get('urls')) is not 0:
-            return False
-        # ignore short tweets
-        t = utils.stripped_string(tweet['text'])
-        if len(t) <= ANAGRAM_LOW_CHAR_CUTOFF:
-            return False
-        # ignore tweets with few characters
-        st = set(t)
-        if len(st) <= ANAGRAM_LOW_UNIQUE_CHAR_CUTOFF:
-            return False
+    def on_data(self, data):
+        # utf8_buf = self.buf.decode('utf8').lstrip()
+        #         res, ptr = self.decoder.raw_decode(utf8_buf)
+        data = data.decode('utf8').lstrip()
+        tweet, byte_length = self.decoder.raw_decode(data)
+        if type(tweet) is not dict:
+            return True
+        if tweet.get('warning'):
+            print('\n', tweet)
+            self._errors.put(tweet)
+        if tweet.get('disconnect'):
+            logging.warning(tweet)
+            self._errors.put(dict(tweet))
+        if tweet.get('text'):
+            with self._lock:
+                self._tweets_seen.value += 1
+            processed_tweet = anagramfunctions.filter_tweet(tweet)
+            if processed_tweet:
+                with self._lock:
+                    self._passed_filter.value += 1
+                try:
+                    self._queue.put(processed_tweet, block=False)
+                except Queue.Full:
+                    with self._lock:
+                        overflow.value += 1
         return True
 
-    def format_tweet(self, tweet):
-        """
-        makes a dict from the JSON properties we need
-        """
+    def on_error(self, error):
+        self._errors.put(error)
 
-        tweet_id = long(tweet['id_str'])
-        tweet_hash = self.make_hash(tweet['text'])
-        tweet_text = str(tweet['text'])
-        hashed_tweet = {
-            'id': tweet_id,
-            'hash': tweet_hash,
-            'text': tweet_text,
-        }
-        return hashed_tweet
-
-    def make_hash(self, text):
-        """
-        takes a tweet as input. returns a character-unique hash
-        from the tweet's text.
-        """
-        t_text = str(utils.stripped_string(text))
-        t_hash = ''.join(sorted(t_text, key=str.lower))
-        return t_hash
-
+    def _setup_stream(self):
+        auth = OAuthHandler(CONSUMER_KEY, CONSUMER_SECRET)
+        auth.set_access_token(ACCESS_KEY, ACCESS_SECRET)
+        stream = Stream(auth, self, gzip=True, secure=True)
+        self.stream = stream
+        self.stream.sample(languages=self._languages)
+        print('stream setup')
 
 class TwitterHandler(object):
     """
@@ -307,9 +424,9 @@ class TwitterHandler(object):
         """
         handles retweeting a pair of tweets & various possible failures
         """
-        if not self.retweet(hit['tweet_one']['id']):
+        if not self.retweet(hit['tweet_one']['tweet_id']):
             return False
-        if not self.retweet(hit['tweet_two']['id']):
+        if not self.retweet(hit['tweet_two']['tweet_id']):
             self.delete_last_tweet()
             return False
         return True
@@ -335,8 +452,8 @@ class TwitterHandler(object):
         return True
 
     def post_hit(self, hit):
-        t1 = self.fetch_tweet(hit['tweet_one']['id'])
-        t2 = self.fetch_tweet(hit['tweet_two']['id'])
+        t1 = self.fetch_tweet(hit['tweet_one']['tweet_id'])
+        t2 = self.fetch_tweet(hit['tweet_two']['tweet_id'])
         if not t1 or not t2:
             print('failed to fetch tweets')
             # tweet doesn't exist or is unavailable
@@ -353,4 +470,17 @@ class TwitterHandler(object):
 
 
 if __name__ == "__main__":
-    pass
+    # listner = AnagramStream()
+    # listner._setup_stream()
+
+    count = 0;
+    stream = StreamHandler(use_tweepy=True)
+    stream.start()
+
+    for t in stream:
+        count += 1
+        # print(count)
+
+        print(t['tweet_text'], 'buffer length: %i' % len(stream._buffer))
+        # if count > 100:
+        #     stream.close()

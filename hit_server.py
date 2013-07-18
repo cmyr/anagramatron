@@ -1,7 +1,9 @@
 from __future__ import print_function
 from bottle import (Bottle, route, run, request, response, server_names,
                     ServerAdapter, abort)
-import datahandler
+# import datahandler
+import hitmanager
+
 
 CLIENT_ACTION_POST = 'posted'
 CLIENT_ACTION_REJECT = 'rejected'
@@ -15,7 +17,6 @@ CLIENT_ACTION_FAILED = 'failed'
 # It's almost equal to the supported cherrypy class CherryPyServer
 
 from serverauth import AUTH_TOKEN, TEST_PORT
-
 
 
 class MySSLCherryPy(ServerAdapter):
@@ -40,7 +41,7 @@ class MySSLCherryPy(ServerAdapter):
 # Add our new MySSLCherryPy class to the supported servers
 # under the key 'mysslcherrypy'
 server_names['sslbottle'] = MySSLCherryPy
-data = None
+# data = None
 app = Bottle()
 
 def authenticate(auth):
@@ -58,10 +59,7 @@ def get_hits():
     if not authenticate(auth):
         return
     # update data
-    global data
-    if not data:
-        data = datahandler.DataHandler(just_the_hits=True)
-    hits = data.get_all_hits()
+    hits = hitmanager.all_hits()
     if (request.query.status):
         hits = [h for h in hits if h['status'] == request.query.status]
     else:
@@ -72,9 +70,6 @@ def get_hits():
 
 @app.route('/mod')
 def modify_hit():
-    global data
-    if not data:
-        data = datahandler.DataHandler(just_the_hits=True)
     print(request)
     auth = request.get_header('Authorization')
     if not authenticate(auth):
@@ -87,23 +82,34 @@ def modify_hit():
     if action == CLIENT_ACTION_POST:
         # if data.post_hit(hit_id):
         print('post requested')
-        if data.post_hit(hit_id):
-            return {'hit': data.get_hit(hit_id), 'response': True}
+        if hitmanager.post_hit(hit_id):
+            return {'hit': hitmanager.get_hit(hit_id), 'response': True}
         else:
-            return {'hit': data.get_hit(hit_id), 'response': False}
+            return {'hit': hitmanager.get_hit(hit_id), 'response': False}
     if action == CLIENT_ACTION_APPROVE:
         print('approve requested')
-        if data.approve_hit(hit_id):
-            return {'hit': data.get_hit(hit_id), 'response': True}
+        if hitmanager.approve_hit(hit_id):
+            return {'hit': hitmanager.get_hit(hit_id), 'response': True}
         else:
-            return {'hit': data.get_hit(hit_id), 'response': False}
+            return {'hit': hitmanager.get_hit(hit_id), 'response': False}
     if action == CLIENT_ACTION_REJECT:
         print('reject requested')
-        if data.reject_hit(hit_id):
-            return {'hit': data.get_hit(hit_id), 'response': True}
+        if hitmanager.reject_hit(hit_id):
+            return {'hit': hitmanager.get_hit(hit_id), 'response': True}
         else:
-            return {'hit': data.get_hit(hit_id), 'response': False}
+            return {'hit': hitmanager.get_hit(hit_id), 'response': False}
 
+
+@app.route('/blacklist')
+def add_to_blacklist():
+    auth = request.get_header('Authorization')
+    if not authenticate(auth):
+        return
+    bad_hash = str(request.query.hash)
+    print('blacklisting hash: %s' % bad_hash)
+    if hitmanager.add_to_blacklist(bad_hash):
+        return {'success': True}
+    return {'success': False}
 
 run(app, host='0.0.0.0', port=TEST_PORT, debug=True, server='sslbottle')
 
