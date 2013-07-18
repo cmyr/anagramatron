@@ -106,6 +106,8 @@ def _text_decodes_to_ascii(text):
 
 
 def _basic_filters(tweet):
+    if tweet.get('lang') != 'en':
+        return False
     if len(tweet.get('entities').get('user_mentions')) is not 0:
         return False
     #check for retweets
