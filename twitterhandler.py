@@ -314,7 +314,7 @@ class TweepyStream(StreamListener):
     def _setup_stream(self):
         auth = OAuthHandler(CONSUMER_KEY, CONSUMER_SECRET)
         auth.set_access_token(ACCESS_KEY, ACCESS_SECRET)
-        stream = Stream(auth, self, gzip=True)
+        stream = Stream(auth, self, gzip=True, secure=True)
         self.stream = stream
         self.stream.sample(languages=self._languages)
         print('stream setup')
@@ -472,6 +472,6 @@ if __name__ == "__main__":
         count += 1
         # print(count)
 
-        print(t, 'buffer length: %i' % len(stream._buffer))
+        print(t['tweet_text'], 'buffer length: %i' % len(stream._buffer))
         # if count > 100:
         #     stream.close()
