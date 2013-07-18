@@ -97,7 +97,6 @@ class StreamHandler(object):
                 raise StopIteration
             while 1:
                 try:
-                    # t = self.queue.get_nowait()
                         self._buffer.append(self.queue.get_nowait())
                 except Queue.Empty:
                     break
