@@ -267,7 +267,7 @@ class TweepyStream(StreamListener):
 
     def __init__(self, queue, errors,
                  backoff_time, overflow,
-                 seen, passed, lock, languages):
+                 seen, passed, lock, languages=['en']):
         super(TweepyStream, self).__init__()
         self.decoder = json.JSONDecoder()
         self._queue = queue
@@ -277,7 +277,7 @@ class TweepyStream(StreamListener):
         self._tweets_seen = seen
         self._passed_filter = passed
         self._lock = lock
-        self._languages = ['en']
+        self._languages = languages
         self.stream = self._setup_stream()
 
 
@@ -316,7 +316,7 @@ class TweepyStream(StreamListener):
         auth.set_access_token(ACCESS_KEY, ACCESS_SECRET)
         stream = Stream(auth, self, gzip=True)
         self.stream = stream
-        self.stream.sample()
+        self.stream.sample(languages=self._languages)
         print('stream setup')
 
 class TwitterHandler(object):
@@ -471,7 +471,7 @@ if __name__ == "__main__":
     for t in stream:
         count += 1
         # print(count)
-        
-        print(t['tweet_text'], 'buffer length: %i' % len(stream._buffer))
+
+        print(t, 'buffer length: %i' % len(stream._buffer))
         # if count > 100:
         #     stream.close()
