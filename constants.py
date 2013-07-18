@@ -4,9 +4,7 @@ ANAGRAM_FETCH_POOL_SIZE = 1000
 
 ANAGRAM_LOW_CHAR_CUTOFF = 13
 ANAGRAM_LOW_UNIQUE_CHAR_CUTOFF = 9
-<<<<<<< HEAD
 ANAGRAM_ALPHA_RATIO_CUTOFF = 0.8
-=======
 
 ENGLISH_LETTER_FREQUENCIES = {
                         'e': 1,
@@ -36,4 +34,4 @@ ENGLISH_LETTER_FREQUENCIES = {
                         'q': 25,
                         'z': 26
 }
->>>>>>> future
+
