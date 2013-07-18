@@ -153,7 +153,7 @@ class DataCoordinator(object):
         hashes = ",".join(hashes)
         with self._lock:
             cursor.execute("SELECT * FROM tweets WHERE tweet_hash IN (%s)" % hashes)
-        results = cursor.fetchall()
+            results = cursor.fetchall()
         self.hashes -= set(hashes)
 
         for result in results:
@@ -164,7 +164,7 @@ class DataCoordinator(object):
                 hitmanager.new_hit(fetched_tweet, new_tweet)
             else:
                 self.cache[new_tweet['tweet_hash']] = {'tweet': new_tweet,
-                                                       'hit_count': 0}
+                                                       'hit_count': 1}
 # reset our fetch_pool
         self.fetch_pool = dict()
 
@@ -221,6 +221,7 @@ class DataCoordinator(object):
         tweets_to_save = [self.cache[t]['tweet'] for t in self.cache]
         try:
             pickle.dump(tweets_to_save, open(self.cachepath, 'wb'))
+            print('saved %i tweets to cache' % len(tweets_to_save))
         except:
             logging.error('unable to save cache, writing')
             self._trim_cache(len(self.cache))
@@ -240,7 +241,6 @@ class DataCoordinator(object):
             return cache
             # really not tons we can do ehre
 
-
     def _tweet_from_sql(self, sql_tweet):
         return {
                 'tweet_hash': sql_tweet[0],
@@ -250,7 +250,9 @@ class DataCoordinator(object):
 
     def close(self):
         if len(self.fetch_pool):
+            print('running batch fetch with %i tweets' % len(self.fetch_pool))
             self._batch_fetch()
+        print('saving cache')
         self._save_cache()
         stats.update_console()
         self.datastore.close()

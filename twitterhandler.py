@@ -81,6 +81,7 @@ class StreamHandler(object):
         while 1:
             # first add items from the queue to the buffer
             if self._should_return:
+                print('breaking iteration')
                 raise StopIteration
             while 1:
                 try:
@@ -183,9 +184,9 @@ class StreamHandler(object):
         self._should_return = True
         if self.stream_process:
             self.stream_process.terminate()
-        print("\nstream handler closing with overflow %i from buffer size %i" %
+        print("\nstream handler closed with overflow %i from buffer size %i" %
               (self.overflow, self.buffersize))
-        logging.debug("stream handler closing with overflow %i from buffer size %i" %
+        logging.debug("stream handler closed with overflow %i from buffer size %i" %
               (self.overflow, self.buffersize))
 
     def bufferlength(self):
