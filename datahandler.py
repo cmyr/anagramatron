@@ -50,7 +50,7 @@ class DataCoordinator(object):
         self.hashes = set()
         self.datastore = None
         self._should_trim_cache = False
-        self._lock = multiprocessing.Lock()
+        # self._lock = multiprocessing.Lock()
         self.dbpath = (anagramconfig.STORAGE_DIRECTORY_PATH +
                        DATA_PATH_COMPONENT +
                        '_'.join(self.languages) + '.db')
@@ -151,9 +151,9 @@ class DataCoordinator(object):
         cursor = self.datastore.cursor()
         hashes = ['"%s"' % self.fetch_pool[i]['tweet_hash'] for i in self.fetch_pool]
         hashes = ",".join(hashes)
-        with self._lock:
-            cursor.execute("SELECT * FROM tweets WHERE tweet_hash IN (%s)" % hashes)
-            results = cursor.fetchall()
+        # with self._lock:
+        cursor.execute("SELECT * FROM tweets WHERE tweet_hash IN (%s)" % hashes)
+        results = cursor.fetchall()
         self.hashes -= set(hashes)
 
         for result in results:
@@ -199,11 +199,10 @@ class DataCoordinator(object):
         _write_process = multiprocessing.Process(
                                                  target=self._perform_write,
                                                  args=(to_write,
-                                                 self._lock,
                                                  self.datastore))
         _write_process.start()
 
-    def _perform_write(self, to_write, lock, database):
+    def _perform_write(self, to_write, database):
         with lock:
             cursor = database.cursor()
             cursor.executemany("INSERT INTO tweets VALUES (?, ?, ?)", to_write)
