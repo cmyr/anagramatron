@@ -157,7 +157,7 @@ def set_hit_status(hit_id, status):
 def all_hits(with_status=None):
     _checkit()
     cursor = hitsdb.cursor()
-    if not filter:
+    if not with_status:
         cursor.execute("SELECT * FROM hits")
     else:
         cursor.execute("SELECT * FROM hits WHERE hit_status = (?)", (with_status,))
