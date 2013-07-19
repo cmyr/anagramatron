@@ -23,6 +23,7 @@ from tweepy.streaming import StreamListener
 
 import anagramfunctions
 import anagramstats as stats
+from anagramstream import AnagramStream
 
 
 # my twitter OAuth key:
@@ -216,26 +217,18 @@ class StreamHandler(object):
         # if we've been given a backoff time, sleep
         if backoff_time:
             time.sleep(backoff_time)
-        stream = TwitterStream(
-            auth=OAuth(ACCESS_KEY,
-                       ACCESS_SECRET,
-                       CONSUMER_KEY,
-                       CONSUMER_SECRET),
-            api_version='1.1',
-            block=True)
-
-        langs = None
-        if languages:
-            langs = ','.join(languages)
+        stream = AnagramStream(
+            CONSUMER_KEY,
+            CONSUMER_SECRET,
+            ACCESS_KEY,
+            ACCESS_SECRET)
 
         try:
-            if langs:
-                streamiter = stream.statuses.sample(language=langs, stall_warnings='true')
-            else:
-                streamiter = stream.statuses.sample(stall_warnings='true')
+            stream_iter = stream.stream_iter(languages=languages)
             logging.debug('stream begun')
-            for tweet in streamiter:
+            for tweet in stream_iter:
                 if tweet is not None:
+                    tweet = json.loads(tweet)
                     if tweet.get('warning'):
                         print('\n', tweet)
                         logging.warning(tweet)
@@ -474,7 +467,7 @@ if __name__ == "__main__":
     # listner._setup_stream()
 
     count = 0;
-    stream = StreamHandler(use_tweepy=True)
+    stream = StreamHandler()
     stream.start()
 
     for t in stream:
