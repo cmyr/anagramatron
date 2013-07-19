@@ -220,7 +220,10 @@ class StreamHandler(object):
             logging.debug('stream begun')
             for tweet in stream_iter:
                 if tweet is not None:
-                    tweet = json.loads(tweet)
+                    try:
+                        tweet = json.loads(tweet)
+                    except ValueError:
+                        pass
                     if tweet.get('warning'):
                         print('\n', tweet)
                         logging.warning(tweet)
