@@ -303,18 +303,23 @@ class DataHandler(object):
             self.hitsdb = lite.connect(HITS_DB_PATH)
         # setup the hashtable
         print('extracting hashes')
+        debug_flag = True
         self.hashes = set()
         operation_start_time = time.time()
         cursor = self.data.cursor()
         cursor.execute('SELECT hash FROM tweets')
         while True:
-            results = cursor.fetchmany(100000)
+            results = cursor.fetchmany(1000000)
             if not results:
                 break
             for result in results:
                 self.hashes.add(str(result[0]))
+                if debug_flag:
+                    print(str(result[0]))
+                    debug_flag = False
         print('extracted %i hashes in %s' %
               (len(self.hashes), utils.format_seconds(time.time()-operation_start_time)))
+        # print('debug: ', self.hashes[:10])
 
     def process_tweet(self, new_tweet):
         """

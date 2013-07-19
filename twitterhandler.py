@@ -5,21 +5,19 @@ import logging
 import Queue
 import multiprocessing
 import time
+
 import sys
 from collections import deque
 from ssl import SSLError
 from socket import error as SocketError
 from urllib2 import HTTPError
 from cPickle import UnpickleableError
+
 from twitter.oauth import OAuth
 from twitter.stream import TwitterStream
 from twitter.api import Twitter, TwitterError, TwitterHTTPError
 import tumblpy
 import json
-
-from tweepy import OAuthHandler
-from tweepy import Stream
-from tweepy.streaming import StreamListener
 
 import anagramfunctions
 import anagramstats as stats
@@ -35,8 +33,7 @@ from tumblrcreds import (TUMBLR_KEY, TUMBLR_SECRET,
 
 from constants import (ANAGRAM_STREAM_BUFFER_SIZE,
                        ANAGRAM_LOW_CHAR_CUTOFF,
-                       ANAGRAM_LOW_UNIQUE_CHAR_CUTOFF,
-                       ANAGRAM_ALPHA_RATIO_CUTOFF)
+                       ANAGRAM_LOW_UNIQUE_CHAR_CUTOFF)
 
 
 
@@ -135,7 +132,6 @@ class StreamHandler(object):
                 print('existing thread terminated succesfully')
                 logging.debug('thread terminated successfully')
 
-        # we can target either tweepy or python twitter tools (default)
         self.stream_process = multiprocessing.Process(
                                 target=self._run,
                                 args=(self.queue,
@@ -148,7 +144,6 @@ class StreamHandler(object):
                                       self.languages))
         self.stream_process.daemon = True
         self.stream_process.start()
-
         print('created process %i' % self.stream_process.pid)
 
     def _stream_did_timeout(self):
@@ -399,7 +394,6 @@ class TwitterHandler(object):
 if __name__ == "__main__":
     # listner = AnagramStream()
     # listner._setup_stream()
-
     count = 0;
     stream = StreamHandler()
     stream.start()
