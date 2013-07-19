@@ -223,7 +223,9 @@ class StreamHandler(object):
                     try:
                         tweet = json.loads(tweet)
                     except ValueError:
-                        pass
+                        continue
+                    if not isinstance(tweet, dict):
+                        continue
                     if tweet.get('warning'):
                         print('\n', tweet)
                         logging.warning(tweet)
