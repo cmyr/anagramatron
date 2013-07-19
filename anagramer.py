@@ -291,8 +291,6 @@ class Anagramer(object):
             print(hit['tweet_one']['text'], hit['tweet_one']['id'])
             print(hit['tweet_two']['text'], hit['tweet_two']['id'])
 
-
->>>>>>> dcb736b6fdc93c77f1fba1af8074e341f2c029ce
 def main():
     # set up logging:
     logging.basicConfig(
