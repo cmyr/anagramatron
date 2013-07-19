@@ -203,10 +203,9 @@ class DataCoordinator(object):
         _write_process.start()
 
     def _perform_write(self, to_write, database):
-        with lock:
-            cursor = database.cursor()
-            cursor.executemany("INSERT INTO tweets VALUES (?, ?, ?)", to_write)
-            database.commit()
+        cursor = database.cursor()
+        cursor.executemany("INSERT INTO tweets VALUES (?, ?, ?)", to_write)
+        database.commit()
 
     def _perform_fetch(self, to_fetch):
         pass
