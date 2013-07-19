@@ -176,7 +176,7 @@ def test_anagram(string_one, string_two):
     return True
 
 
-def _char_diff_test(string_one, string_two, cutoff=0.5):
+def _char_diff_test(string_one, string_two, cutoff=0.3):
     """
     basic test, looks for similarity on a char by char basis
     """
@@ -202,7 +202,7 @@ def _char_diff_test(string_one, string_two, cutoff=0.5):
     return False
 
 
-def _word_diff_test(string_one, string_two, cutoff=0.5):
+def _word_diff_test(string_one, string_two, cutoff=0.3):
     """
     looks for tweets containing the same words in different orders
     """

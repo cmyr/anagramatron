@@ -41,8 +41,8 @@ class AnagramStream(object):
         if stall_warnings:
             query_params['stall_warnings'] = True
 
-        if __name__ == '__main__':
-            print(url, query_params, query_headers)
+        print('starting anagram stream:')
+        print(url, query_params, query_headers)
         stream_connection = requests.get(url, auth=auth, stream=True,
                                          params=query_params, headers=query_headers)
         return stream_connection.iter_lines()

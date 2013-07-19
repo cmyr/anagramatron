@@ -19,7 +19,7 @@ def main():
         level=logging.DEBUG
     )
 
-    stream_handler = StreamHandler(use_tweepy=True)
+    stream_handler = StreamHandler()
     data_coordinator = DataCoordinator()
     server_process = None
     # server_process = subprocess.call('python hit_server.py')
