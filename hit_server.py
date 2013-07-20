@@ -131,14 +131,16 @@ def get_hits2():
     if (request.query.count):
         count = int(request.query.count)
     if (request.query.older_than):
-        older_than = int(request.query.older_than)
+        older_than = long(request.query.older_than)
 
+    print('client requested %i hits older then %i'
+          % (count, olderth))
     hits = [h for h in hits if h['status'] in [HIT_STATUS_REVIEW, CLIENT_ACTION_APPROVE]]
     if older_than:
         hits = [h for h in hits if h['id'] < older_than]
     hits.reverse()
     return_hits = hits[:count]
-    print("returned %i hits" % len(hits))
+    print("returned %i hits" % len(return_hits))
 
     return {'hits': return_hits}
 
