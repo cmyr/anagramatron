@@ -4,7 +4,7 @@ from bottle import (Bottle, route, run, request, response, server_names,
 # import datahandler
 import hitmanager
 
-
+HIT_STATUS_REVIEW = 'review'
 CLIENT_ACTION_POST = 'posted'
 CLIENT_ACTION_REJECT = 'rejected'
 CLIENT_ACTION_APPROVE = 'approved'
@@ -110,6 +110,35 @@ def add_to_blacklist():
     if hitmanager.add_to_blacklist(bad_hash):
         return {'success': True}
     return {'success': False}
+
+
+# API v: 2.0:
+@app.route('/2.0/hits')
+def get_hits2():
+    """
+    can take two arguments, count and older_than.
+    count is the number of hits to return.
+    older_than is a hit_id.
+    """
+    print('new hits requested')
+    auth = request.get_header('Authorization')
+    if not authenticate(auth):
+        return
+
+    count = 50
+    older_than = None
+    hits = hitmanager.all_hits()
+    if (request.query.count):
+        count = request.query.count
+    if (request.query.older_than):
+        older_than = request.query.older_than
+
+    hits = [h for h in hits if h['status'] in [HIT_STATUS_REVIEW, CLIENT_ACTION_APPROVE]]
+    if older_than:
+        hits = [h for h in hits if h['id'] < older_than]
+    hits.reverse()
+    print("returned %i hits" % len(hits))
+    return {'hits': hits[:count]}
 
 run(app, host='0.0.0.0', port=TEST_PORT, debug=True, server='sslbottle')
 
