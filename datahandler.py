@@ -145,10 +145,10 @@ class DataCoordinator(object):
         cursor = self.datastore.cursor()
         hashes = ['"%s"' % self.fetch_pool[i]['tweet_hash'] for i in self.fetch_pool]
         hashes = ",".join(hashes)
-        # with self._lock:
-        cursor.execute("SELECT * FROM tweets WHERE tweet_hash IN (%s)" % hashes)
-        results = cursor.fetchall()
-        self.hashes -= set(hashes)
+        with self._lock:
+            cursor.execute("SELECT * FROM tweets WHERE tweet_hash IN (%s)" % hashes)
+            results = cursor.fetchall()
+            self.hashes -= set(hashes)
 
         for result in results:
             fetched_tweet = self._tweet_from_sql(result)
@@ -196,10 +196,11 @@ class DataCoordinator(object):
                   self.datastore))
         _write_process.start()
 
-    def _perform_write(self, to_write, database):
-        cursor = database.cursor()
-        cursor.executemany("INSERT INTO tweets VALUES (?, ?, ?)", to_write)
-        database.commit()
+    def _perform_write(self, lock, to_write, database):
+        with lock:
+            cursor = database.cursor()
+            cursor.executemany("INSERT INTO tweets VALUES (?, ?, ?)", to_write)
+            database.commit()
 
     def _perform_fetch(self, to_fetch):
         pass
