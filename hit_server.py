@@ -133,7 +133,7 @@ def get_hits2():
     if (request.query.older_than):
         older_than = request.query.older_than
 
-    hits = [h for h in hits if h['status'] == HIT_STATUS_REVIEW]
+    hits = [h for h in hits if h['status'] in [HIT_STATUS_REVIEW, CLIENT_ACTION_APPROVE]
     if older_than:
         hits = [h for h in hits if h['id'] < older_than]
     hits.reverse()
