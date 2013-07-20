@@ -19,15 +19,9 @@ HIT_STATUS_FAILED = 'failed'
 dbpath = None
 hitsdb = None
 twitter_handler = None
-LOG_FILE_NAME = 'data/hitman.log'
+
 
 def _setup(languages=['en']):
-    logging.basicConfig(
-        filename=LOG_FILE_NAME,
-        format='%(asctime)s - %(levelname)s:%(message)s',
-        level=logging.DEBUG
-    )
-
     global dbpath, hitsdb
     dbpath = (anagramconfig.STORAGE_DIRECTORY_PATH +
               HIT_PATH_COMPONENT +
@@ -67,6 +61,7 @@ def new_hit(first, second):
 
     _add_hit(hit)
 
+
 def _hit_on_blacklist(hit):
     cursor = hitsdb.cursor()
     cursor.execute("SELECT count(*) FROM blacklist WHERE bad_hash=?", (hit['hash'],))
@@ -76,9 +71,10 @@ def _hit_on_blacklist(hit):
         return True
     return False
 
+
 def _hit_collides_with_previous_hit(hit):
     cursor = hitsdb.cursor()
-    cursor.execute("SELECT * FROM hits WHERE hit_hash=?",(hit['hash'],))
+    cursor.execute("SELECT * FROM hits WHERE hit_hash=?", (hit['hash'], ))
     result = cursor.fetchone()
     if result:
         # do some comparisons
@@ -105,6 +101,7 @@ def _hit_collides_with_previous_hit(hit):
             return True
 
     return False
+
 
 def _add_hit(hit):
     cursor = hitsdb.cursor()
@@ -157,7 +154,7 @@ def set_hit_status(hit_id, status):
 def all_hits(with_status=None):
     _checkit()
     cursor = hitsdb.cursor()
-    if not filter:
+    if not with_status:
         cursor.execute("SELECT * FROM hits")
     else:
         cursor.execute("SELECT * FROM hits WHERE hit_status = (?)", (with_status,))
@@ -213,6 +210,7 @@ def post_hit(hit_id):
     else:
         set_hit_status(hit_id, HIT_STATUS_FAILED)
         return False
+
 
 def approve_hit(hit_id):
     set_hit_status(hit_id, HIT_STATUS_APPROVED)

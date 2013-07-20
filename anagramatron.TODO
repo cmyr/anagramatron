@@ -1,0 +1,16 @@
+General minor things we want to implement:
+  ☐ error handlinging in our custom stream
+
+New Data Handling:
+  ☐ add a custom 'cache' class
+  ☐ strongly seperate cache and persistent storage
+  ☐ multiproccessing and queues for transitions between data states
+
+New API:
+   ☐ working 'pagination' API
+   ☐ more efficient data retrieval
+   ☐ 'hits newer then x' api method
+
+post queues:
+  ☐ we want post queues, basically
+    

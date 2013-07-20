@@ -6,12 +6,10 @@ import Queue
 import multiprocessing
 import time
 
-import sys
 from collections import deque
 from ssl import SSLError
 from socket import error as SocketError
 from urllib2 import HTTPError
-from cPickle import UnpickleableError
 
 from twitter.oauth import OAuth
 from twitter.stream import TwitterStream
@@ -31,10 +29,7 @@ from twittercreds import (CONSUMER_KEY, CONSUMER_SECRET,
 from tumblrcreds import (TUMBLR_KEY, TUMBLR_SECRET,
                          TOKEN_KEY, TOKEN_SECRET, TUMBLR_BLOG_URL)
 
-from constants import (ANAGRAM_STREAM_BUFFER_SIZE,
-                       ANAGRAM_LOW_CHAR_CUTOFF,
-                       ANAGRAM_LOW_UNIQUE_CHAR_CUTOFF)
-
+from constants import (ANAGRAM_STREAM_BUFFER_SIZE)
 
 
 class StreamHandler(object):
@@ -86,7 +81,6 @@ class StreamHandler(object):
         on each call to iter we move any tweets in the queue to a fifo buffer
         this makes keeping track of the buffer size a lot cleaner.
         """
-        # I think we really want to handle all our various errors and reconection scenarios here
         while 1:
             # first add items from the queue to the buffer
             if self._should_return:
@@ -144,6 +138,7 @@ class StreamHandler(object):
                                       self.languages))
         self.stream_process.daemon = True
         self.stream_process.start()
+
         print('created process %i' % self.stream_process.pid)
 
     def _stream_did_timeout(self):
@@ -399,7 +394,8 @@ class TwitterHandler(object):
 if __name__ == "__main__":
     # listner = AnagramStream()
     # listner._setup_stream()
-    count = 0;
+
+    count = 0
     stream = StreamHandler()
     stream.start()
 
