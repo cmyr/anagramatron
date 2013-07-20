@@ -8,6 +8,7 @@ from twitterhandler import StreamHandler
 from datahandler import DataCoordinator
 import anagramstats as stats
 
+
 LOG_FILE_NAME = 'data/anagramer.log'
 
 
@@ -18,8 +19,7 @@ def main():
         format='%(asctime)s - %(levelname)s:%(message)s',
         level=logging.DEBUG
     )
-
-    stream_handler = StreamHandler(use_tweepy=True)
+    stream_handler = StreamHandler()
     data_coordinator = DataCoordinator()
     server_process = None
     # server_process = subprocess.call('python hit_server.py')

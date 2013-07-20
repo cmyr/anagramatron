@@ -303,11 +303,23 @@ class DataHandler(object):
             self.hitsdb = lite.connect(HITS_DB_PATH)
         # setup the hashtable
         print('extracting hashes')
+        debug_flag = True
+        self.hashes = set()
+        operation_start_time = time.time()
         cursor = self.data.cursor()
-        cursor.execute("SELECT hash FROM tweets")
-        hashes = cursor.fetchall()
-        self.hashes = set([str(h) for (h,) in hashes])
-        print('loaded %d hashes' % (len(hashes)))
+        cursor.execute('SELECT hash FROM tweets')
+        while True:
+            results = cursor.fetchmany(1000000)
+            if not results:
+                break
+            for result in results:
+                self.hashes.add(str(result[0]))
+                if debug_flag:
+                    print(str(result[0]))
+                    debug_flag = False
+        print('extracted %i hashes in %s' %
+              (len(self.hashes), utils.format_seconds(time.time()-operation_start_time)))
+        # print('debug: ', self.hashes[:10])
 
     def process_tweet(self, new_tweet):
         """
@@ -324,7 +336,7 @@ class DataHandler(object):
             # if it's in the write cache return them both for checking
             self.debug_used_cache_count += 1
             self.delegate.process_hit(new_tweet, self.write_cache[new_tweet['hash']])
-        if (self.contains(new_tweet['hash'])):
+        if (new_tweet['hash'] in self.hashes):
             # stored_tweet = self.get(new_tweet['hash'])
             self.fetch_pool[new_tweet['hash']] = new_tweet
             if (len(self.fetch_pool) > ANAGRAM_FETCH_POOL_SIZE):
@@ -402,7 +414,10 @@ class DataHandler(object):
                        {"hash": tweet_hash})
         self.data.commit()
         # delete from hashes
-        self.hashes.remove(tweet_hash)
+        try:
+            self.hashes.remove(tweet_hash)
+        except KeyError:
+            print('error removing hash %s' % tweet_hash)
 
     def add_hit(self, hit):
         cursor = self.hitsdb.cursor()

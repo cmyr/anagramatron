@@ -5,24 +5,23 @@ import logging
 import Queue
 import multiprocessing
 import time
+
 import sys
 from collections import deque
 from ssl import SSLError
 from socket import error as SocketError
 from urllib2 import HTTPError
 from cPickle import UnpickleableError
+
 from twitter.oauth import OAuth
 from twitter.stream import TwitterStream
 from twitter.api import Twitter, TwitterError, TwitterHTTPError
 import tumblpy
 import json
 
-from tweepy import OAuthHandler
-from tweepy import Stream
-from tweepy.streaming import StreamListener
-
 import anagramfunctions
 import anagramstats as stats
+from anagramstream import AnagramStream
 
 
 # my twitter OAuth key:
@@ -46,8 +45,7 @@ class StreamHandler(object):
     def __init__(self,
                  buffersize=ANAGRAM_STREAM_BUFFER_SIZE,
                  timeout=90,
-                 languages=['en'],
-                 use_tweepy=False
+                 languages=['en']
                  ):
         self.buffersize = buffersize
         self.timeout = timeout
@@ -63,7 +61,6 @@ class StreamHandler(object):
         self._passed_filter = multiprocessing.Value('L', 0)
         self._lock = multiprocessing.Lock()
         self._backoff_time = 0
-        self.use_tweepy = use_tweepy
 
     @property
     def overflow(self):
@@ -135,10 +132,8 @@ class StreamHandler(object):
                 print('existing thread terminated succesfully')
                 logging.debug('thread terminated successfully')
 
-        # we can target either tweepy or python twitter tools (default)
-        targ = self._run if not self.use_tweepy else spawn_stream
         self.stream_process = multiprocessing.Process(
-                                target=targ,
+                                target=self._run,
                                 args=(self.queue,
                                       self._error_queue,
                                       self._backoff_time,
@@ -215,26 +210,23 @@ class StreamHandler(object):
         # if we've been given a backoff time, sleep
         if backoff_time:
             time.sleep(backoff_time)
-        stream = TwitterStream(
-            auth=OAuth(ACCESS_KEY,
-                       ACCESS_SECRET,
-                       CONSUMER_KEY,
-                       CONSUMER_SECRET),
-            api_version='1.1',
-            block=True)
-
-        langs = None
-        if languages:
-            langs = ','.join(languages)
+        stream = AnagramStream(
+            CONSUMER_KEY,
+            CONSUMER_SECRET,
+            ACCESS_KEY,
+            ACCESS_SECRET)
 
         try:
-            if langs:
-                streamiter = stream.statuses.sample(language=langs, stall_warnings='true')
-            else:
-                streamiter = stream.statuses.sample(stall_warnings='true')
+            stream_iter = stream.stream_iter(languages=languages)
             logging.debug('stream begun')
-            for tweet in streamiter:
+            for tweet in stream_iter:
                 if tweet is not None:
+                    try:
+                        tweet = json.loads(tweet)
+                    except ValueError:
+                        continue
+                    if not isinstance(tweet, dict):
+                        continue
                     if tweet.get('warning'):
                         print('\n', tweet)
                         logging.warning(tweet)
@@ -263,69 +255,6 @@ class StreamHandler(object):
             error_dict = {'error': str(err), 'code': err.code}
             errors.put(error_dict)
 
-
-def spawn_stream(queue, errors, backoff_time, overflow,
-                 seen, passed, lock, languages):
-    print(languages)
-    stream = TweepyStream(queue, errors, backoff_time, overflow,
-                          seen, passed, lock, languages)
-
-
-class TweepyStream(StreamListener):
-
-    def __init__(self, queue, errors,
-                 backoff_time, overflow,
-                 seen, passed, lock, languages=['en']):
-        super(TweepyStream, self).__init__()
-        self.decoder = json.JSONDecoder()
-        self._queue = queue
-        self._errors = errors
-        self._backoff_time = backoff_time
-        self._overflow = overflow
-        self._tweets_seen = seen
-        self._passed_filter = passed
-        self._lock = lock
-        self._languages = languages
-        self.stream = self._setup_stream()
-
-
-    def on_data(self, data):
-        # utf8_buf = self.buf.decode('utf8').lstrip()
-        #         res, ptr = self.decoder.raw_decode(utf8_buf)
-        data = data.decode('utf8').lstrip()
-        tweet, byte_length = self.decoder.raw_decode(data)
-        if type(tweet) is not dict:
-            return True
-        if tweet.get('warning'):
-            print('\n', tweet)
-            self._errors.put(tweet)
-        if tweet.get('disconnect'):
-            logging.warning(tweet)
-            self._errors.put(dict(tweet))
-        if tweet.get('text'):
-            with self._lock:
-                self._tweets_seen.value += 1
-            processed_tweet = anagramfunctions.filter_tweet(tweet)
-            if processed_tweet:
-                with self._lock:
-                    self._passed_filter.value += 1
-                try:
-                    self._queue.put(processed_tweet, block=False)
-                except Queue.Full:
-                    with self._lock:
-                        overflow.value += 1
-        return True
-
-    def on_error(self, error):
-        self._errors.put(error)
-
-    def _setup_stream(self):
-        auth = OAuthHandler(CONSUMER_KEY, CONSUMER_SECRET)
-        auth.set_access_token(ACCESS_KEY, ACCESS_SECRET)
-        stream = Stream(auth, self, gzip=True, secure=True)
-        self.stream = stream
-        self.stream.sample(languages=self._languages)
-        print('stream setup')
 
 class TwitterHandler(object):
     """
@@ -472,8 +401,8 @@ if __name__ == "__main__":
     # listner = AnagramStream()
     # listner._setup_stream()
 
-    count = 0;
-    stream = StreamHandler(use_tweepy=True)
+    count = 0
+    stream = StreamHandler()
     stream.start()
 
     for t in stream:

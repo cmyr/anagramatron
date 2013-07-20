@@ -176,6 +176,7 @@ def test_anagram(string_one, string_two):
     return True
 
 
+
 def _char_diff_test(string_one, string_two, cutoff=0.5):
     """
     basic test, looks for similarity on a char by char basis
