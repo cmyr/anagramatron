@@ -126,7 +126,7 @@ def get_hits2():
         return
 
     count = 50
-    older_than = None
+    older_than = 0
     hits = hitmanager.all_hits()
     if (request.query.count):
         count = int(request.query.count)
@@ -134,7 +134,7 @@ def get_hits2():
         older_than = long(request.query.older_than)
 
     print('client requested %i hits older then %i'
-          % (count, olderth))
+          % (count, older_than))
     hits = [h for h in hits if h['status'] in [HIT_STATUS_REVIEW, CLIENT_ACTION_APPROVE]]
     if older_than:
         hits = [h for h in hits if h['id'] < older_than]
