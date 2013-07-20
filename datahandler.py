@@ -191,8 +191,8 @@ class DataCoordinator(object):
         self.hashes |= set(hashes_to_save)
         _write_process = multiprocessing.Process(
             target=self._perform_write,
-            args=(to_write,
-                  self._lock,
+            args=(self._lock,
+                  to_write,
                   self.datastore))
         _write_process.start()
 
