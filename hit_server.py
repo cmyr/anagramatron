@@ -111,6 +111,17 @@ def add_to_blacklist():
         return {'success': True}
     return {'success': False}
 
+@app.route('/approve')
+def approve_hit():
+    auth = request.get_header('Authorization')
+    if not authenticate(auth):
+        return
+
+    hit_id = int(request.query.id)
+    post_now = bool(request.query.post_now)
+    response = hitmanager.post_hit(hit_id)
+    return {'hit': hitmanager.get_hit(hit_id), 'response': response}
+
 
 # API v: 2.0:
 @app.route('/2.0/hits')
