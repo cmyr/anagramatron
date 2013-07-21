@@ -192,7 +192,7 @@ def add_to_blacklist(bad_hash):
     _checkit()
     cursor = hitsdb.cursor()
     cursor.execute("INSERT OR IGNORE INTO blacklist VALUES (?)", (bad_hash,))
-    cursor.execute("DELETE FROM hits WHERE hit_hash=?", (bad_hash ,))
+    cursor.execute("DELETE FROM hits WHERE hit_hash=?", (bad_hash,))
     hitsdb.commit()
 
 

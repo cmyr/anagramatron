@@ -107,9 +107,9 @@ def add_to_blacklist():
         return
     bad_hash = str(request.query.hash)
     print('blacklisting hash: %s' % bad_hash)
-    if hitmanager.add_to_blacklist(bad_hash):
-        return {'success': True}
-    return {'success': False}
+    flag = hitmanager.add_to_blacklist(bad_hash)
+    return {'response': flag}
+ 
 
 @app.route('/approve')
 def approve_hit():
@@ -119,8 +119,13 @@ def approve_hit():
 
     hit_id = int(request.query.id)
     post_now = bool(request.query.post_now)
-    response = hitmanager.post_hit(hit_id)
-    return {'hit': hitmanager.get_hit(hit_id), 'response': response}
+    flag = None
+    if (post_now):
+        flag = hitmanager.post_hit(hit_id)
+    else:
+        flag = hitmanager.approve_hit(hit_id)
+        print('posting hit: %i' % hit_id)
+    return {'hit': hitmanager.get_hit(hit_id), 'response': flag}
 
 
 # API v: 2.0:
