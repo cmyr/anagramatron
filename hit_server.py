@@ -107,8 +107,8 @@ def add_to_blacklist():
         return
     bad_hash = str(request.query.hash)
     print('blacklisting hash: %s' % bad_hash)
-    flag = hitmanager.add_to_blacklist(bad_hash)
-    return {'response': flag}
+    hitmanager.add_to_blacklist(bad_hash)
+    return {'response': True}
  
 
 @app.route('/approve')
