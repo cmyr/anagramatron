@@ -154,16 +154,16 @@ def get_hits2():
         cutoff = long(request.query.cutoff)
     if (request.query.status):
         status = request.query.status
-    if (int(request.query.get_new)):
+    if (request.query.get_new):
         get_new = True
 
     msgstring = "new" if get_new else "old"
     print('client requested %i %s hits with cutoff %i'
           % (count, msgstring, cutoff))
     hits = [h for h in hits if h['status'] == status]
-    if cutoff and new:
+    if cutoff and get_new:
         hits = [h for h in hits if h['id'] > cutoff]
-    elif cutoff and not new:
+    elif cutoff and not get_new:
         hits = [h for h in hits if h['id'] < cutoff]
     hits.reverse()
     return_hits = hits[:count]
@@ -173,7 +173,10 @@ def get_hits2():
         timestring = time.strftime("%d, %H:%M:%S",time.localtime(hit['timestamp']))
         print("%i: %s, %s" % (hit['id'], timestring, hit['status']))
 
-    return {'hits': return_hits}
+    if hits:
+        return {'hits': return_hits}
+    else:
+        return {'error': 'no hits meet criteria', 'code': 1011}
 
 run(app, host='0.0.0.0', port=TEST_PORT, debug=True, server='sslbottle')
 

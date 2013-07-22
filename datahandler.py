@@ -142,6 +142,8 @@ class DataCoordinator(object):
         fetches all the tweets in our fetch pool and runs comparisons
         deleting from
         """
+        print('performing fetch')
+        load_time = time.time()
         cursor = self.datastore.cursor()
         hashes = ['"%s"' % self.fetch_pool[i]['tweet_hash'] for i in self.fetch_pool]
         hashes = ",".join(hashes)
@@ -161,6 +163,7 @@ class DataCoordinator(object):
                                                        'hit_count': 1}
         # reset our fetch_pool
         self.fetch_pool = dict()
+        print('fetch finished in %s' % anagramfunctions.format_seconds(time.time()-load_time))))
 
     def _trim_cache(self, to_trim=None):
         """
