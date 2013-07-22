@@ -110,7 +110,7 @@ def add_to_blacklist():
     print('blacklisting hash: %s' % bad_hash)
     hitmanager.add_to_blacklist(bad_hash)
     return {'response': True}
- 
+
 
 @app.route('/approve')
 def approve_hit():
@@ -119,7 +119,8 @@ def approve_hit():
         return
     print("/approve endpoint received request:", request.json, request.params)
     hit_id = int(request.query.id)
-    post_now = bool(request.query.post_now)
+    post_now = int(request.query.post_now)
+    print(hit_id, post_now)
     flag = None
     if (post_now):
         flag = hitmanager.post_hit(hit_id)
