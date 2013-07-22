@@ -117,15 +117,16 @@ def approve_hit():
     auth = request.get_header('Authorization')
     if not authenticate(auth):
         return
-
+    print("/approve endpoint received request:", request.json, request.params)
     hit_id = int(request.query.id)
     post_now = bool(request.query.post_now)
     flag = None
     if (post_now):
         flag = hitmanager.post_hit(hit_id)
+        print('posting hit: %i' % hit_id)
     else:
         flag = hitmanager.approve_hit(hit_id)
-        print('posting hit: %i' % hit_id)
+        print('approved hit: %i' % hit_id)
     return {'hit': hitmanager.get_hit(hit_id), 'response': flag}
 
 
@@ -160,12 +161,11 @@ def get_hits2():
         hits = [h for h in hits if h['id'] < older_than]
     hits.reverse()
     return_hits = hits[:count]
-    
+
     print("returned %i hits" % len(return_hits))
     for hit in return_hits:
-        timestring = time.strftime("%d, %H:%M:%s",time.localtime(hit['timestamp']))
+        timestring = time.strftime("%d, %H:%M:%S",time.localtime(hit['timestamp']))
         print("%i: %s, %s" % (hit['id'], timestring, hit['status']))
-    
 
     return {'hits': return_hits}
 
