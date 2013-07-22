@@ -163,8 +163,8 @@ def get_hits2():
     
     print("returned %i hits" % len(return_hits))
     for hit in return_hits:
-        timestring = time.strftime("%d, %H:%M:%s",time.localtime(hit.timestamp))
-        print("%i: %s, %s" % (hit.id, timestamp, hit.status))
+        timestring = time.strftime("%d, %H:%M:%s",time.localtime(hit['timestamp']))
+        print("%i: %s, %s" % (hit['id'], timestring, hit['status']))
     
 
     return {'hits': return_hits}
