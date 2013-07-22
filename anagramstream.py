@@ -51,7 +51,7 @@ if __name__ == '__main__':
     anagram_stream = AnagramStream(CONSUMER_KEY, CONSUMER_SECRET,
                                    ACCESS_KEY, ACCESS_SECRET)
 
-    stream_connection = anagram_stream.stream_iter(languages=['es'])
+    stream_connection = anagram_stream.stream_iter(languages=['en'])
     for line in stream_connection:
         if line:
             try:

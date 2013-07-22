@@ -109,7 +109,6 @@ def add_to_blacklist():
     bad_hash = str(request.query.hash)
     print('blacklisting hash: %s' % bad_hash)
     hitmanager.add_to_blacklist(bad_hash)
-    return {'response': True}
 
 
 @app.route('/approve')
@@ -145,21 +144,27 @@ def get_hits2():
         return
 
     count = 50
-    older_than = 0
+    cutoff = 0
+    get_new = False
     status = HIT_STATUS_REVIEW
     hits = hitmanager.all_hits()
     if (request.query.count):
         count = int(request.query.count)
-    if (request.query.older_than):
-        older_than = long(request.query.older_than)
+    if (request.query.cutoff):
+        cutoff = long(request.query.cutoff)
     if (request.query.status):
         status = request.query.status
+    if (int(request.query.get_new)):
+        get_new = True
 
-    print('client requested %i hits older then %i'
-          % (count, older_than))
+    msgstring = "new" if get_new else "old"
+    print('client requested %i %s hits with cutoff %i'
+          % (count, msgstring, cutoff))
     hits = [h for h in hits if h['status'] == status]
-    if older_than:
-        hits = [h for h in hits if h['id'] < older_than]
+    if cutoff and new:
+        hits = [h for h in hits if h['id'] > cutoff]
+    elif cutoff and not new:
+        hits = [h for h in hits if h['id'] < cutoff]
     hits.reverse()
     return_hits = hits[:count]
 

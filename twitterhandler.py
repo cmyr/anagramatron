@@ -240,8 +240,7 @@ class StreamHandler(object):
                             try:
                                 queue.put(processed_tweet, block=False)
                             except Queue.Full:
-                                with lock:
-                                    overflow.value += 1
+                                pass
 
         except (HTTPError, SSLError, TwitterHTTPError, SocketError) as err:
             print(type(err))

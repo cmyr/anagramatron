@@ -242,6 +242,8 @@ class DataCoordinator(object):
         }
 
     def close(self):
+        self.hashes = set()
+        # we want to free up memory, batch_fetch performs set arithmetic
         if len(self.fetch_pool):
             print('running batch fetch with %i tweets' % len(self.fetch_pool))
             self._batch_fetch()
