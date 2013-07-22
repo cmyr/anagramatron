@@ -1,6 +1,7 @@
 from __future__ import print_function
 from bottle import (Bottle, route, run, request, response, server_names,
                     ServerAdapter, abort)
+import time
 # import datahandler
 import hitmanager
 
@@ -143,20 +144,28 @@ def get_hits2():
 
     count = 50
     older_than = 0
+    status = HIT_STATUS_REVIEW
     hits = hitmanager.all_hits()
     if (request.query.count):
         count = int(request.query.count)
     if (request.query.older_than):
         older_than = long(request.query.older_than)
+    if (request.query.status):
+        status = request.query.status
 
     print('client requested %i hits older then %i'
           % (count, older_than))
-    hits = [h for h in hits if h['status'] in [HIT_STATUS_REVIEW, CLIENT_ACTION_APPROVE]]
+    hits = [h for h in hits if h['status'] == status]
     if older_than:
         hits = [h for h in hits if h['id'] < older_than]
     hits.reverse()
     return_hits = hits[:count]
+    
     print("returned %i hits" % len(return_hits))
+    for hit in return_hits:
+        timestring = time.strftime("%d, %H:%M:%s",time.localtime(hit.timestamp))
+        print("%i: %s, %s" % (hit.id, timestamp, hit.status))
+    
 
     return {'hits': return_hits}
 
