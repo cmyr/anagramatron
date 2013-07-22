@@ -163,7 +163,7 @@ class DataCoordinator(object):
                                                        'hit_count': 1}
         # reset our fetch_pool
         self.fetch_pool = dict()
-        print('fetch finished in %s' % anagramfunctions.format_seconds(time.time()-load_time))))
+        print('fetch finished in %s' % anagramfunctions.format_seconds(time.time()-load_time))
 
     def _trim_cache(self, to_trim=None):
         """
