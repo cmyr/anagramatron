@@ -4,6 +4,7 @@ import time
 
 import anagramconfig
 import anagramfunctions
+import anagramstats as stats
 import logging
 
 from twitterhandler import TwitterHandler
@@ -59,6 +60,7 @@ def new_hit(first, second):
     if _hit_collides_with_previous_hit(hit):
         return
 
+    stats.hit()
     _add_hit(hit)
 
 

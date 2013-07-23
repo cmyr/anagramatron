@@ -171,8 +171,8 @@ def test_anagram(string_one, string_two):
         return False
     if not _word_diff_test(string_one, string_two):
         return False
-
-    stats.hit()
+    if not _combined_words_test(string_one, string_two):
+        return False
     return True
 
 
@@ -220,6 +220,35 @@ def _word_diff_test(string_one, string_two, cutoff=0.3):
             same_words += 1
         # if more then $CUTOFF words are the same, fail test
     if (float(same_words) / word_count) < cutoff:
+        return True
+    else:
+        return False
+
+def _combined_words_test(string_one, string_two, cutoff=0.5):
+    """
+    looks for tweets where the same words have been #CombinedWithoutSpaces
+
+    """
+    words_one = stripped_string(string_one, spaces=True).split()
+    words_two = stripped_string(string_two, spaces=True).split()
+
+    if len(words_one) == len(words_two):
+        return True
+    # print(words_one, words_two)
+    more_words = words_one if len(words_one) > len(words_two) else words_two;
+    fewer_words = words_one if words_two == more_words else words_two
+    # rejoin fewer words into a string:
+    fewer_words = ' '.join(fewer_words)
+
+    for word in more_words:
+        if re.search(word, fewer_words):
+            fewer_words = re.sub(word, '', fewer_words, count=1)
+
+    # this leaves us, hopefully, with a smoking hulk of non-string.
+    more_string = ''.join(more_words)
+    fewer_words = re.sub(' ', '', fewer_words)
+    more_string = re.sub(' ', '', more_string)
+    if (len(fewer_words)/float(len(more_string))) > cutoff:
         return True
     else:
         return False
