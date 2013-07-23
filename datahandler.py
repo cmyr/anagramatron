@@ -196,14 +196,16 @@ class DataCoordinator(object):
             target=self._perform_write,
             args=(self._lock,
                   to_write,
-                  self.datastore))
+                  self.dbpath))
         _write_process.start()
 
-    def _perform_write(self, lock, to_write, database):
+    def _perform_write(self, lock, to_write, db_path):
         with lock:
+            database = lite.connect(db_path)
             cursor = database.cursor()
             cursor.executemany("INSERT INTO tweets VALUES (?, ?, ?)", to_write)
             database.commit()
+            database.close()
 
     def _perform_fetch(self, to_fetch):
         pass
