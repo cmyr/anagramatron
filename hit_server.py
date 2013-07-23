@@ -4,6 +4,7 @@ from bottle import (Bottle, route, run, request, response, server_names,
 import time
 # import datahandler
 import hitmanager
+import anagramstats as stats
 
 HIT_STATUS_REVIEW = 'review'
 CLIENT_ACTION_POST = 'posted'
@@ -130,6 +131,22 @@ def approve_hit():
     return {'hit': hitmanager.get_hit(hit_id), 'response': flag}
 
 
+@app.route('/info')
+def info():
+    """
+    returns some basic stats about what's happening on the server.
+    """
+    auth = request.get_header('Authorization')
+    if not authenticate(auth):
+        return
+
+    last_hit = request.query.last_hit
+
+    stats_dict = stats.stats_dict()
+    new_hits = hitmanager.new_hits_count(last_hit)
+    return {'stats': stats_dict, 'new_hits': new_hits}
+
+
 # API v: 2.0:
 @app.route('/2.0/hits')
 def get_hits2():
@@ -176,7 +193,7 @@ def get_hits2():
     if hits:
         return {'hits': return_hits}
     else:
-        return {'error': 'no hits meet criteria', 'code': 1011}
+        return {'hits': None}
 
 run(app, host='0.0.0.0', port=TEST_PORT, debug=True, server='sslbottle')
 
