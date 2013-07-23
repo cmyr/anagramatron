@@ -11,7 +11,7 @@ New API:
    ✔ working 'pagination' API @done (13-07-20 22:01)
    ☐ more efficient data retrieval
    ✔ 'hits newer then x' api method @done (13-07-23 14:42)
- ☐ some kind of 'info' endpoint
+   ✔ some kind of 'info' endpoint @done (13-07-23 18:31)
 post queues:
   ☐ we want post queues, basically
 

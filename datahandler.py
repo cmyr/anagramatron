@@ -142,7 +142,7 @@ class DataCoordinator(object):
         fetches all the tweets in our fetch pool and runs comparisons
         deleting from
         """
-        if (self._lock.acquire(blocking=False)):
+        if (self._lock.acquire(False)):
             # if we can't acquire the lock it means we're writing to cache
             print('performing fetch')
             load_time = time.time()
