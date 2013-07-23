@@ -1,5 +1,6 @@
 General minor things we want to implement:
   ☐ error handlinging in our custom stream
+  ✔ new filter for #RunOnHashtaggyThings @done (13-07-23 14:44)
 
 New Data Handling:
   ☐ add a custom 'cache' class
@@ -7,10 +8,14 @@ New Data Handling:
   ☐ multiproccessing and queues for transitions between data states
 
 New API:
-   ☐ working 'pagination' API
+   ✔ working 'pagination' API @done (13-07-20 22:01)
    ☐ more efficient data retrieval
-   ☐ 'hits newer then x' api method
-
+   ✔ 'hits newer then x' api method @done (13-07-23 14:42)
+ ☐ some kind of 'info' endpoint
 post queues:
   ☐ we want post queues, basically
+
+
+bug fixes:
+
     
