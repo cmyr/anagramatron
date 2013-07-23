@@ -143,7 +143,7 @@ def info():
     last_hit = request.query.last_hit
 
     stats_dict = stats.stats_dict()
-    new_hits = hitmanager.new_hits_count(last_hit)
+    new_hits = hitmanager.hits_newer_than_hit(last_hit)
     return {'stats': stats_dict, 'new_hits': new_hits}
 
 
