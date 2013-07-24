@@ -169,6 +169,10 @@ class DataCoordinator(object):
         """
         takes least frequently hit tweets from cache and writes to datastore
         """
+        # perform fetch before trimming cache:
+        if len(self.fetch_pool):
+            self._batch_fetch()
+        
         self._should_trim_cache = False
         # first just grab hashes with zero hits. If that's less then 1/2 total
         # do a more complex filter
