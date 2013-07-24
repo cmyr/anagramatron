@@ -140,10 +140,10 @@ def info():
     if not authenticate(auth):
         return
 
-    last_hit = request.query.last_hit
+    # last_hit = request.query.last_hit
 
     stats_dict = stats.stats_dict()
-    new_hits = hitmanager.hits_newer_than_hit(last_hit)
+    new_hits = hitmanager.new_hits_count()
     return {'stats': stats_dict, 'new_hits': new_hits}
 
 
@@ -170,7 +170,8 @@ def get_hits2():
     try:
         cutoff = long(request.query.cutoff)
     except ValueError:
-        cutoff = None
+        cutoff = 0
+        # becuase we use %d to find a value below
     if (request.query.status):
         status = request.query.status
     if (request.query.get_new):
@@ -192,7 +193,8 @@ def get_hits2():
         timestring = time.strftime("%d, %H:%M:%S",time.localtime(hit['timestamp']))
         print("%i: %s, %s" % (hit['id'], timestring, hit['status']))
 
-    if hits:
+    if return_hits:
+        hitmanager.server_sent_hits:(return_hits)
         return {'hits': return_hits}
     else:
         return {'hits': None}

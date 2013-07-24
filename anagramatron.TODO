@@ -1,7 +1,7 @@
 General minor things we want to implement:
   ☐ error handlinging in our custom stream
   ✔ new filter for #RunOnHashtaggyThings @done (13-07-23 14:44)
-
+  ☐ some way of detecting of two writes overlap, and using that to automatically trim database
 New Data Handling:
   ☐ add a custom 'cache' class
   ☐ strongly seperate cache and persistent storage
