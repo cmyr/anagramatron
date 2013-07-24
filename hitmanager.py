@@ -4,6 +4,7 @@ import time
 
 import anagramconfig
 import anagramfunctions
+import anagramstats as stats
 import logging
 
 from twitterhandler import TwitterHandler
@@ -19,6 +20,7 @@ HIT_STATUS_FAILED = 'failed'
 dbpath = None
 hitsdb = None
 twitter_handler = None
+_new_hits_counter = 0
 
 
 def _setup(languages=['en']):
@@ -45,6 +47,7 @@ def _checkit():
 
 
 def new_hit(first, second):
+    global _new_hits_counter
     _checkit()
     hit = {
            "id": int(time.time()*1000),
@@ -59,10 +62,21 @@ def new_hit(first, second):
     if _hit_collides_with_previous_hit(hit):
         return
 
+    stats.hit()
+    _new_hits_counter += 1
     _add_hit(hit)
 
 
+def hits_newer_than_hit(hit_id):
+    _checkit()
+    cursor = hitsdb.cursor()
+    cursor.execute("SELECT * FROM hits WHERE hit_id > (?)", (hit_id,))
+    results = cursor.fetchall()
+    return len(results)
+
+
 def _hit_on_blacklist(hit):
+    _checkit()
     cursor = hitsdb.cursor()
     cursor.execute("SELECT count(*) FROM blacklist WHERE bad_hash=?", (hit['hash'],))
     result = cursor.fetchone()[0]
@@ -73,6 +87,7 @@ def _hit_on_blacklist(hit):
 
 
 def _hit_collides_with_previous_hit(hit):
+    _checkit()
     cursor = hitsdb.cursor()
     cursor.execute("SELECT * FROM hits WHERE hit_hash=?", (hit['hash'], ))
     result = cursor.fetchone()

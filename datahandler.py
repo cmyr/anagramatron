@@ -75,7 +75,7 @@ class DataCoordinator(object):
         cursor = self.datastore.cursor()
         cursor.execute('SELECT tweet_hash FROM tweets')
         while True:
-            results = cursor.fetchmany(100000)
+            results = cursor.fetchmany(1000000)
             if not results:
                 break
             for result in results:
@@ -199,13 +199,16 @@ class DataCoordinator(object):
                   self.dbpath))
         _write_process.start()
 
-    def _perform_write(self, lock, to_write, db_path):
+    def _perform_write(self, lock, to_write, dbpath):
         with lock:
-            database = lite.connect(db_path)
+            load_time = time.time()
+            database = lite.connect(dbpath)
             cursor = database.cursor()
             cursor.executemany("INSERT INTO tweets VALUES (?, ?, ?)", to_write)
             database.commit()
             database.close()
+            print('wrote %i tweets to disk in %s' %
+                  (len(to_write), anagramfunctions.format_seconds(time.time()-load_time)))
 
     def _perform_fetch(self, to_fetch):
         pass
