@@ -194,7 +194,7 @@ def get_hits2():
         print("%i: %s, %s" % (hit['id'], timestring, hit['status']))
 
     if return_hits:
-        hitmanager.server_sent_hits:(return_hits)
+        hitmanager.server_sent_hits(return_hits)
         return {'hits': return_hits}
     else:
         return {'hits': None}

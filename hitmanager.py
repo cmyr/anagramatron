@@ -248,6 +248,9 @@ def approve_hit(hit_id):
     return True
 
 def server_sent_hits(hits):
+    """
+    this is exclusively for keeping track of the newest hit the client has seen
+    """
     newest_hit_sent = max([h['id'] for h in hits])
     print(newest_hit_sent)
     _checkit()
