@@ -167,8 +167,10 @@ def get_hits2():
     hits = hitmanager.all_hits()
     if (request.query.count):
         count = int(request.query.count)
-    if (request.query.cutoff):
+    try:
         cutoff = long(request.query.cutoff)
+    except ValueError:
+        cutoff = None
     if (request.query.status):
         status = request.query.status
     if (request.query.get_new):
