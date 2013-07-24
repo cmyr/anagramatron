@@ -143,7 +143,6 @@ class DataCoordinator(object):
         deleting from
         """
         if (self._lock.acquire(False)):
-            # if we can't acquire the lock it means we're writing to cache
             print('performing fetch')
             load_time = time.time()
             cursor = self.datastore.cursor()
@@ -166,13 +165,17 @@ class DataCoordinator(object):
             self.fetch_pool = dict()
             print('fetch finished in %s' % anagramfunctions.format_seconds(time.time()-load_time))
         else:
-            # do nothing if we can't acquire lock, and we'll keep trying
             pass
+            # if we can't acquire lock we'll just try again
+
 
     def _trim_cache(self, to_trim=None):
         """
         takes least frequently hit tweets from cache and writes to datastore
         """
+        # perform fetch before trimming cache:
+        if len(self.fetch_pool):
+            self._batch_fetch()
         self._should_trim_cache = False
         # first just grab hashes with zero hits. If that's less then 1/2 total
         # do a more complex filter
