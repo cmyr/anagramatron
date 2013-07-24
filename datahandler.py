@@ -45,6 +45,7 @@ class DataCoordinator(object):
         self.datastore = None
         self._should_trim_cache = False
         self._lock = multiprocessing.Lock()
+        self._is_writing = multiprocessing.Event()
         self.dbpath = (STORAGE_DIRECTORY_PATH +
                        DATA_PATH_COMPONENT +
                        '_'.join(self.languages) + '.db')
@@ -116,7 +117,7 @@ class DataCoordinator(object):
                 # debug cache writing
                 if len(self.cache) > ANAGRAM_CACHE_SIZE:
                     self._should_trim_cache = True
-                if self._should_trim_cache:
+                if self._should_trim_cache and not self._is_writing.is_set():
                     self._trim_cache()
 
     def _add_to_fetch_pool(self, tweet):
@@ -173,6 +174,7 @@ class DataCoordinator(object):
         """
         takes least frequently hit tweets from cache and writes to datastore
         """
+        self._is_writing.set()
         # perform fetch before trimming cache:
         if len(self.fetch_pool):
             self._batch_fetch()
@@ -202,11 +204,12 @@ class DataCoordinator(object):
         _write_process = multiprocessing.Process(
             target=self._perform_write,
             args=(self._lock,
+                  self._is_writing,
                   to_write,
                   self.dbpath))
         _write_process.start()
 
-    def _perform_write(self, lock, to_write, dbpath):
+    def _perform_write(self, lock, event, to_write, dbpath):
         with lock:
             load_time = time.time()
             database = lite.connect(dbpath)
@@ -216,6 +219,7 @@ class DataCoordinator(object):
             database.close()
             print('wrote %i tweets to disk in %s' %
                   (len(to_write), anagramfunctions.format_seconds(time.time()-load_time)))
+            event.clear()
 
     def _perform_fetch(self, to_fetch):
         pass
