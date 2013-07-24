@@ -142,28 +142,32 @@ class DataCoordinator(object):
         fetches all the tweets in our fetch pool and runs comparisons
         deleting from
         """
-        print('performing fetch')
-        load_time = time.time()
-        cursor = self.datastore.cursor()
-        hashes = ['"%s"' % self.fetch_pool[i]['tweet_hash'] for i in self.fetch_pool]
-        hashes = ",".join(hashes)
-        with self._lock:
+        if (self._lock.acquire(False)):
+            print('performing fetch')
+            load_time = time.time()
+            cursor = self.datastore.cursor()
+            hashes = ['"%s"' % self.fetch_pool[i]['tweet_hash'] for i in self.fetch_pool]
+            hashes = ",".join(hashes)
             cursor.execute("SELECT * FROM tweets WHERE tweet_hash IN (%s)" % hashes)
             results = cursor.fetchall()
             self.hashes -= set(hashes)
+            self._lock.release()
+            for result in results:
+                fetched_tweet = self._tweet_from_sql(result)
+                new_tweet = self.fetch_pool[fetched_tweet['tweet_hash']]
+                if anagramfunctions.test_anagram(fetched_tweet['tweet_text'],
+                                                 new_tweet['tweet_text']):
+                    hitmanager.new_hit(fetched_tweet, new_tweet)
+                else:
+                    self.cache[new_tweet['tweet_hash']] = {'tweet': new_tweet,
+                                                           'hit_count': 1}
+            # reset our fetch_pool
+            self.fetch_pool = dict()
+            print('fetch finished in %s' % anagramfunctions.format_seconds(time.time()-load_time))
 
-        for result in results:
-            fetched_tweet = self._tweet_from_sql(result)
-            new_tweet = self.fetch_pool[fetched_tweet['tweet_hash']]
-            if anagramfunctions.test_anagram(fetched_tweet['tweet_text'],
-                                             new_tweet['tweet_text']):
-                hitmanager.new_hit(fetched_tweet, new_tweet)
-            else:
-                self.cache[new_tweet['tweet_hash']] = {'tweet': new_tweet,
-                                                       'hit_count': 1}
-        # reset our fetch_pool
-        self.fetch_pool = dict()
-        print('fetch finished in %s' % anagramfunctions.format_seconds(time.time()-load_time))
+        else:
+            pass
+            # if we can't acquire lock we'll just try again
 
     def _trim_cache(self, to_trim=None):
         """
@@ -172,7 +176,6 @@ class DataCoordinator(object):
         # perform fetch before trimming cache:
         if len(self.fetch_pool):
             self._batch_fetch()
-        
         self._should_trim_cache = False
         # first just grab hashes with zero hits. If that's less then 1/2 total
         # do a more complex filter
