@@ -261,7 +261,7 @@ def server_sent_hits(hits):
         if newest_hit_sent < last_hit:
             return
     except (lite.OperationalError, IndexError, TypeError):
-        cursor.execute("DROP TABLE hitinfo")
+        cursor.execute("DROP TABLE IF EXISTS hitinfo")
         cursor.execute("CREATE TABLE hitinfo (last_hit INTEGER)")
         cursor.execute("INSERT INTO hitinfo VALUES (?)", (newest_hit_sent,))
         hitsdb.commit()
