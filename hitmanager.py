@@ -258,11 +258,15 @@ def server_sent_hits(hits):
     try:
         cursor.execute("SELECT * FROM hitinfo")
         last_hit = cursor.fetchone()[0]
+        print(last_hit)
         if newest_hit_sent < last_hit:
             return
     except (lite.OperationalError, IndexError, TypeError):
-        cursor.execute("DROP TABLE IF EXISTS hitinfo")
-        cursor.execute("CREATE TABLE hitinfo (last_hit INTEGER)")
-        cursor.execute("INSERT INTO hitinfo VALUES (?)", (newest_hit_sent,))
-        hitsdb.commit()
-        print('inserted hit %i' % newest_hit_sent)
+        # probably only happens if we just don't have a value?
+        pass
+
+    cursor.execute("DROP TABLE IF EXISTS hitinfo")
+    cursor.execute("CREATE TABLE hitinfo (last_hit INTEGER)")
+    cursor.execute("INSERT INTO hitinfo VALUES (?)", (newest_hit_sent,))
+    hitsdb.commit()
+    print('inserted hit %i' % newest_hit_sent)
