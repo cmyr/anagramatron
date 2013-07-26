@@ -55,6 +55,7 @@ class DataCoordinator(object):
         self.hashes = set()
         self.datastore = None
         self._should_trim_cache = False
+        self._write_process = None
         self._lock = multiprocessing.Lock()
         self._is_writing = multiprocessing.Event()
         self.dbpath = (STORAGE_DIRECTORY_PATH +
@@ -217,19 +218,21 @@ class DataCoordinator(object):
         for x in hashes_to_save:
             del self.cache[x]
         self.hashes |= set(hashes_to_save)
-        _write_process = multiprocessing.Process(
+        self._write_process = multiprocessing.Process(
             target=self._perform_write,
             args=(self._lock,
                   self._is_writing,
                   to_write,
                   self.dbpath))
-        _write_process.start()
+        self._write_process.start()
 
     def _perform_write(self, lock, event, to_write, dbpath):
         with lock:
+            print('writing %i tweets to database' % len(to_write))
             load_time = time.time()
             database = lite.connect(dbpath)
             cursor = database.cursor()
+            cursor.execute('PRAGMA synchronous=OFF')
             cursor.executemany("INSERT INTO tweets VALUES (?, ?, ?)", to_write)
             database.commit()
             database.close()
@@ -317,11 +320,12 @@ class DataCoordinator(object):
 
     def close(self):
         self.hashes = set()
+        if self._write_process and self._write_process.is_alive():
+            print('write process active. waiting.')
+            self._write_process.join()
+
         # we want to free up memory, batch_fetch performs set arithmetic
-        if len(self.fetch_pool):
-            # TODO THIS IS NOW REDUNDANT
-            print('running batch fetch with %i tweets' % len(self.fetch_pool))
-            self._batch_fetch()
+        self._trim_cache()
         self._save_cache()
         self.datastore.close()
 
