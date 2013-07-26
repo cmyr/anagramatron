@@ -5,7 +5,7 @@ import logging
 import cPickle as pickle
 
 from twitterhandler import StreamHandler
-from datahandler import DataCoordinator
+from datahandler import (DataCoordinator, NeedsMaintenance)
 import anagramstats as stats
 
 
@@ -21,30 +21,30 @@ def main():
     )
     stream_handler = StreamHandler()
     data_coordinator = DataCoordinator()
-    server_process = None
-    # server_process = subprocess.call('python hit_server.py')
+    stats.clear_stats()
 
     while 1:
         try:
             logging.info('entering run loop')
-            stats.start_time = time.time()
             stream_handler.start()
             for processed_tweet in stream_handler:
                 data_coordinator.handle_input(processed_tweet)
                 stats.update_console()
+
+        except NeedsMaintenance:
+            stream_handler.close()
+            data_coordinator.perform_maintenance()
+
         except KeyboardInterrupt:
-            break
-        finally:
-            if server_process:
-                server_process.terminate()
             stream_handler.close()
             stream_handler = None
             data_coordinator.close()
             stats.close()
+            break
 
 
 def test(source, raw=True):
-    stats._clear_stats()
+    stats.clear_stats()
     data_coordinator = DataCoordinator()
     for tweet in source:
         stats.tweets_seen()
@@ -72,7 +72,4 @@ def test(source, raw=True):
 
 if __name__ == "__main__":
     main()
-    # source = pickle.load(open('testdata/tst2.p', 'r'))
-    # source = pickle.load(open('tstdata/20ktst1.p'))
-    # test(source, False)
-    # db_conversion_utility()
+

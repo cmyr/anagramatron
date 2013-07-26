@@ -27,6 +27,17 @@ HIT_STATUS_MISC = 'misc'
 HIT_STATUS_FAILED = 'failed'
 
 
+class NeedsMaintenance(Exception):
+    """
+    hacky exception raised when DataCoordinator is no longer able to keep up.
+    use this to signal that we should shutdown and perform maintenance.
+    """
+    # this isn't being used right now, but might be used to implement
+    # automated trimming / removal of old tweets from the permanent store
+    # when things are getting too slow.
+    pass
+
+
 class DataCoordinator(object):
     """
     DataCoordinator handles the storage, retrieval and comparisons
@@ -52,9 +63,9 @@ class DataCoordinator(object):
         self.cachepath = (STORAGE_DIRECTORY_PATH +
                           CACHE_PATH_COMPONENT +
                           '_'.join(self.languages) + '.p')
-        self.setup()
+        self._setup()
 
-    def setup(self):
+    def _setup(self):
         """
         - unpickle previous session's cache
         - load / init database
@@ -114,11 +125,16 @@ class DataCoordinator(object):
                 self.cache[key] = {'tweet': tweet,
                                    'hit_count': 0}
                 stats.set_cache_size(len(self.cache))
-                # debug cache writing
+
                 if len(self.cache) > ANAGRAM_CACHE_SIZE:
+                    # we imagine a future in which trimming isn't based on a constant
                     self._should_trim_cache = True
-                if self._should_trim_cache and not self._is_writing.is_set():
-                    self._trim_cache()
+                if self._should_trim_cache:
+                    if self._is_writing.is_set():
+                        # if two writes overlap let's shutdown and trim our database
+                        raise NeedsMaintenance
+                    else:
+                        self._trim_cache()
 
     def _add_to_fetch_pool(self, tweet):
         key = tweet['tweet_hash']
@@ -221,9 +237,6 @@ class DataCoordinator(object):
                   (len(to_write), anagramfunctions.format_seconds(time.time()-load_time)))
             event.clear()
 
-    def _perform_fetch(self, to_fetch):
-        pass
-
     def _save_cache(self):
         """
         pickles the tweets currently in the cache.
@@ -233,7 +246,7 @@ class DataCoordinator(object):
         tweets_to_save = [self.cache[t]['tweet'] for t in self.cache]
         try:
             pickle.dump(tweets_to_save, open(self.cachepath, 'wb'))
-            print('saved %i tweets to cache' % len(tweets_to_save))
+            print('saved cache to disk with %i tweets' % len(tweets_to_save))
         except:
             logging.error('unable to save cache, writing')
             self._trim_cache(len(self.cache))
@@ -260,15 +273,56 @@ class DataCoordinator(object):
             'tweet_text': sql_tweet[2]
         }
 
+    def perform_maintenance(self):
+        """
+        called when we're not keeping up with input.
+        trims older tweets from database and returns.
+        """
+        print("breaking to perform maintenance")
+        self.close()
+        self.archive_old_tweets()
+        self._setup()
+
+    def archive_old_tweets(self, cutoff=0.2):
+        """cutoff represents the rough fraction of tweets to be archived"""
+        load_time = time.time()
+        db = lite.connect(self.dbpath)
+        cursor = db.cursor()
+        tweet_ids = list()
+        cursor.execute("SELECT tweet_id FROM tweets")
+        while True:
+            results = cursor.fetchmany(1000000)
+            if not results:
+                break
+            for result in results:
+                tweet_ids.append(result[0])
+        print('extracted %i tweets in %s' % (len(tweet_ids), anagramfunctions.format_seconds(time.time()-load_time)))
+
+        tweet_ids = sorted(tweet_ids)
+        tocull = int(len(tweet_ids) * cutoff)
+        tweet_ids = tweet_ids[:tocull]
+        print('found %i old tweets to delete' % len(tweet_ids))
+
+        load_time = time.time()
+        tweet_ids = ["'%s'" % i for i in tweet_ids]
+        cursor.execute("SELECT * FROM tweets WHERE tweet_id IN (%s)" % ",".join(tweet_ids))
+        results = cursor.fetchall()
+        db.execute("DELETE FROM tweets WHERE tweet_id IN (%s)" % ",".join(tweet_ids))
+        db.commit()
+        db.close()
+        # save tweets to disk in case we want to start really digging
+        filename = "data/culled_%s.p" % time.strftime("%b%d%H%M")
+        pickle.dump(results, open(filename, 'wb'))
+        print('archived %i hashes in %s' % (len(tweet_ids), anagramfunctions.format_seconds(time.time()-load_time)))
+
     def close(self):
         self.hashes = set()
         # we want to free up memory, batch_fetch performs set arithmetic
         if len(self.fetch_pool):
+            # TODO THIS IS NOW REDUNDANT
             print('running batch fetch with %i tweets' % len(self.fetch_pool))
             self._batch_fetch()
-        print('saving cache')
         self._save_cache()
-        stats.update_console()
         self.datastore.close()
 
 
@@ -296,29 +350,7 @@ def trim_short_tweets(cutoff=20):
     # self.hashes = self.hashes.difference(short_hashes)
 
 
-def archive_old_tweets(cutoff=0.2):
-    """cutoff represents the rough fraction of tweets to be archived"""
-    load_time = time.time()
-    db = lite.connect(TWEET_DB_PATH)
-    cursor = db.cursor()
-    cursor.execute("SELECT id FROM tweets")
-    ids = cursor.fetchall()
-    ids = [str(h) for (h,) in ids]
-    print('extracted %i ids in %s' % (len(ids), anagramfunctions.format_seconds(time.time()-load_time)))
-    ids = sorted(ids)
-    tocull = int(len(ids) * cutoff)
-    ids = ids[:tocull]
-    print('found %i old tweets' % len(ids))
-    load_time = time.time()
-    ids = ["'%s'" % i for i in ids]
-    # todo we actually want to archive this stuff tho
-    cursor.execute("SELECT * FROM tweets WHERE id IN (%s)" % ",".join(ids))
-    results = cursor.fetchall()
-    db.execute("DELETE FROM tweets WHERE id IN (%s)" % ",".join(ids))
-    db.commit()
-    filename = "data/culled_%s.p" % time.strftime("%b%d%H%M")
-    pickle.dump(results, open(filename, 'wb'))
-    print('archived %i hashes in %s' % (len(ids), anagramfunctions.format_seconds(time.time()-load_time)))
+
 
 
 if __name__ == "__main__":

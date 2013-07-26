@@ -20,7 +20,7 @@ _fetch_pool_size = 0
 # hitlist = []
 
 
-def _clear_stats():
+def clear_stats():
     global _tweets_seen, _passed_filter, _possible_hits
     global _hits, _overflow, _start_time, _buffer, _max_buffer
     global _cache_size, _cache_hits, _fetch_pool_size

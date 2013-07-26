@@ -114,16 +114,15 @@ class StreamHandler(object):
         creates a new thread and starts a streaming connection.
         If a thread already exists, it is terminated.
         """
+        self._should_return = False
         print('creating new server connection')
         logging.debug('creating new server connection')
         if self.stream_process is not None:
-            print('terminating existing server connection')
             logging.debug('terminating existing server connection')
             self.stream_process.terminate()
             if self.stream_process.is_alive():
                 pass
             else:
-                print('existing thread terminated succesfully')
                 logging.debug('thread terminated successfully')
 
         self.stream_process = multiprocessing.Process(
