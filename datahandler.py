@@ -233,8 +233,10 @@ class DataCoordinator(object):
             database = lite.connect(dbpath)
             cursor = database.cursor()
             cursor.execute('PRAGMA synchronous=OFF')
-            cursor.executemany("INSERT INTO tweets VALUES (?, ?, ?)", to_write)
-            database.commit()
+            for i in range(0, len(to_write),1000):
+                cursor.executemany("INSERT INTO tweets VALUES (?, ?, ?)",
+                                   to_write[i:i+1000])
+                database.commit()
             database.close()
             print('wrote %i tweets to disk in %s' %
                   (len(to_write), anagramfunctions.format_seconds(time.time()-load_time)))
