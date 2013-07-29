@@ -312,13 +312,15 @@ class DataCoordinator(object):
         tweet_ids = ["'%s'" % i for i in tweet_ids]
         cursor.execute("SELECT * FROM tweets WHERE tweet_id IN (%s)" % ",".join(tweet_ids))
         results = cursor.fetchall()
+        filename = "data/culled_%s.p" % time.strftime("%b%d%H%M")
+        pickle.dump(results, open(filename, 'wb'))
+        print('archived %i hashes in %s' % (len(tweet_ids), anagramfunctions.format_seconds(time.time()-load_time)))
+
+        del(results)
         db.execute("DELETE FROM tweets WHERE tweet_id IN (%s)" % ",".join(tweet_ids))
         db.commit()
         db.close()
         # save tweets to disk in case we want to start really digging
-        filename = "data/culled_%s.p" % time.strftime("%b%d%H%M")
-        pickle.dump(results, open(filename, 'wb'))
-        print('archived %i hashes in %s' % (len(tweet_ids), anagramfunctions.format_seconds(time.time()-load_time)))
 
     def close(self):
         self.hashes = set()
