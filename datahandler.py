@@ -326,6 +326,7 @@ class DataCoordinator(object):
 
         # we want to free up memory, batch_fetch performs set arithmetic
         self._trim_cache()
+        self._write_process.join()
         self._save_cache()
         self.datastore.close()
 
