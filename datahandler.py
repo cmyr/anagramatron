@@ -45,7 +45,7 @@ class DataCoordinator(object):
     It caches newly returned or requested candidates to memory,
     and maintains & manages a persistent database of older candidates.
     """
-    def __init__(self, languages=['en']):
+    def __init__(self, languages=['en'], noload=False):
         """
         language selection is not currently implemented
         """
@@ -64,7 +64,8 @@ class DataCoordinator(object):
         self.cachepath = (STORAGE_DIRECTORY_PATH +
                           CACHE_PATH_COMPONENT +
                           '_'.join(self.languages) + '.p')
-        self._setup()
+        if not noload:
+            self._setup()
 
     def _setup(self):
         """
