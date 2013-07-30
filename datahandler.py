@@ -322,7 +322,7 @@ class DataCoordinator(object):
         load_time = time.time()
         cursor.execute('PRAGMA synchronous=OFF')
         for i in range(0, len(tweet_ids), 1000):
-            cursor.execute("DELETE FROM tweets WHERE tweet_id IN (%s)" %
+            cursor.executemany("DELETE FROM tweets WHERE tweet_id IN (%s)" %
                            ",".join(tweet_ids[i:i+1000]))
             db.commit()
             progress_string = ("deleted %i of %i tweets in %s" %
