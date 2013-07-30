@@ -1,6 +1,7 @@
 from __future__ import print_function
 import sqlite3 as lite
 import os
+import sys
 import logging
 import time
 import cPickle as pickle
@@ -316,15 +317,19 @@ class DataCoordinator(object):
         filename = "data/culled_%s.p" % time.strftime("%b%d%H%M")
         pickle.dump(results, open(filename, 'wb'))
         print('archived %i hashes in %s' % (len(tweet_ids), anagramfunctions.format_seconds(time.time()-load_time)))
-
         del results
+
+        load_time = time.time()
         cursor.execute('PRAGMA synchronous=OFF')
         for i in range(0, len(tweet_ids), 1000):
             cursor.execute("DELETE FROM tweets WHERE tweet_id IN (%s)" %
                            ",".join(tweet_ids[i:i+1000]))
             db.commit()
+            progress_string = "deleted %i of %i tweets in %s" %
+                (i, len(tweet_ids), anagramfunctions.format_seconds(time.time()-load_time))
+            sys.stdout.write(progress_string + '\r')
+            sys.stdout.flush()
         db.close()
-        # save tweets to disk in case we want to start really digging
 
     def close(self):
         self.hashes = set()
