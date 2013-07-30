@@ -82,6 +82,8 @@ class DataCoordinator(object):
             cursor.execute(
                 "CREATE TABLE tweets(tweet_hash TEXT PRIMARY KEY ON CONFLICT REPLACE, tweet_id INTEGER, tweet_text TEXT)"
             )
+            cursor.execute("CREATE INDEX dex ON tweets (tweet_id)")
+            self.datastore.commit()
         else:
             self.datastore = lite.connect(self.dbpath)
         # extract hashes
@@ -311,8 +313,8 @@ class DataCoordinator(object):
         print('found %i old tweets to delete' % len(tweet_ids))
 
         load_time = time.time()
-        tweet_ids = ["'%s'" % i for i in tweet_ids]
-        cursor.execute("SELECT * FROM tweets WHERE tweet_id IN (%s)" % ",".join(tweet_ids))
+        fetch_ids = ["%s" % i for i in tweet_ids]
+        cursor.execute("SELECT * FROM tweets WHERE tweet_id IN (%s)" % ",".join(fetch_ids))
         results = cursor.fetchall()
         filename = "data/culled_%s.p" % time.strftime("%b%d%H%M")
         pickle.dump(results, open(filename, 'wb'))
@@ -321,9 +323,11 @@ class DataCoordinator(object):
 
         load_time = time.time()
         cursor.execute('PRAGMA synchronous=OFF')
-        for i in range(0, len(tweet_ids), 1000):
-            cursor.executemany("DELETE FROM tweets WHERE tweet_id IN (%s)" %
-                           ",".join(tweet_ids[i:i+1000]))
+        batch_size = 5000
+        for i in range(0, len(tweet_ids), batch_size):
+            to_delete =  [(d,) for d in tweet_ids[i:i+batch_size]]
+            # print(to_delete)
+            cursor.executemany("DELETE FROM tweets WHERE tweet_id = (?)", to_delete)
             db.commit()
             progress_string = ("deleted %i of %i tweets in %s" %
                 (i, len(tweet_ids), anagramfunctions.format_seconds(time.time()-load_time)))
