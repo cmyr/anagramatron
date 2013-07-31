@@ -289,51 +289,8 @@ class DataCoordinator(object):
         """
         print("breaking to perform maintenance")
         self.close()
-        self.archive_old_tweets()
+        archive_old_tweets(self.dbpath)
         self._setup()
-
-    def archive_old_tweets(self, cutoff=0.2):
-        """cutoff represents the rough fraction of tweets to be archived"""
-        load_time = time.time()
-        db = lite.connect(self.dbpath)
-        cursor = db.cursor()
-        tweet_ids = list()
-        cursor.execute("SELECT tweet_id FROM tweets")
-        while True:
-            results = cursor.fetchmany(1000000)
-            if not results:
-                break
-            for result in results:
-                tweet_ids.append(result[0])
-        print('extracted %i tweets in %s' % (len(tweet_ids), anagramfunctions.format_seconds(time.time()-load_time)))
-
-        tweet_ids = sorted(tweet_ids)
-        tocull = int(len(tweet_ids) * cutoff)
-        tweet_ids = tweet_ids[:tocull]
-        print('found %i old tweets to delete' % len(tweet_ids))
-
-        load_time = time.time()
-        fetch_ids = ["%s" % i for i in tweet_ids]
-        cursor.execute("SELECT * FROM tweets WHERE tweet_id IN (%s)" % ",".join(fetch_ids))
-        results = cursor.fetchall()
-        filename = "data/culled_%s.p" % time.strftime("%b%d%H%M")
-        pickle.dump(results, open(filename, 'wb'))
-        print('archived %i hashes in %s' % (len(tweet_ids), anagramfunctions.format_seconds(time.time()-load_time)))
-        del results
-
-        load_time = time.time()
-        cursor.execute('PRAGMA synchronous=OFF')
-        batch_size = 5000
-        for i in range(0, len(tweet_ids), batch_size):
-            to_delete =  [(d,) for d in tweet_ids[i:i+batch_size]]
-            # print(to_delete)
-            cursor.executemany("DELETE FROM tweets WHERE tweet_id = (?)", to_delete)
-            db.commit()
-            progress_string = ("deleted %i of %i tweets in %s" %
-                (i, len(tweet_ids), anagramfunctions.format_seconds(time.time()-load_time)))
-            sys.stdout.write(progress_string + '\r')
-            sys.stdout.flush()
-        db.close()
 
     def close(self):
         self.hashes = set()
@@ -346,6 +303,51 @@ class DataCoordinator(object):
         self._write_process.join()
         self._save_cache()
         self.datastore.close()
+
+
+def archive_old_tweets(dbpath, cutoff=0.2):
+    """cutoff represents the rough fraction of tweets to be archived"""
+    load_time = time.time()
+    db = lite.connect(dbpath)
+    cursor = db.cursor()
+    tweet_ids = list()
+    cursor.execute("SELECT tweet_id FROM tweets")
+    while True:
+        results = cursor.fetchmany(1000000)
+        if not results:
+            break
+        for result in results:
+            tweet_ids.append(result[0])
+    print('extracted %i tweets in %s' % (len(tweet_ids), anagramfunctions.format_seconds(time.time()-load_time)))
+
+    tweet_ids = sorted(tweet_ids)
+    tocull = int(len(tweet_ids) * cutoff)
+    tweet_ids = tweet_ids[:tocull]
+    print('found %i old tweets to delete' % len(tweet_ids))
+
+    load_time = time.time()
+    fetch_ids = ["%s" % i for i in tweet_ids]
+    cursor.execute("SELECT * FROM tweets WHERE tweet_id IN (%s)" % ",".join(fetch_ids))
+    results = cursor.fetchall()
+    filename = "data/culled_%s.p" % time.strftime("%b%d%H%M")
+    pickle.dump(results, open(filename, 'wb'))
+    print('archived %i hashes in %s' % (len(tweet_ids), anagramfunctions.format_seconds(time.time()-load_time)))
+    del results
+    del fetch_ids
+
+    load_time = time.time()
+    tweet_ids = ["'%s'" % i for i in tweet_ids]
+    cursor.execute('PRAGMA synchronous=OFF')
+    batch_size = len(tweet_ids)/5
+    for i in range(0, len(tweet_ids), batch_size):
+        cursor.execute("DELETE FROM tweets WHERE tweet_id IN (%s)" %
+                       ",".join(tweet_ids[i:i+batch_size]))
+        progress_string = ("deleted %i of %i tweets in %s" %
+            (i, len(tweet_ids), anagramfunctions.format_seconds(time.time()-load_time)))
+        sys.stdout.write(progress_string + '\r')
+        sys.stdout.flush()
+    db.commit()
+    db.close()
 
 
 def trim_short_tweets(cutoff=20):
