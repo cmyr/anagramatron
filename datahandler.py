@@ -305,6 +305,7 @@ class DataCoordinator(object):
         self.cache = oldcache
 
 
+
     def close(self):
         self.hashes = set()
         if self._write_process and self._write_process.is_alive():
