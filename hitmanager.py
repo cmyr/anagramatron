@@ -2,12 +2,13 @@ import sqlite3 as lite
 import os
 import time
 
-import anagramconfig
+# import anagramconfig
 import anagramfunctions
 import anagramstats as stats
 import logging
 
 from twitterhandler import TwitterHandler
+from constants import STORAGE_DIRECTORY_PATH
 HIT_PATH_COMPONENT = 'hitdata'
 
 HIT_STATUS_REVIEW = 'review'
@@ -25,7 +26,7 @@ _new_hits_counter = 0
 
 def _setup(languages=['en']):
     global dbpath, hitsdb
-    dbpath = (anagramconfig.STORAGE_DIRECTORY_PATH +
+    dbpath = (STORAGE_DIRECTORY_PATH +
               HIT_PATH_COMPONENT +
               '_'.join(languages) + '.db')
 
