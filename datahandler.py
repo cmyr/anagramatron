@@ -2,6 +2,7 @@ from __future__ import print_function
 import sqlite3 as lite
 import os
 import sys
+import shutil
 import logging
 import time
 import cPickle as pickle
@@ -130,6 +131,9 @@ class DataCoordinator(object):
                 self.cache[key] = {'tweet': tweet,
                                    'hit_count': 0}
                 stats.set_cache_size(len(self.cache))
+                # DEBUG DELETE ME
+                if len(self.cache) > 20000:
+                    raise NeedsMaintenance
 
                 if len(self.cache) > ANAGRAM_CACHE_SIZE:
                     # we imagine a future in which trimming isn't based on a constant
@@ -285,12 +289,21 @@ class DataCoordinator(object):
     def perform_maintenance(self):
         """
         called when we're not keeping up with input.
-        trims older tweets from database and returns.
+        moves current database elsewhere and starts again with new db
         """
         print("breaking to perform maintenance")
+        # save our current cache to be restored after we run _setup (hacky)
+        oldcache = self.cache
         self.close()
-        archive_old_tweets(self.dbpath)
+        # move current db out of the way
+        newpath = (STORAGE_DIRECTORY_PATH +
+                    DATA_PATH_COMPONENT +
+                    '_'.join(self.languages) +
+                    time.strftime("%b%d%H%M") + '.db')
+        os.rename(self.dbpath, newpath)
         self._setup()
+        self.cache = oldcache
+
 
     def close(self):
         self.hashes = set()
@@ -299,6 +312,7 @@ class DataCoordinator(object):
             self._write_process.join()
 
         # we want to free up memory, batch_fetch performs set arithmetic
+        # if len(self.cache) > ANAGRAM_CACHE_SIZE:
         self._trim_cache()
         self._write_process.join()
         self._save_cache()

@@ -37,7 +37,6 @@ def main():
 
         except KeyboardInterrupt:
             stream_handler.close()
-            stream_handler = None
             data_coordinator.close()
             stats.close()
             break
