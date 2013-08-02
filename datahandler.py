@@ -131,9 +131,6 @@ class DataCoordinator(object):
                 self.cache[key] = {'tweet': tweet,
                                    'hit_count': 0}
                 stats.set_cache_size(len(self.cache))
-                # DEBUG DELETE ME
-                if len(self.cache) > 20000:
-                    raise NeedsMaintenance
 
                 if len(self.cache) > ANAGRAM_CACHE_SIZE:
                     # we imagine a future in which trimming isn't based on a constant
@@ -303,7 +300,6 @@ class DataCoordinator(object):
         os.rename(self.dbpath, newpath)
         self._setup()
         self.cache = oldcache
-
 
 
     def close(self):
