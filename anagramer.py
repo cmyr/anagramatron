@@ -24,14 +24,16 @@ def main():
     stats.clear_stats()
 
     while 1:
+        print('top of run loop')
         try:
-            logging.info('entering run loop')
+            print('starting stream handler')
             stream_handler.start()
             for processed_tweet in stream_handler:
                 data_coordinator.handle_input(processed_tweet)
                 stats.update_console()
 
         except NeedsMaintenance:
+            print('performing maintenance')
             stream_handler.close()
             data_coordinator.perform_maintenance()
 

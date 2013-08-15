@@ -288,9 +288,10 @@ class DataCoordinator(object):
         called when we're not keeping up with input.
         moves current database elsewhere and starts again with new db
         """
-        print("breaking to perform maintenance")
+        print("perform maintenance called")
         # save our current cache to be restored after we run _setup (hacky)
         oldcache = self.cache
+        print('stashing cache with %i items' % len(oldcache))
         self.close()
         # move current db out of the way
         newpath = (STORAGE_DIRECTORY_PATH +
@@ -299,6 +300,7 @@ class DataCoordinator(object):
                     time.strftime("%b%d%H%M") + '.db')
         os.rename(self.dbpath, newpath)
         self._setup()
+        print('restoring cache with %i items' % len(oldcache))
         self.cache = oldcache
 
 

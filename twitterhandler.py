@@ -118,11 +118,13 @@ class StreamHandler(object):
         print('creating new server connection')
         logging.debug('creating new server connection')
         if self.stream_process is not None:
+            print('terminating existing server connection')
             logging.debug('terminating existing server connection')
             self.stream_process.terminate()
             if self.stream_process.is_alive():
                 pass
             else:
+                print('thread terminated successfully')
                 logging.debug('thread terminated successfully')
 
         self.stream_process = multiprocessing.Process(
@@ -135,7 +137,7 @@ class StreamHandler(object):
                                       self._passed_filter,
                                       self._lock,
                                       self.languages))
-        self.stream_process.daemon = True
+        self.s`tream_process.daemon = True
         self.stream_process.start()
 
         print('created process %i' % self.stream_process.pid)
