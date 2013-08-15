@@ -203,18 +203,18 @@ class DataCoordinator(object):
         self._should_trim_cache = False
         # first just grab hashes with zero hits. If that's less then 1/2 total
         # do a more complex filter
-        hashes_to_save = [x for x in self.cache if not self.cache[x]['hit_count']]
-        if len(hashes_to_save) < len(self.cache)/2:
+        # hashes_to_save = [x for x in self.cache if not self.cache[x]['hit_count']]
+        # if len(hashes_to_save) < len(self.cache)/2:
             # find the oldest, least frequently hit items in cache:
-            cache_list = self.cache.values()
-            cache_list = [(x['tweet']['tweet_hash'],
-                           x['tweet']['tweet_id'],
-                           x['hit_count']) for x in cache_list]
-            s = sorted(cache_list, key=itemgetter(1))
-            cache_list = sorted(s, key=itemgetter(2))
-            if not to_trim:
-                to_trim = len(cache_list)/2
-            hashes_to_save = [x for (x, y, z) in cache_list[:to_trim]]
+        cache_list = self.cache.values()
+        cache_list = [(x['tweet']['tweet_hash'],
+                       x['tweet']['tweet_id'],
+                       x['hit_count']) for x in cache_list]
+        s = sorted(cache_list, key=itemgetter(1))
+        cache_list = sorted(s, key=itemgetter(2))
+        if not to_trim:
+            to_trim = len(cache_list)/1000
+        hashes_to_save = [x for (x, y, z) in cache_list[:to_trim]]
 
         # write those caches to disk, delete from cache, add to hashes
         to_write = [(self.cache[x]['tweet']['tweet_hash'],
