@@ -213,7 +213,7 @@ class DataCoordinator(object):
         s = sorted(cache_list, key=itemgetter(1))
         cache_list = sorted(s, key=itemgetter(2))
         if not to_trim:
-            to_trim = len(cache_list)/1000
+            to_trim = len(cache_list)/10
         hashes_to_save = [x for (x, y, z) in cache_list[:to_trim]]
 
         # write those caches to disk, delete from cache, add to hashes
