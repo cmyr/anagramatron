@@ -137,7 +137,7 @@ class StreamHandler(object):
                                       self._passed_filter,
                                       self._lock,
                                       self.languages))
-        self.s`tream_process.daemon = True
+        self.stream_process.daemon = True
         self.stream_process.start()
 
         print('created process %i' % self.stream_process.pid)
