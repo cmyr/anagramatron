@@ -135,10 +135,12 @@ class DataCoordinator(object):
                 if len(self.cache) > ANAGRAM_CACHE_SIZE:
                     # we imagine a future in which trimming isn't based on a constant
                     self._should_trim_cache = True
+
                 if self._should_trim_cache:
                     if self._is_writing.is_set():
-                        # if two writes overlap let's shutdown and trim our database
-                        raise NeedsMaintenance
+                        # means we're trying to write before previous write op is done
+                        if len(self.cache) > 2*ANAGRAM_CACHE_SIZE:
+                            raise NeedsMaintenance
                     else:
                         self._trim_cache()
 
@@ -311,9 +313,9 @@ class DataCoordinator(object):
             self._write_process.join()
 
         # we want to free up memory, batch_fetch performs set arithmetic
-        # if len(self.cache) > ANAGRAM_CACHE_SIZE:
-        self._trim_cache()
-        self._write_process.join()
+        # if len(self.cache) > ANAGRAM_CACHE_SIZE:\
+        # self._trim_cache()
+        # self._write_process.join()
         self._save_cache()
         self.datastore.close()
 
