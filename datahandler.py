@@ -139,7 +139,7 @@ class DataCoordinator(object):
                 if self._should_trim_cache:
                     if self._is_writing.is_set():
                         # means we're trying to write before previous write op is done
-                        if len(self.cache) > 2*ANAGRAM_CACHE_SIZE:
+                        if len(self.cache) > 4*ANAGRAM_CACHE_SIZE:
                             raise NeedsMaintenance
                     else:
                         self._trim_cache()
@@ -168,7 +168,6 @@ class DataCoordinator(object):
         deleting from
         """
         if (self._lock.acquire(False)):
-            print('performing fetch')
             load_time = time.time()
             cursor = self.datastore.cursor()
             hashes = ['"%s"' % self.fetch_pool[i]['tweet_hash'] for i in self.fetch_pool]
@@ -188,7 +187,7 @@ class DataCoordinator(object):
                                                            'hit_count': 1}
             # reset our fetch_pool
             self.fetch_pool = dict()
-            print('fetch finished in %s' % anagramfunctions.format_seconds(time.time()-load_time))
+            logging.debug('fetched %i from %i in %s' % (len(hashes), len(self.hashes), anagramfunctions.format_seconds(time.time()-load_time)))
         else:
             pass
             # if we can't acquire lock we'll just try again
@@ -235,7 +234,7 @@ class DataCoordinator(object):
 
     def _perform_write(self, lock, event, to_write, dbpath):
         with lock:
-            print('writing %i tweets to database' % len(to_write))
+            # print('writing %i tweets to database' % len(to_write))
             load_time = time.time()
             database = lite.connect(dbpath)
             cursor = database.cursor()
@@ -245,7 +244,7 @@ class DataCoordinator(object):
                                    to_write[i:i+1000])
                 database.commit()
             database.close()
-            print('wrote %i tweets to disk in %s' %
+            logging.debug('wrote %i tweets to disk in %s' %
                   (len(to_write), anagramfunctions.format_seconds(time.time()-load_time)))
             event.clear()
 
