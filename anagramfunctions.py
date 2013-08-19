@@ -187,8 +187,6 @@ def _char_diff_test(string_one, string_two, cutoff=0.3):
     same_chars = 0
 
     if len(stripped_one) != len(stripped_two):
-        print('diff check called on unequal length strings')
-        print(string_one, string_two)
         return False
 
     for i in range(total_chars):
@@ -284,7 +282,7 @@ def stripped_string(text, spaces=False):
     returns lower case string with all non alpha chars removed
     """
     if spaces:
-        return re.sub(r'[^a-zA-Z]', ' ', text).lower()
+        return re.sub(r'[^a-zA-Z ]', '', text).lower()
     return re.sub(r'[^a-zA-Z]', '', text).lower()
 
 

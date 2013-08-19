@@ -169,6 +169,7 @@ class DataCoordinator(object):
         """
         if (self._lock.acquire(False)):
             load_time = time.time()
+            fetch_count = len(self.fetch_pool)
             cursor = self.datastore.cursor()
             hashes = ['"%s"' % self.fetch_pool[i]['tweet_hash'] for i in self.fetch_pool]
             hashes = ",".join(hashes)
@@ -187,7 +188,7 @@ class DataCoordinator(object):
                                                            'hit_count': 1}
             # reset our fetch_pool
             self.fetch_pool = dict()
-            logging.debug('fetched %i from %i in %s' % (len(hashes), len(self.hashes), anagramfunctions.format_seconds(time.time()-load_time)))
+            logging.debug('fetched %i from %i in %s' % (fetch_count, len(self.hashes), anagramfunctions.format_seconds(time.time()-load_time)))
         else:
             pass
             # if we can't acquire lock we'll just try again

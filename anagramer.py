@@ -19,7 +19,6 @@ def main():
         format='%(asctime)s - %(levelname)s:%(message)s',
         level=logging.DEBUG
     )
-    stream_handler = StreamHandler()
     data_coordinator = DataCoordinator()
     stats.clear_stats()
 
@@ -27,6 +26,7 @@ def main():
         print('top of run loop')
         try:
             print('starting stream handler')
+            stream_handler = StreamHandler()
             stream_handler.start()
             for processed_tweet in stream_handler:
                 data_coordinator.handle_input(processed_tweet)
