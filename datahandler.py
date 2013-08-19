@@ -215,7 +215,7 @@ class DataCoordinator(object):
         s = sorted(cache_list, key=itemgetter(1))
         cache_list = sorted(s, key=itemgetter(2))
         if not to_trim:
-            to_trim = len(cache_list)/10
+            to_trim = 10000
         hashes_to_save = [x for (x, y, z) in cache_list[:to_trim]]
 
         # write those caches to disk, delete from cache, add to hashes
@@ -335,34 +335,43 @@ def archive_old_tweets(dbpath, cutoff=0.2):
             tweet_ids.append(result[0])
     print('extracted %i tweets in %s' % (len(tweet_ids), anagramfunctions.format_seconds(time.time()-load_time)))
 
-    tweet_ids = sorted(tweet_ids)
-    tocull = int(len(tweet_ids) * cutoff)
-    tweet_ids = tweet_ids[:tocull]
-    print('found %i old tweets to delete' % len(tweet_ids))
-
     load_time = time.time()
-    fetch_ids = ["%s" % i for i in tweet_ids]
-    cursor.execute("SELECT * FROM tweets WHERE tweet_id IN (%s)" % ",".join(fetch_ids))
-    results = cursor.fetchall()
-    filename = "data/culled_%s.p" % time.strftime("%b%d%H%M")
-    pickle.dump(results, open(filename, 'wb'))
-    print('archived %i hashes in %s' % (len(tweet_ids), anagramfunctions.format_seconds(time.time()-load_time)))
-    del results
-    del fetch_ids
-
-    load_time = time.time()
-    tweet_ids = ["'%s'" % i for i in tweet_ids]
-    cursor.execute('PRAGMA synchronous=OFF')
-    batch_size = len(tweet_ids)/5
-    for i in range(0, len(tweet_ids), batch_size):
-        cursor.execute("DELETE FROM tweets WHERE tweet_id IN (%s)" %
-                       ",".join(tweet_ids[i:i+batch_size]))
-        progress_string = ("deleted %i of %i tweets in %s" %
-            (i, len(tweet_ids), anagramfunctions.format_seconds(time.time()-load_time)))
-        sys.stdout.write(progress_string + '\r')
-        sys.stdout.flush()
+    max_id = max(tweet_ids)
+    min_id = min(tweet_ids)
+    cutoff_tweet = min_id + ((max_id-min_id) * cutoff)
+    cursor.execute("CREATE TABLE tmp AS SELECT FROM table WHERE tweet_id > (?)", (cutoff_tweet,))
+    cursor.execute("DROP TABLE tweets")
+    cursor.execute("ALTER TABLE tmp RENAME to tweets")
     db.commit()
     db.close()
+    # tweet_ids = sorted(tweet_ids)
+    # tocull = int(len(tweet_ids) * cutoff)
+    # tweet_ids = tweet_ids[:tocull]
+    # print('found %i old tweets to delete' % len(tweet_ids))
+
+    
+    # fetch_ids = ["%s" % i for i in tweet_ids]
+    # cursor.execute("SELECT * FROM tweets WHERE tweet_id IN (%s)" % ",".join(fetch_ids))
+    # results = cursor.fetchall()
+    # filename = "data/culled_%s.p" % time.strftime("%b%d%H%M")
+    # pickle.dump(results, open(filename, 'wb'))
+    # print('archived %i hashes in %s' % (len(tweet_ids), anagramfunctions.format_seconds(time.time()-load_time)))
+    # del results
+    # del fetch_ids
+
+    # load_time = time.time()
+    # tweet_ids = ["'%s'" % i for i in tweet_ids]
+    # cursor.execute('PRAGMA synchronous=OFF')
+    # batch_size = len(tweet_ids)/5
+    # for i in range(0, len(tweet_ids), batch_size):
+    #     cursor.execute("DELETE FROM tweets WHERE tweet_id IN (%s)" %
+    #                    ",".join(tweet_ids[i:i+batch_size]))
+    #     progress_string = ("deleted %i of %i tweets in %s" %
+    #         (i, len(tweet_ids), anagramfunctions.format_seconds(time.time()-load_time)))
+    #     sys.stdout.write(progress_string + '\r')
+    #     sys.stdout.flush()
+    # db.commit()
+    # db.close()
 
 
 def trim_short_tweets(cutoff=20):
