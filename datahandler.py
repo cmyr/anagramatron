@@ -298,7 +298,6 @@ class DataCoordinator(object):
         t['tweet_id'] = int(tweet_values[0])
         t['tweet_hash'] = tweet_values[1]
         t['tweet_text'] = tweet_values[2]
-        print(t)
         return t
 
     def _dbm_from_tweet(self, tweet):
@@ -338,6 +337,24 @@ class DataCoordinator(object):
         # self._write_process.join()
         self._save_cache()
         self.datastore.close()
+
+
+def archive_dbm_tweets(dbmpath, cutoff=0.2):
+    load_time = time.time()
+    db = anydbm.open(dbmpath, 'w')
+    archive_path = "data/culled_%s.db" % time.strftime("%b%d%H%M")
+    archive = anydbm.open(archive_path, 'c')
+    max_id = max(db.keys())
+    min_id = min(db.keys())
+    cutoff_tweet = min_id + ((max_id-min_id) * cutoff)
+    print('found cutoff tweet in %s' % anagramfunctions.format_seconds(time.time()-load_time))
+
+    for t in db:
+        if t < cutoff_tweet:
+            archive[t] = db[t]
+            del db[t]
+
+    print('deleted %i tweets in %s' % (len(archive), anagramfunctions.format_seconds(time.time()-load_time)))
 
 
 def archive_old_tweets(dbpath, cutoff=0.2):
