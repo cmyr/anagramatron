@@ -152,6 +152,13 @@ class DataCoordinator(object):
         fetches all the tweets in our fetch pool and runs comparisons
         deleting from
         """
+                # when we're done writing, check to see how long our buffer is.
+        # if it's gotten too long, we raise our NeedsMaintenance exception.
+        buffer_size = stats.buffer_size()
+        print('finished with buffer size: %i' % buffer_size)
+        if buffer_size > ANAGRAM_STREAM_BUFFER_SIZE:
+            raise NeedsMaintenance
+
         load_time = time.time()
         fetch_count = len(self.fetch_pool)
         hashes = [self.fetch_pool[i]['tweet_hash'] for i in self.fetch_pool]
@@ -208,12 +215,6 @@ class DataCoordinator(object):
             self.datastore[x] = self._dbm_from_tweet(self.cache[x]['tweet'])
             del self.cache[x]
         self.hashes |= set(hashes_to_save)
-        # when we're done writing, check to see how long our buffer is.
-        # if it's gotten too long, we raise our NeedsMaintenance exception.
-        buffer_size = stats.buffer_size()
-        print('finished with buffer size: %i' % buffer_size)
-        if buffer_size > ANAGRAM_STREAM_BUFFER_SIZE:
-            raise NeedsMaintenance
 
     def _save_cache(self):
         """
