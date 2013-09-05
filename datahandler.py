@@ -17,7 +17,7 @@ import hitmanager
 import anagramstats as stats
 
 from constants import (ANAGRAM_FETCH_POOL_SIZE, ANAGRAM_CACHE_SIZE,
-                       STORAGE_DIRECTORY_PATH)
+                       STORAGE_DIRECTORY_PATH, ANAGRAM_STREAM_BUFFER_SIZE)
 
 
 DATA_PATH_COMPONENT = 'anagramdbm'
@@ -231,6 +231,12 @@ class DataCoordinator(object):
             self.datastore[x] = self._dbm_from_tweet(self.cache[x]['tweet'])
             del self.cache[x]
         self.hashes |= set(hashes_to_save)
+        # when we're done writing, check to see how long our buffer is.
+        # if it's gotten too long, we raise our NeedsMaintenance exception.
+        buffersize = stats.get_buffer()
+        print('finished with buffer size: %i' % buffersize)
+        if stats.get_buffer() > ANAGRAM_STREAM_BUFFER_SIZE:
+            raise NeedsMaintenance
 
         # self._write_process = multiprocessing.Process(
         #     target=self._perform_write,
@@ -295,7 +301,7 @@ class DataCoordinator(object):
     def _tweet_from_dbm(self, dbm_tweet):
         tweet_values = re.split(unichr(0017), dbm_tweet.decode('utf-8'))
         t = dict()
-        t['tweet_id'] = int(tweet_values[0])
+        t['tweet_id'] = int(tweet_values[0]
         t['tweet_hash'] = tweet_values[1]
         t['tweet_text'] = tweet_values[2]
         print(t)
