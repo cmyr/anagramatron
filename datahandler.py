@@ -301,7 +301,7 @@ class DataCoordinator(object):
     def _tweet_from_dbm(self, dbm_tweet):
         tweet_values = re.split(unichr(0017), dbm_tweet.decode('utf-8'))
         t = dict()
-        t['tweet_id'] = int(tweet_values[0]
+        t['tweet_id'] = int(tweet_values[0])
         t['tweet_hash'] = tweet_values[1]
         t['tweet_text'] = tweet_values[2]
         return t
