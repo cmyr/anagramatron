@@ -210,9 +210,9 @@ class DataCoordinator(object):
         self.hashes |= set(hashes_to_save)
         # when we're done writing, check to see how long our buffer is.
         # if it's gotten too long, we raise our NeedsMaintenance exception.
-        buffersize = stats.get_buffer()
+        buffer_size = stats.buffer_size()
         print('finished with buffer size: %i' % buffersize)
-        if stats.buffer_size() > ANAGRAM_STREAM_BUFFER_SIZE:
+        if buffer_size > ANAGRAM_STREAM_BUFFER_SIZE:
             raise NeedsMaintenance
 
     def _save_cache(self):
