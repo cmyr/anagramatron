@@ -78,30 +78,11 @@ class DataCoordinator(object):
         - extract hashes
         """
         self.cache = self._load_cache()
-        # if not os.path.exists(self.dbpath):
-        #     self.datastore = lite.connect(self.dbpath)
-        #     cursor = self.datastore.cursor()
-        #     print('data not found, creating new database')
-        #     cursor.execute(
-        #         "CREATE TABLE tweets(tweet_hash TEXT PRIMARY KEY ON CONFLICT REPLACE, tweet_id INTEGER, tweet_text TEXT)"
-        #     )
-        #     cursor.execute("CREATE INDEX dex ON tweets (tweet_id)")
-        #     self.datastore.commit()
-        # else:
-        #     self.datastore = lite.connect(self.dbpath)
         self.datastore = anydbm.open(self.dbpath, 'c')
         # extract hashes
         print('extracting hashes')
         operation_start_time = time.time()
         self.hashes.update(set(self.datastore.keys()))
-        # cursor = self.datastore.cursor()
-        # cursor.execute('SELECT tweet_hash FROM tweets')
-        # while True:
-        #     results = cursor.fetchmany(1000000)
-        #     if not results:
-        #         break
-        #     for result in results:
-        #         self.hashes.add(str(result[0]))
         print('extracted %i hashes in %s' %
               (len(self.hashes), anagramfunctions.format_seconds(time.time()-operation_start_time)))
         # setup hit manager:
@@ -171,13 +152,9 @@ class DataCoordinator(object):
         fetches all the tweets in our fetch pool and runs comparisons
         deleting from
         """
-        # if (self._lock.acquire(False)):
         load_time = time.time()
         fetch_count = len(self.fetch_pool)
-        # cursor = self.datastore.cursor()
         hashes = [self.fetch_pool[i]['tweet_hash'] for i in self.fetch_pool]
-        # cursor.execute("SELECT * FROM tweets WHERE tweet_hash IN (%s)" % hashes)
-        # results = cursor.fetchall()
         results = []
         for h in hashes:
             results.append(self.datastore[h])
@@ -235,32 +212,8 @@ class DataCoordinator(object):
         # if it's gotten too long, we raise our NeedsMaintenance exception.
         buffersize = stats.get_buffer()
         print('finished with buffer size: %i' % buffersize)
-        if stats.get_buffer() > ANAGRAM_STREAM_BUFFER_SIZE:
+        if stats.buffer_size() > ANAGRAM_STREAM_BUFFER_SIZE:
             raise NeedsMaintenance
-
-        # self._write_process = multiprocessing.Process(
-        #     target=self._perform_write,
-        #     args=(self._lock,
-        #           self._is_writing,
-        #           to_write,
-        #           self.dbpath))
-        # self._write_process.start()
-
-    # def _perform_write(self, lock, event, to_write, dbpath):
-    #     with lock:
-    #         # print('writing %i tweets to database' % len(to_write))
-    #         load_time = time.time()
-    #         database = lite.connect(dbpath)
-    #         cursor = database.cursor()
-    #         cursor.execute('PRAGMA synchronous=OFF')
-    #         for i in range(0, len(to_write),1000):
-    #             cursor.executemany("INSERT INTO tweets VALUES (?, ?, ?)",
-    #                                to_write[i:i+1000])
-    #             database.commit()
-    #         database.close()
-    #         logging.debug('wrote %i tweets to disk in %s' %
-    #               (len(to_write), anagramfunctions.format_seconds(time.time()-load_time)))
-    #         event.clear()
 
     def _save_cache(self):
         """
@@ -387,34 +340,6 @@ def archive_old_tweets(dbpath, cutoff=0.2):
     cursor.execute("ALTER TABLE tmp RENAME to tweets")
     db.commit()
     db.close()
-    # tweet_ids = sorted(tweet_ids)
-    # tocull = int(len(tweet_ids) * cutoff)
-    # tweet_ids = tweet_ids[:tocull]
-    # print('found %i old tweets to delete' % len(tweet_ids))
-
-
-    # fetch_ids = ["%s" % i for i in tweet_ids]
-    # cursor.execute("SELECT * FROM tweets WHERE tweet_id IN (%s)" % ",".join(fetch_ids))
-    # results = cursor.fetchall()
-    # filename = "data/culled_%s.p" % time.strftime("%b%d%H%M")
-    # pickle.dump(results, open(filename, 'wb'))
-    # print('archived %i hashes in %s' % (len(tweet_ids), anagramfunctions.format_seconds(time.time()-load_time)))
-    # del results
-    # del fetch_ids
-
-    # load_time = time.time()
-    # tweet_ids = ["'%s'" % i for i in tweet_ids]
-    # cursor.execute('PRAGMA synchronous=OFF')
-    # batch_size = len(tweet_ids)/5
-    # for i in range(0, len(tweet_ids), batch_size):
-    #     cursor.execute("DELETE FROM tweets WHERE tweet_id IN (%s)" %
-    #                    ",".join(tweet_ids[i:i+batch_size]))
-    #     progress_string = ("deleted %i of %i tweets in %s" %
-    #         (i, len(tweet_ids), anagramfunctions.format_seconds(time.time()-load_time)))
-    #     sys.stdout.write(progress_string + '\r')
-    #     sys.stdout.flush()
-    # db.commit()
-    # db.close()
 
 
 def trim_short_tweets(cutoff=20):
@@ -466,59 +391,4 @@ if __name__ == "__main__":
     # dc = DataCoordinator()
     # sys.exit(1)
     pass
-    # print(
-    #     "Anagrams Data Utilities, Please Select From the Following Options:",
-    #     "\n (R)eview Hits",
-    #     "\n (T)rim Short Tweets",
-    #     "\n (A)rchive Old Tweets",
-    #     "\n (D)ump sqlite to file"
-    #     "\n (Q)uit")
 
-    # inp = raw_input(':')
-    # while 1:
-    #     if inp in ['r', 'R']:
-    #         dh = DataHandler(just_the_hits=True)
-    #         dh.review_hits()
-    #         dh.finish()
-    #         break
-    #     elif inp in ['t', 'T']:
-    #         # print('not implemented')
-    #         while 1:
-    #             print('enter the character count cutoff below which tweets will be culled')
-    #             cutoff = raw_input('cutoff:')
-    #             try:
-    #                 cutoff = int(cutoff)
-    #             except ValueError:
-    #                 print('enter a number between 50-100')
-    #                 continue
-    #             if (cutoff < 15) or (cutoff > 100):
-    #                 print('enter a number between 50-100')
-    #                 continue
-    #             trim_short_tweets(cutoff=cutoff)
-    #             break
-    #         break
-    #     elif inp in ['a', 'A']:
-    #         while 1:
-    #             print('enter the number of tweets to archive as a decimal')
-    #             cutoff = raw_input('cutoff:')
-    #             try:
-    #                 cutoff = float(cutoff)
-    #             except ValueError:
-    #                 print('enter a number between 0.01-0.9')
-    #                 continue
-    #             if (cutoff < 0.01) or (cutoff > 0.9):
-    #                 print('enter a number between 0.01-0.9')
-    #                 continue
-    #             archive_old_tweets(cutoff=cutoff)
-    #             break
-    #         break
-    #     elif inp in ['d', 'D']:
-    #         dh = DataHandler()
-    #         dh.dump()
-    #         dh.finish()
-    #         break
-    #     elif inp in ['q', 'Q']:
-    #         break
-    # dh = DataHandler(just_the_hits=True)
-    # dh.review_hits()
-    # dh.finish()
