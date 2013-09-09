@@ -254,7 +254,7 @@ def _combined_words_test(string_one, string_two, cutoff=0.5):
         return False
 
 
-def one_test_to_rule_them(string_one, string_two, cutoff=0.75, stop=False):
+def one_test_to_rule_them(string_one, string_two, cutoff=0.8, stop=False):
     """
     searches s2 for words from s1, removing them where found.
     repeats in the opposite order on pass.
@@ -275,10 +275,10 @@ def one_test_to_rule_them(string_one, string_two, cutoff=0.75, stop=False):
 
     print(float(len(s2))/len(s1))
     if float(len(s2))/len(s1) < cutoff:
-        return False
+        return True
     else:
         if stop:
-            return True
+            return False
         return one_test_to_rule_them(string_two, string_one, stop=True)
 
 
