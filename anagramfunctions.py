@@ -10,37 +10,12 @@ ENGLISH_LETTER_LIST = sorted(ENGLISH_LETTER_FREQUENCIES.keys(),
                              key=lambda t: ENGLISH_LETTER_FREQUENCIES[t])
 # This contains the various functions for filtering tweets, comparing
 # potential anagrams, as well as some shared helper utilities.
-def old_filter(tweet):
-    """
-    this is here for some legacy testing
-    """
-    #check for mentions
-    if len(tweet.get('entities').get('user_mentions')) is not 0:
-        return False
-    #check for retweets
-    if tweet.get('retweeted_status'):
-        return False
-    # ignore tweets w/ non-ascii characters
-    try:
-        tweet['text'].decode('ascii')
-    except UnicodeEncodeError:
-        return False
-    # check for links:
-    if len(tweet.get('entities').get('urls')) is not 0:
-        return False
-    # ignore short tweets
-    t = utils.stripped_string(tweet['text'])
-    if len(t) <= ANAGRAM_LOW_CHAR_CUTOFF:
-        return False
-    # ignore tweets with few characters
-    st = set(t)
-    if len(st) <= ANAGRAM_LOW_UNIQUE_CHAR_CUTOFF:
-        return False
-    return format_tweet(tweet)
 
 
 freqsort = ENGLISH_LETTER_FREQUENCIES
 # just to keep line_lengths sane
+
+
 
 def improved_hash(text, debug=False):
     """
@@ -275,12 +250,11 @@ def one_test_to_rule_them(string_one, string_two, cutoff=0.8, stop=False):
 
     print(float(len(s2))/len(s1))
     if float(len(s2))/len(s1) < cutoff:
-        return True
+        return False
     else:
         if stop:
-            return False
+            return True
         return one_test_to_rule_them(string_two, string_one, stop=True)
-
 
 
 def grade_anagram(anagram):
@@ -328,6 +302,7 @@ def stripped_string(text, spaces=False):
     returns lower case string with all non alpha chars removed
     """
     if spaces:
+        text = re.sub(r'[_-]', ' ', text)  # replace dashes and underbars
         return re.sub(r'[^a-zA-Z ]', '', text).lower()
     return re.sub(r'[^a-zA-Z]', '', text).lower()
 
