@@ -173,6 +173,8 @@ def test_anagram(string_one, string_two):
         return False
     if not _combined_words_test(string_one, string_two):
         return False
+    if not one_test_to_rule_them(string_one, string_two):
+        return False
     return True
 
 
@@ -250,6 +252,50 @@ def _combined_words_test(string_one, string_two, cutoff=0.5):
         return True
     else:
         return False
+
+
+def one_test_to_rule_them(string_one, string_two, cutoff=0.75, stop=False):
+    """
+    searches s2 for words from s1, removing them where found.
+    repeats in the opposite order on pass.
+    """
+    print(string_one)
+    print(string_two)
+    s1 = sorted(stripped_string(string_one, spaces=True).split(),
+        key=len,
+        reverse=True)
+    s2 = stripped_string(string_two, spaces=True)
+    for word in s1:
+        if len(word) > 2 and re.search(word, s2):
+            s2 = re.sub(word, '', s2, count=1)
+    s1 = ''.join(s1)
+    s2 = stripped_string(s2, spaces=False)
+    print(s1)
+    print(s2)
+
+    print(float(len(s2))/len(s1))
+    if float(len(s2))/len(s1) < cutoff:
+        return False
+    else:
+        if stop:
+            return True
+        return one_test_to_rule_them(string_two, string_one, stop=True)
+
+
+
+def grade_anagram(anagram):
+    """
+    an attempt to come up with a numerical value that expresses an anagrams
+    potential 'interestingness'.
+    """
+    t1 = anagram['tweet_one']['tweet_text']
+    t2 = anagram['tweet_two']['tweet_text']
+
+    letter_count = len(stripped_string(t1))
+    unique_letters = len(set(stripped_string(t1)))
+    # avg_word_length = len(t1)*2 / (len(stripped_string(t1, True).split()) +
+    #     len(stripped_string(t2,True).split()))
+    return letter_count, unique_letters, (letter_count + unique_letters * 1.5)
 
 
 def format_seconds(seconds):

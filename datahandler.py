@@ -317,79 +317,66 @@ def archive_dbm_tweets(dbmpath, cutoff=0.2):
     print('deleted %i tweets in %s' % (len(archive), anagramfunctions.format_seconds(time.time()-load_time)))
 
 
-def archive_old_tweets(dbpath, cutoff=0.2):
-    """cutoff represents the rough fraction of tweets to be archived"""
-    load_time = time.time()
-    db = lite.connect(dbpath)
-    cursor = db.cursor()
-    tweet_ids = list()
-    cursor.execute("SELECT tweet_id FROM tweets")
-    while True:
-        results = cursor.fetchmany(1000000)
-        if not results:
-            break
-        for result in results:
-            tweet_ids.append(result[0])
-    print('extracted %i tweets in %s' % (len(tweet_ids), anagramfunctions.format_seconds(time.time()-load_time)))
+def combine_databases(path1, path2):
+    try:
+        import gdbm
+    except ImportError:
+        print('combining databases requires the gdbm module. :(')
+    print('adding tweets from %s to %s' % (path2, path1))
 
-    load_time = time.time()
-    max_id = max(tweet_ids)
-    min_id = min(tweet_ids)
-    cutoff_tweet = min_id + ((max_id-min_id) * cutoff)
-    cursor.execute("CREATE TABLE tmp AS SELECT * FROM tweets WHERE tweet_id > (?)", (cutoff_tweet,))
-    cursor.execute("DROP TABLE tweets")
-    cursor.execute("ALTER TABLE tmp RENAME to tweets")
-    db.commit()
-    db.close()
+    db1 = gdbm.open(path1, 'w')
+    db2 = gdbm.open(path2, 'w')
+    start_time = time.time()
 
+    k = db2.firstkey()
+    temp_k = None
+    try:
+        while k is not None:
+            tweet = _tweet_from_dbm(db2[k])
+            # print(k, tweet)
+            stats.tweets_seen()
+            stats.passed_filter()
+            if k in db1:
+                stats.possible_hit()
+                tweet2 = _tweet_from_dbm(db1[k])
+                if anagramfunctions.test_anagram(
+                    tweet['tweet_text'],
+                    tweet2['tweet_text']
+                    ):
+                    temp_k = db2.nextkey(k)
+                    del db2[k]
+                    hitmanager.new_hit(tweet, tweet2)
+                else:
+                    pass
+            else:
+                db1[k] = _dbm_from_tweet(tweet)
+            stats.update_console()
+            k = db2.nextkey(k)
+            if not k and temp_k:
+                k = temp_k
+                temp_k = None
+    finally:
+        db1.close()
+        db2.close()
 
-def trim_short_tweets(cutoff=20):
-    """
-    utility function for deleting short tweets from our database
-    cutoff represents the rough percentage of tweets to be deleted
-    """
-    load_time = time.time()
-    db = lite.connect(TWEET_DB_PATH)
-    cursor = db.cursor()
-    cursor.execute("SELECT hash FROM tweets")
-    hashes = cursor.fetchall()
-    hashes = set([str(h) for (h,) in hashes])
-    print('extracted %i hashes in %s' % (len(hashes), anagramfunctions.format_seconds(time.time()-load_time)))
-    short_hashes = [h for h in hashes if len(h) < cutoff]
-    print("found %i of %i hashes below %i character cutoff" % (len(short_hashes), len(hashes), cutoff))
-    load_time = time.time()
-    hashvals = ["'%s'" % h for h in short_hashes]
-    db.execute("DELETE FROM tweets WHERE hash IN (%s)" % ",".join(hashvals))
-    # self.cache.executemany("DELETE FROM tweets WHERE hash=(?)", iter(short_hashes))
-    db.commit()
-    print('deleted %i hashes in %s' % (len(short_hashes), anagramfunctions.format_seconds(time.time()-load_time)))
-    # short_hashes = set(short_hashes)
-    # self.hashes = self.hashes.difference(short_hashes)
+def _tweet_from_dbm(dbm_tweet):
+    tweet_values = re.split(unichr(0017), dbm_tweet.decode('utf-8'))
+    t = dict()
+    t['tweet_id'] = int(tweet_values[0])
+    t['tweet_hash'] = tweet_values[1]
+    t['tweet_text'] = tweet_values[2]
+    return t
 
-
-# def combine_databases(path1, path2, rate, debug=True):
-#     print('adding tweets from %s to %s' % (db2, db1))
-#     db1 = lite.connect(path1)
-#     db2 = lite.connect(path2)
-
-#     # so what's the plan, here? 
-#     #   1) fetch from 2 at $RATE
-#     #   2) select $FETCHED from 1
-#     #   3) compare results
-#     #   4) if there's a hit, just print it or something?
-
-#     cursor = db2.cursor()
-#     cursor.execute("SELECT tweet_id FROM tweets")
-#     while True:
-#         results = cursor.fetchmany(rate)
-#         if not results:
-#             break
-#         for result in results:
-
-
+def _dbm_from_tweet(tweet):
+    dbm_string = unichr(0017).join([unicode(i) for i in tweet.values()])
+    return dbm_string.encode('utf-8')
 
 if __name__ == "__main__":
+    args = sys.argv[1:]
+    if len(args) is not 2:
+        print('please select exactly two target databases')
+
+    combine_databases(args[0], args[1])
     # dc = DataCoordinator()
     # sys.exit(1)
     pass
-
