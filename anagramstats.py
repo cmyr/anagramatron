@@ -111,6 +111,9 @@ def stats_dict():
             'start_time': _start_time
             }
 
+def buffer_size():
+    return _buffer
+
 
 def update_console():
     global _tweets_seen, _passed_filter, _possible_hits, _hits, _overflow

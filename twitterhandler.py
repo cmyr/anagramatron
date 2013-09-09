@@ -82,20 +82,20 @@ class StreamHandler(object):
         this makes keeping track of the buffer size a lot cleaner.
         """
         while 1:
-            # first add items from the queue to the buffer
             if self._should_return:
                 print('breaking iteration')
                 raise StopIteration
             while 1:
+                # add all new items from the queue to the buffer
                 try:
-                        self._buffer.append(self.queue.get_nowait())
+                    self._buffer.append(self.queue.get_nowait())
                 except Queue.Empty:
                     break
             try:
                 self.update_stats()
                 if len(self._buffer):
+                    # if there's a buffer element return it
                     yield self._buffer.popleft()
-                    # add elements to buffer from queue:
                 else:
                     yield self.queue.get(True, self.timeout)
                     self._backoff_time = 0
