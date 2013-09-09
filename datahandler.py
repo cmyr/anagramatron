@@ -155,7 +155,8 @@ class DataCoordinator(object):
                 # when we're done writing, check to see how long our buffer is.
         # if it's gotten too long, we raise our NeedsMaintenance exception.
         buffer_size = stats.buffer_size()
-        print('finished with buffer size: %i' % buffer_size)
+        if buffer_size:
+            print('\nfinished with buffer size: %i\n' % buffer_size)
         if buffer_size > ANAGRAM_STREAM_BUFFER_SIZE:
             raise NeedsMaintenance
 
