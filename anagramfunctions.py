@@ -262,8 +262,8 @@ def grade_anagram(hit):
     an attempt to come up with a numerical value that expresses an anagrams
     potential 'interestingness'.
     """
-    t1 = anagram['tweet_one']['tweet_text']
-    t2 = anagram['tweet_two']['tweet_text']
+    t1 = hit['tweet_one']['tweet_text']
+    t2 = hit['tweet_two']['tweet_text']
 
     letter_count = len(stripped_string(t1))
     unique_letters = len(set(stripped_string(t1)))
