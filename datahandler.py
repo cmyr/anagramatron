@@ -318,7 +318,7 @@ def archive_dbm_tweets(dbmpath, cutoff=0.2):
     print('deleted %i tweets in %s' % (len(archive), anagramfunctions.format_seconds(time.time()-load_time)))
 
 
-def combine_databases(path1, path2):
+def combine_databases(path1, path2, minlen=20):
     try:
         import gdbm
     except ImportError:
@@ -336,6 +336,9 @@ def combine_databases(path1, path2):
             tweet = _tweet_from_dbm(db2[k])
             # print(k, tweet)
             stats.tweets_seen()
+            if len(anagramfunctions.stripped_string(tweet['tweet_text'])) < minlen:
+                k = db2.nextkey(k)
+                continue
             stats.passed_filter()
             if k in db1:
                 stats.possible_hit()

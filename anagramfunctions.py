@@ -257,7 +257,7 @@ def one_test_to_rule_them(string_one, string_two, cutoff=0.8, stop=False):
         return one_test_to_rule_them(string_two, string_one, stop=True)
 
 
-def grade_anagram(anagram):
+def grade_anagram(hit):
     """
     an attempt to come up with a numerical value that expresses an anagrams
     potential 'interestingness'.
@@ -269,7 +269,7 @@ def grade_anagram(anagram):
     unique_letters = len(set(stripped_string(t1)))
     # avg_word_length = len(t1)*2 / (len(stripped_string(t1, True).split()) +
     #     len(stripped_string(t2,True).split()))
-    return letter_count, unique_letters, (letter_count + unique_letters * 1.5)
+    return letter_count, unique_letters
 
 
 def format_seconds(seconds):

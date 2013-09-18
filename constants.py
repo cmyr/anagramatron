@@ -36,3 +36,13 @@ ENGLISH_LETTER_FREQUENCIES = {
     'q': 25,
     'z': 26
 }
+
+WORDS_I_SEE_TOO_MUCH = [
+    'smh',
+    'dis',
+    'idc',
+    'da',
+    'jus',
+    'thoe',
+    'doe',
+    ]
