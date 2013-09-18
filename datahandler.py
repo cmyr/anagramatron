@@ -155,10 +155,16 @@ class DataCoordinator(object):
                 # when we're done writing, check to see how long our buffer is.
         # if it's gotten too long, we raise our NeedsMaintenance exception.
         buffer_size = stats.buffer_size()
+        should_raise_maintenance_flag = False
         if buffer_size:
             print('\nfinished with buffer size: %i\n' % buffer_size)
+            logging.debug('finished with buffer size: %i\n' % buffer_size)
         if buffer_size > ANAGRAM_STREAM_BUFFER_SIZE:
-            raise NeedsMaintenance
+            should_raise_maintenance_flag = True
+            # putting this here because I forget how our processes work
+            # and am unsure if we'll still have a buffer when we exit this function?
+            # but if we perform maintenance now we'll have a crash on restart
+            # b/c there are things in the fetchpool that no longer exist in db
 
         load_time = time.time()
         fetch_count = len(self.fetch_pool)
@@ -180,9 +186,13 @@ class DataCoordinator(object):
         # reset our fetch_pool
         self.fetch_pool = dict()
         logging.debug('fetched %i from %i in %s' % (fetch_count, len(self.hashes), anagramfunctions.format_seconds(time.time()-load_time)))
-        # else:
-        #     pass
-            # if we can't acquire lock we'll just try again
+
+        if buffer_size > ANAGRAM_STREAM_BUFFER_SIZE:
+            logging.debug('buffer size after fetch: %i' % stats.buffer_size())
+
+        if should_raise_maintenance_flag:
+            raise NeedsMaintenance
+
 
 
     def _trim_cache(self, to_trim=None):
