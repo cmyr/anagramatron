@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 import sqlite3 as lite
 import os
 import time
@@ -6,12 +8,14 @@ import time
 import anagramfunctions
 import anagramstats as stats
 import logging
+import sys
 
 from twitterhandler import TwitterHandler
 from constants import STORAGE_DIRECTORY_PATH
 HIT_PATH_COMPONENT = 'hitdata'
 
 HIT_STATUS_REVIEW = 'review'
+HIT_STATUS_SEEN = 'seen'
 HIT_STATUS_REJECTED = 'rejected'
 HIT_STATUS_POSTED = 'posted'
 HIT_STATUS_APPROVED = 'approved'
@@ -171,15 +175,17 @@ def remove_hit(hit_id):
 
 def set_hit_status(hit_id, status):
     _checkit()
-    if status not in [HIT_STATUS_REVIEW, HIT_STATUS_MISC,
+    if status not in [HIT_STATUS_REVIEW, HIT_STATUS_MISC, HIT_STATUS_SEEN,
                       HIT_STATUS_APPROVED, HIT_STATUS_POSTED,
                       HIT_STATUS_REJECTED, HIT_STATUS_FAILED]:
+        print('invalid status')
         return False
     # get the hit, delete the hit, add it again with new status.
     hit = get_hit(hit_id)
     hit['status'] = status
     remove_hit(hit_id)
     _add_hit(hit)
+    assert(get_hit(hit_id)['status'] == status)
 
 
 def all_hits(with_status=None):
@@ -271,3 +277,61 @@ def server_sent_hits(hits):
     cursor.execute("INSERT INTO hitinfo VALUES (?)", (newest_hit_sent,))
     hitsdb.commit()
     print('inserted hit %i' % newest_hit_sent)
+
+
+def review_hits(to_post=False):
+    """
+    manual tool for reviewing hits on the command line
+    """
+    status = HIT_STATUS_REVIEW if not to_post else HIT_STATUS_APPROVED
+    hits = all_hits(status)
+    hits = [(h, anagramfunctions.grade_anagram(h)) for h in hits]
+    hits = sorted(hits, key= lambda k: k[1], reverse=True)
+    hits = [h[0] for h in hits]
+
+    print('found %i hits in need of review' % len(hits))
+    while True:
+        print(' anagram review (%i)'.center(80, '-') % len(hits))
+        term_height = int(os.popen('stty size', 'r').read().split()[0])
+        display_count = min(((term_height - 3) / 3), len(hits))
+        display_hits = {k: hits[k] for k in range(display_count)}
+        
+        for h in display_hits:
+            msg = "%s  %s" % (display_hits[h]['tweet_one']['tweet_id'], display_hits[h]['tweet_two']['tweet_id'])
+            print(msg)
+            print(str(h).ljust(9), display_hits[h]['tweet_one']['tweet_text'])
+            print(' '*10, display_hits[h]['tweet_two']['tweet_text'])
+
+        print('enter space seperated numbers of anagrams to approve. q to quit.')
+        inp = raw_input(': ')
+        if inp in [chr(27), 'x', 'q']:
+            break
+
+        approved = inp.split()
+        print(approved)
+        for h in display_hits:
+            if str(h) in approved:
+                if not to_post:
+                    print('approved', h)
+                    approve_hit(display_hits[h]['id'])
+                else:
+                    print('marked %i as posted' % h)
+                    set_hit_status(display_hits[h]['id'], HIT_STATUS_POSTED)
+            else:
+                if not to_post:
+                    set_hit_status(display_hits[h]['id'], HIT_STATUS_SEEN)
+            hits.remove(display_hits[h])
+
+
+
+
+
+
+if __name__ == "__main__":
+    args = sys.argv[1:]
+    if "-r" in args:
+        review_hits(True)
+
+
+    review_hits()
+
