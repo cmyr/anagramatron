@@ -4,7 +4,7 @@ import sqlite3 as lite
 import unicodedata
 
 from constants import (ANAGRAM_LOW_CHAR_CUTOFF, ANAGRAM_LOW_UNIQUE_CHAR_CUTOFF,
-                       ENGLISH_LETTER_FREQUENCIES)
+    ANAGRAM_ALPHA_RATIO_CUTOFF, ENGLISH_LETTER_FREQUENCIES)
 
 ENGLISH_LETTER_LIST = sorted(ENGLISH_LETTER_FREQUENCIES.keys(),
                              key=lambda t: ENGLISH_LETTER_FREQUENCIES[t])
@@ -108,11 +108,6 @@ def _low_letter_ratio(text, cutoff=0.8):
     return False
 
 
-# def print_low_letter_ratio(text, cutoff=0.8):
-#     t = re.sub(r'[^a-zA-Z .,!?"\']', '', text)
-#     return (float(len(t)) / len(text))
-
-
 def filter_tweet(tweet):
     """
     filters out anagram-inappropriate tweets.
@@ -127,7 +122,7 @@ def filter_tweet(tweet):
         if _text_contains_tricky_chars(tweet_text):
             tweet_text = _strip_accents(tweet_text)
 
-    if _low_letter_ratio(tweet_text):
+    if _low_letter_ratio(tweet_text, ANAGRAM_ALPHA_RATIO_CUTOFF):
         return False
 
     return {'tweet_hash': improved_hash(tweet_text),
@@ -267,8 +262,7 @@ def grade_anagram(hit):
 
     letter_count = len(stripped_string(t1))
     unique_letters = len(set(stripped_string(t1)))
-    # avg_word_length = len(t1)*2 / (len(stripped_string(t1, True).split()) +
-    #     len(stripped_string(t2,True).split()))
+
     return letter_count, unique_letters
 
 
