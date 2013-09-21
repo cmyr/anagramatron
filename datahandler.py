@@ -74,12 +74,12 @@ class DataCoordinator(object):
         """
         self.cache = self._load_cache()
         self.datastore = anydbm.open(self.dbpath, 'c')
-        # extract hashes
-        print('extracting hashes')
-        operation_start_time = time.time()
-        self.hashes.update(set(self.datastore.keys()))
-        print('extracted %i hashes in %s' %
-              (len(self.hashes), anagramfunctions.format_seconds(time.time()-operation_start_time)))
+        # # extract hashes
+        # print('extracting hashes')
+        # operation_start_time = time.time()
+        # self.hashes.update(set(self.datastore.keys()))
+        # print('extracted %i hashes in %s' %
+        #       (len(self.hashes), anagramfunctions.format_seconds(time.time()-operation_start_time)))
         # setup hit manager:
         hitmanager._setup(self.languages)
 
@@ -103,7 +103,7 @@ class DataCoordinator(object):
                 self.cache[key]['hit_count'] += 1
         else:
             # not in cache. in datastore?
-            if key in self.hashes:
+            if key in self.datastore:
             # add to fetch_pool
                 self._add_to_fetch_pool(tweet)
             else:
