@@ -1,14 +1,13 @@
 from __future__ import print_function
-from bottle import (Bottle, route, run, request, response, server_names,
+from bottle import (Bottle, run, request, server_names,
                     ServerAdapter, abort)
 import time
-# import datahandler
 import hitmanager
 import anagramstats as stats
 
 
-from hitmanager import (HIT_STATUS_REVIEW, HIT_STATUS_FAILED, HIT_STATUS_SEEN,
-    HIT_STATUS_REJECTED, HIT_STATUS_POSTED, HIT_STATUS_APPROVED, HIT_STATUS_MISC)
+from hitmanager import (HIT_STATUS_REVIEW, HIT_STATUS_SEEN, HIT_STATUS_MISC
+    HIT_STATUS_REJECTED, HIT_STATUS_POSTED, HIT_STATUS_APPROVED)
 # SSL subclass of bottle cribbed from:
 # http://dgtool.blogspot.com.au/2011/12/ssl-encryption-in-python-bottle.html
 
@@ -146,6 +145,7 @@ def info():
 
     stats_dict = stats.stats_dict()
     new_hits = hitmanager.new_hits_count()
+    last_post = hitmanager.last_post_time()
     return {'stats': stats_dict, 'new_hits': new_hits}
 
 
@@ -196,7 +196,7 @@ def get_hits2():
         print("%i: %s, %s" % (hit['id'], timestring, hit['status']))
 
     if return_hits:
-        hitmanager.server_sent_hits(return_hits)
+        # hitmanager.server_sent_hits(return_hits)
         return {'hits': return_hits}
     else:
         return {'hits': None}
