@@ -6,12 +6,9 @@ import time
 import hitmanager
 import anagramstats as stats
 
-HIT_STATUS_REVIEW = 'review'
-CLIENT_ACTION_POST = 'posted'
-CLIENT_ACTION_REJECT = 'rejected'
-CLIENT_ACTION_APPROVE = 'approved'
-CLIENT_ACTION_FAILED = 'failed'
 
+from hitmanager import (HIT_STATUS_REVIEW, HIT_STATUS_FAILED, HIT_STATUS_SEEN
+    HIT_STATUS_REJECTED, HIT_STATUS_POSTED, HIT_STATUS_APPROVED, HIT_STATUS_MISC)
 # SSL subclass of bottle cribbed from:
 # http://dgtool.blogspot.com.au/2011/12/ssl-encryption-in-python-bottle.html
 
@@ -61,11 +58,12 @@ def get_hits():
     if not authenticate(auth):
         return
     # update data
-    hits = hitmanager.all_hits()
-    if (request.query.status):
-        hits = [h for h in hits if h['status'] == request.query.status]
-    else:
-        hits = [h for h in hits if h['status'] not in [CLIENT_ACTION_POST, CLIENT_ACTION_REJECT, CLIENT_ACTION_FAILED]]
+    status = str(request.query.status)
+    status = status if status else HIT_STATUS_REVIEW
+    cutoff = int(request.query.id)
+    hits = hitmanager.all_hits(status, cutoff)
+    if cutoff:
+        hits = hits[:cutoff]
     print("returned %i hits" % len(hits))
     return {'hits': hits}
 
@@ -81,20 +79,20 @@ def modify_hit():
     print(hit_id, action)
     if not hit_id or not action:
         abort(400, 'v0_0v')
-    if action == CLIENT_ACTION_POST:
+    if action == HIT_STATUS_POSTED:
         # if data.post_hit(hit_id):
         print('post requested')
         if hitmanager.post_hit(hit_id):
             return {'hit': hitmanager.get_hit(hit_id), 'response': True}
         else:
             return {'hit': hitmanager.get_hit(hit_id), 'response': False}
-    if action == CLIENT_ACTION_APPROVE:
+    if action == HIT_STATUS_APPROVED:
         print('approve requested')
         if hitmanager.approve_hit(hit_id):
             return {'hit': hitmanager.get_hit(hit_id), 'response': True}
         else:
             return {'hit': hitmanager.get_hit(hit_id), 'response': False}
-    if action == CLIENT_ACTION_REJECT:
+    if action == HIT_STATUS_REJECTED:
         print('reject requested')
         if hitmanager.reject_hit(hit_id):
             return {'hit': hitmanager.get_hit(hit_id), 'response': True}

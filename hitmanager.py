@@ -188,7 +188,7 @@ def set_hit_status(hit_id, status):
     assert(get_hit(hit_id)['status'] == status)
 
 
-def all_hits(with_status=None):
+def all_hits(with_status=None, cutoff_id=None):
     _checkit()
     cursor = hitsdb.cursor()
     if not with_status:
@@ -199,6 +199,8 @@ def all_hits(with_status=None):
     hits = []
     for item in results:
         hits.append(hit_from_sql(item))
+    if cutoff_id:
+        hits = [h for h in hits if h['id'] < cutoff_id]
     return hits
 
 
