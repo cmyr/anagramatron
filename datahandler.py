@@ -23,12 +23,10 @@ from constants import (ANAGRAM_FETCH_POOL_SIZE, ANAGRAM_CACHE_SIZE,
 DATA_PATH_COMPONENT = 'anagramdbm'
 CACHE_PATH_COMPONENT = 'cachedump'
 
-HIT_STATUS_REVIEW = 'review'
-HIT_STATUS_REJECTED = 'rejected'
-HIT_STATUS_POSTED = 'posted'
-HIT_STATUS_APPROVED = 'approved'
-HIT_STATUS_MISC = 'misc'
-HIT_STATUS_FAILED = 'failed'
+from hitmanager import (HIT_STATUS_SEEN, HIT_STATUS_REVIEW, HIT_STATUS_POSTED,
+        HIT_STATUS_REJECTED, HIT_STATUS_APPROVED, HIT_STATUS_MISC,
+        HIT_STATUS_FAILED)
+
 
 
 class NeedsMaintenance(Exception):
@@ -36,9 +34,6 @@ class NeedsMaintenance(Exception):
     hacky exception raised when DataCoordinator is no longer able to keep up.
     use this to signal that we should shutdown and perform maintenance.
     """
-    # this isn't being used right now, but might be used to implement
-    # automated trimming / removal of old tweets from the permanent store
-    # when things are getting too slow.
     pass
 
 
@@ -132,7 +127,6 @@ class DataCoordinator(object):
     def _add_to_fetch_pool(self, tweet):
         key = tweet['tweet_hash']
         if self.fetch_pool.get(key):
-            # print('\ntweet in fetchpool')
             # exists in fetch pool, run comps
             hit_tweet = self.fetch_pool[key]
             if anagramfunctions.test_anagram(tweet['tweet_text'], hit_tweet['tweet_text']):
@@ -175,7 +169,7 @@ class DataCoordinator(object):
         self.hashes -= set(hashes)
         # self._lock.release()
         for result in results:
-            fetched_tweet = self._tweet_from_dbm(result)
+            fetched_tweet = _tweet_from_dbm(result)
             new_tweet = self.fetch_pool[fetched_tweet['tweet_hash']]
             if anagramfunctions.test_anagram(fetched_tweet['tweet_text'],
                                              new_tweet['tweet_text']):
@@ -185,14 +179,16 @@ class DataCoordinator(object):
                                                        'hit_count': 1}
         # reset our fetch_pool
         self.fetch_pool = dict()
-        logging.debug('fetched %i from %i in %s' % (fetch_count, len(self.hashes), anagramfunctions.format_seconds(time.time()-load_time)))
+        logging.debug('fetched %i from %i in %s' % 
+            (fetch_count,
+                len(self.hashes),
+                anagramfunctions.format_seconds(time.time()-load_time)))
 
         if buffer_size > ANAGRAM_STREAM_BUFFER_SIZE:
             logging.debug('buffer size after fetch: %i' % stats.buffer_size())
 
         if should_raise_maintenance_flag:
             raise NeedsMaintenance
-
 
 
     def _trim_cache(self, to_trim=None):
@@ -206,8 +202,6 @@ class DataCoordinator(object):
         self._should_trim_cache = False
         # first just grab hashes with zero hits. If that's less then 1/2 total
         # do a more complex filter
-        # hashes_to_save = [x for x in self.cache if not self.cache[x]['hit_count']]
-        # if len(hashes_to_save) < len(self.cache)/2:
             # find the oldest, least frequently hit items in cache:
         cache_list = self.cache.values()
         cache_list = [(x['tweet']['tweet_hash'],
@@ -220,10 +214,9 @@ class DataCoordinator(object):
         hashes_to_save = [x for (x, y, z) in cache_list[:to_trim]]
 
         # write those caches to disk, delete from cache, add to hashes
-        # to_write = [self.cache[x] for x in hashes_to_save]
         for x in hashes_to_save:
 
-            self.datastore[x] = self._dbm_from_tweet(self.cache[x]['tweet'])
+            self.datastore[x] = _dbm_from_tweet(self.cache[x]['tweet'])
             del self.cache[x]
         self.hashes |= set(hashes_to_save)
 
@@ -256,24 +249,6 @@ class DataCoordinator(object):
             return cache
             # really not tons we can do ehre
 
-    def _tweet_from_sql(self, sql_tweet):
-        return {
-            'tweet_hash': sql_tweet[0],
-            'tweet_id': long(sql_tweet[1]),
-            'tweet_text': sql_tweet[2]
-        }
-
-    def _tweet_from_dbm(self, dbm_tweet):
-        tweet_values = re.split(unichr(0017), dbm_tweet.decode('utf-8'))
-        t = dict()
-        t['tweet_id'] = int(tweet_values[0])
-        t['tweet_hash'] = tweet_values[1]
-        t['tweet_text'] = tweet_values[2]
-        return t
-
-    def _dbm_from_tweet(self, tweet):
-        dbm_string = unichr(0017).join([unicode(i) for i in tweet.values()])
-        return dbm_string.encode('utf-8')
 
     def perform_maintenance(self):
         """
@@ -302,30 +277,22 @@ class DataCoordinator(object):
             print('write process active. waiting.')
             self._write_process.join()
 
-        # we want to free up memory, batch_fetch performs set arithmetic
-        # if len(self.cache) > ANAGRAM_CACHE_SIZE:\
-        # self._trim_cache()
-        # self._write_process.join()
         self._save_cache()
         self.datastore.close()
 
 
-def archive_dbm_tweets(dbmpath, cutoff=0.2):
-    load_time = time.time()
-    db = anydbm.open(dbmpath, 'w')
-    archive_path = "data/culled_%s.db" % time.strftime("%b%d%H%M")
-    archive = anydbm.open(archive_path, 'c')
-    max_id = max(db.keys())
-    min_id = min(db.keys())
-    cutoff_tweet = min_id + ((max_id-min_id) * cutoff)
-    print('found cutoff tweet in %s' % anagramfunctions.format_seconds(time.time()-load_time))
+def _tweet_from_dbm(dbm_tweet):
+    tweet_values = re.split(unichr(0017), dbm_tweet.decode('utf-8'))
+    t = dict()
+    t['tweet_id'] = int(tweet_values[0])
+    t['tweet_hash'] = tweet_values[1]
+    t['tweet_text'] = tweet_values[2]
+    return t
 
-    for t in db:
-        if t < cutoff_tweet:
-            archive[t] = db[t]
-            del db[t]
 
-    print('deleted %i tweets in %s' % (len(archive), anagramfunctions.format_seconds(time.time()-load_time)))
+def _dbm_from_tweet(tweet):
+    dbm_string = unichr(0017).join([unicode(i) for i in tweet.values()])
+    return dbm_string.encode('utf-8')
 
 
 def combine_databases(path1, path2, minlen=20):
@@ -373,17 +340,6 @@ def combine_databases(path1, path2, minlen=20):
         db1.close()
         db2.close()
 
-def _tweet_from_dbm(dbm_tweet):
-    tweet_values = re.split(unichr(0017), dbm_tweet.decode('utf-8'))
-    t = dict()
-    t['tweet_id'] = int(tweet_values[0])
-    t['tweet_hash'] = tweet_values[1]
-    t['tweet_text'] = tweet_values[2]
-    return t
-
-def _dbm_from_tweet(tweet):
-    dbm_string = unichr(0017).join([unicode(i) for i in tweet.values()])
-    return dbm_string.encode('utf-8')
 
 if __name__ == "__main__":
     args = sys.argv[1:]
