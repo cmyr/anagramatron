@@ -7,7 +7,7 @@ import hitmanager
 import anagramstats as stats
 
 
-from hitmanager import (HIT_STATUS_REVIEW, HIT_STATUS_FAILED, HIT_STATUS_SEEN
+from hitmanager import (HIT_STATUS_REVIEW, HIT_STATUS_FAILED, HIT_STATUS_SEEN,
     HIT_STATUS_REJECTED, HIT_STATUS_POSTED, HIT_STATUS_APPROVED, HIT_STATUS_MISC)
 # SSL subclass of bottle cribbed from:
 # http://dgtool.blogspot.com.au/2011/12/ssl-encryption-in-python-bottle.html
@@ -21,7 +21,6 @@ from serverauth import AUTH_TOKEN, TEST_PORT
 class MySSLCherryPy(ServerAdapter):
     def run(self, handler):
         import cherrypy
-        from cherrypy import wsgiserver
         server = cherrypy.wsgiserver.CherryPyWSGIServer(
                                                         (self.host, self.port),
                                                         handler,
@@ -98,7 +97,12 @@ def modify_hit():
             return {'hit': hitmanager.get_hit(hit_id), 'response': True}
         else:
             return {'hit': hitmanager.get_hit(hit_id), 'response': False}
-
+    if action == HIT_STATUS_SEEN:
+        print('ignore requested')
+        if hitmanager.set_hit_status(hit_id, HIT_STATUS_SEEN):
+            return {'hit': hitmanager.get_hit(hit_id), 'response': True}
+        else:
+            return {'hit': hitmanager.get_hit(hit_id), 'response': False}
 
 @app.route('/blacklist')
 def add_to_blacklist():
