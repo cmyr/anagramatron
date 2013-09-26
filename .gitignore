@@ -50,3 +50,4 @@ serverauth.py
 twittercreds.py.old.py
 tstdata/
 .sublime*
+*.sublime*

@@ -12,7 +12,7 @@ import sys
 
 from twitterhandler import TwitterHandler
 from constants import STORAGE_DIRECTORY_PATH
-HIT_PATH_COMPONENT = 'hitdata'
+HIT_PATH_COMPONENT = 'hitdata2'
 
 HIT_STATUS_REVIEW = 'review'
 HIT_STATUS_SEEN = 'seen'
@@ -39,7 +39,9 @@ def _setup(languages=['en']):
         cursor = hitsdb.cursor()
         print('hits db not found, creating')
         cursor.execute("""CREATE TABLE hits
-            (hit_id INTEGER, hit_status TEXT, hit_date INTEGER, hit_hash TEXT, hit_rating text, flags TEXT, one_id text, two_id text, one_text text, two_text text)""")
+            (hit_id INTEGER, hit_status TEXT, hit_date INTEGER, hit_hash TEXT, hit_rating text, flags TEXT,
+                one_id text, one_text text, one_fetched text,
+                two_id text, two_text text, two_fetched text)""")
         cursor.execute("CREATE TABLE blacklist (bad_hash TEXT UNIQUE)")
         hitsdb.commit()
     else:
@@ -68,8 +70,43 @@ def new_hit(first, second):
         return
 
     stats.hit()
+    hit = _fetch_hit_tweets(hit)
     _new_hits_counter += 1
     _add_hit(hit)
+
+
+def _fetch_hit_tweets(hit):
+    """
+    attempts to fetch tweets in hit.
+    if successful builds up more detailed hit object.
+    returns the input hit unchaged on failure
+    """
+    global twitter_handler
+    if not twitter_handler:
+        twitter_handler = TwitterHandler()
+
+    t1 = twitter_handler.fetch_tweet(hit['tweet_one']['tweet_id'])
+    t2 = twitter_handler.fetch_tweet(hit['tweet_two']['tweet_id'])
+    if t1 and t2:
+        hit['tweet_one']['fetched'] = _cleaned_tweet(t1)
+        hit['tweet_two']['fetched'] = _cleaned_tweet(t2)
+
+    return hit
+
+
+def _cleaned_tweet(tweet):
+    """
+    returns a dict of desirable twitter info
+    """
+    twict = dict()
+    twict['text'] = tweet.get('text')
+    twict['user'] = {
+        'name': tweet.get('name'),
+        'screen_name': tweet.get('screen_name'), 
+        'profile_image_url': tweet.get('profile_image_url')
+        }
+    twict['created_at'] = tweet.get('created_at')
+    return twict
 
 
 def hits_newer_than_hit(hit_id):
@@ -141,7 +178,7 @@ def _hit_collides_with_previous_hit(hit):
 def _add_hit(hit):
     cursor = hitsdb.cursor()
 
-    cursor.execute("INSERT INTO hits VALUES (?,?,?,?,?,?,?,?,?,?)",
+    cursor.execute("INSERT INTO hits VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
                   (str(hit['id']),
                    hit['status'],
                    str(time.time()),
@@ -149,9 +186,11 @@ def _add_hit(hit):
                    '0',
                    '0',
                    str(hit['tweet_one']['tweet_id']),
-                   str(hit['tweet_two']['tweet_id']),
                    hit['tweet_one']['tweet_text'],
-                   hit['tweet_two']['tweet_text'])
+                   repr(hit['tweet_one']['fetched'])
+                   str(hit['tweet_two']['tweet_id']),
+                   hit['tweet_two']['tweet_text'],
+                   repr(hit['tweet_two']['fetched'])
                    )
     hitsdb.commit()
 
@@ -220,8 +259,8 @@ def hit_from_sql(item):
             'hash': str(item[3]),
             'rating': str(item[4]),
             'flags': str(item[5]),
-            'tweet_one': {'tweet_id': long(item[6]), 'tweet_text': item[8]},
-            'tweet_two': {'tweet_id': long(item[7]), 'tweet_text': item[9]}
+            'tweet_one': {'tweet_id': long(item[6]), 'tweet_text': item[7], 'fetched': eval(item[8])},
+            'tweet_two': {'tweet_id': long(item[9]), 'tweet_text': item[10], 'fetched': eval(item[11])}
             }
 
 
@@ -319,7 +358,7 @@ def review_hits(to_post=False):
                     set_hit_status(display_hits[h]['id'], HIT_STATUS_POSTED)
             else:
                 if not to_post:
-                    set_hit_status(display_hits[h]['id'], HIT_STATUS_SEEN)
+                    set_hit_status(display_hits[h]['id'], HIT_STATU2S_SEEN)
             hits.remove(display_hits[h])
 
 
