@@ -40,8 +40,7 @@ def _setup(languages=['en']):
         print('hits db not found, creating')
         cursor.execute("""CREATE TABLE hits
             (hit_id INTEGER, hit_status TEXT, hit_date INTEGER, hit_hash TEXT, hit_rating text, flags TEXT,
-                one_id text, one_text text, one_fetched text,
-                two_id text, two_text text, two_fetched text)""")
+                tweet_one TEXT, tweet_two TEXT)""")
         cursor.execute("CREATE TABLE blacklist (bad_hash TEXT UNIQUE)")
         hitsdb.commit()
     else:
@@ -101,9 +100,9 @@ def _cleaned_tweet(tweet):
     twict = dict()
     twict['text'] = tweet.get('text')
     twict['user'] = {
-        'name': tweet.get('name'),
-        'screen_name': tweet.get('screen_name'), 
-        'profile_image_url': tweet.get('profile_image_url')
+        'name': tweet.get('user').get('name'),
+        'screen_name': tweet.get('user').get('screen_name'), 
+        'profile_image_url': tweet.get('user').get('profile_image_url')
         }
     twict['created_at'] = tweet.get('created_at')
     return twict
@@ -178,20 +177,16 @@ def _hit_collides_with_previous_hit(hit):
 def _add_hit(hit):
     cursor = hitsdb.cursor()
 
-    cursor.execute("INSERT INTO hits VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
+    cursor.execute("INSERT INTO hits VALUES (?,?,?,?,?,?,?,?)",
                   (str(hit['id']),
                    hit['status'],
                    str(time.time()),
                    str(hit['hash']),
                    '0',
                    '0',
-                   str(hit['tweet_one']['tweet_id']),
-                   hit['tweet_one']['tweet_text'],
-                   repr(hit['tweet_one']['fetched'])
-                   str(hit['tweet_two']['tweet_id']),
-                   hit['tweet_two']['tweet_text'],
-                   repr(hit['tweet_two']['fetched'])
-                   )
+                   repr(hit['tweet_one']),
+                   repr(hit['tweet_two'])
+                   ))
     hitsdb.commit()
 
 
@@ -259,8 +254,8 @@ def hit_from_sql(item):
             'hash': str(item[3]),
             'rating': str(item[4]),
             'flags': str(item[5]),
-            'tweet_one': {'tweet_id': long(item[6]), 'tweet_text': item[7], 'fetched': eval(item[8])},
-            'tweet_two': {'tweet_id': long(item[9]), 'tweet_text': item[10], 'fetched': eval(item[11])}
+            'tweet_one': eval(item[6]),
+            'tweet_two': eval(item[7])
             }
 
 
@@ -322,6 +317,7 @@ def review_hits(to_post=False):
     """
     manual tool for reviewing hits on the command line
     """
+    _checkit()
     status = HIT_STATUS_REVIEW if not to_post else HIT_STATUS_APPROVED
     hits = all_hits(status)
     hits = [(h, anagramfunctions.grade_anagram(h)) for h in hits]
