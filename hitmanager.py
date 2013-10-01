@@ -45,6 +45,10 @@ def _setup(languages=['en']):
         hitsdb.commit()
     else:
         hitsdb = lite.connect(dbpath)
+        cursor = hitsdb.cursor()
+        cursor.execute("DROP TABLE IF EXISTS hitinfo")
+        cursor.execute("CREATE TABLE hitinfo (last_post REAL)")
+        hitsdb.commit()
 
 
 def _checkit():
@@ -118,17 +122,27 @@ def hits_newer_than_hit(hit_id):
 
 def new_hits_count():
     _checkit()
-    cursor = hitsdb.cursor()
-    cursor.execute("SELECT * from hitinfo")
+    # cursor = hitsdb.cursor()
+    # cursor.execute("SELECT * from hitinfo")
     try:
-        last_hit = cursor.fetchall()[0][0]
-        print (last_hit)
-        if (last_hit):
-            cursor.execute("SELECT * FROM hits WHERE hit_id > (?)", (last_hit,))
-            results = cursor.fetchall()
-            return len(results)
+        # last_hit = cursor.fetchall()[0][0]
+        # print (last_hit)
+        # if (last_hit):
+        cursor.execute("SELECT * FROM hits WHERE hit_status > (?)",
+            (HIT_STATUS_REVIEW,))
+        results = cursor.fetchall()
+        return len(results)
     except ValueError:
         return "420"
+
+
+def last_point_time():
+    # return the time of the last successful post
+    cursor = hitsdb.cursor()
+    cursor.execute("SELECT * from hitinfo")
+    results = cursor.fetchall()
+    if len(results):
+        return results.pop()[0]
 
 
 def _hit_on_blacklist(hit):
@@ -222,7 +236,7 @@ def set_hit_status(hit_id, status):
     assert(get_hit(hit_id)['status'] == status)
 
 
-def all_hits(with_status=None):
+def all_hits(with_status=None, cutoff_id=None):
     _checkit()
     cursor = hitsdb.cursor()
     if not with_status:
@@ -233,6 +247,8 @@ def all_hits(with_status=None):
     hits = []
     for item in results:
         hits.append(hit_from_sql(item))
+    if cutoff_id:
+        hits = [h for h in hits if h['id'] < cutoff_id]
     return hits
 
 
@@ -279,6 +295,9 @@ def post_hit(hit_id):
     if twitter_handler.post_hit(get_hit(hit_id)):
         set_hit_status(hit_id, HIT_STATUS_POSTED)
         return True
+        # keep track of most recent post:
+        cursor = hitsdb.cursor()
+        cursor.execute("INSERT INTO hitinfo VALUES (?)", (time.time(),))
     else:
         set_hit_status(hit_id, HIT_STATUS_FAILED)
         return False
@@ -288,29 +307,29 @@ def approve_hit(hit_id):
     set_hit_status(hit_id, HIT_STATUS_APPROVED)
     return True
 
-def server_sent_hits(hits):
-    """
-    this is exclusively for keeping track of the newest hit the client has seen
-    """
-    newest_hit_sent = max([h['id'] for h in hits])
-    print(newest_hit_sent)
-    _checkit()
-    cursor = hitsdb.cursor()
-    try:
-        cursor.execute("SELECT * FROM hitinfo")
-        last_hit = cursor.fetchone()[0]
-        print(last_hit)
-        if newest_hit_sent < last_hit:
-            return
-    except (lite.OperationalError, IndexError, TypeError):
-        # probably only happens if we just don't have a value?
-        pass
+# def server_sent_hits(hits):
+#     """
+#     this is exclusively for keeping track of the newest hit the client has seen
+#     """
+#     newest_hit_sent = max([h['id'] for h in hits])
+#     print(newest_hit_sent)
+#     _checkit()
+#     cursor = hitsdb.cursor()
+#     try:
+#         cursor.execute("SELECT * FROM hitinfo")
+#         last_hit = cursor.fetchone()[0]
+#         print(last_hit)
+#         if newest_hit_sent < last_hit:
+#             return
+#     except (lite.OperationalError, IndexError, TypeError):
+#         # probably only happens if we just don't have a value?
+#         pass
 
-    cursor.execute("DROP TABLE IF EXISTS hitinfo")
-    cursor.execute("CREATE TABLE hitinfo (last_hit INTEGER)")
-    cursor.execute("INSERT INTO hitinfo VALUES (?)", (newest_hit_sent,))
-    hitsdb.commit()
-    print('inserted hit %i' % newest_hit_sent)
+#     cursor.execute("DROP TABLE IF EXISTS hitinfo")
+#     cursor.execute("CREATE TABLE hitinfo (last_hit INTEGER)")
+#     cursor.execute("INSERT INTO hitinfo VALUES (?)", (newest_hit_sent,))
+#     hitsdb.commit()
+#     print('inserted hit %i' % newest_hit_sent)
 
 
 def review_hits(to_post=False):

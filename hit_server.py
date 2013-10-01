@@ -1,17 +1,13 @@
 from __future__ import print_function
-from bottle import (Bottle, route, run, request, response, server_names,
+from bottle import (Bottle, run, request, server_names,
                     ServerAdapter, abort)
 import time
-# import datahandler
 import hitmanager
 import anagramstats as stats
 
-HIT_STATUS_REVIEW = 'review'
-CLIENT_ACTION_POST = 'posted'
-CLIENT_ACTION_REJECT = 'rejected'
-CLIENT_ACTION_APPROVE = 'approved'
-CLIENT_ACTION_FAILED = 'failed'
 
+from hitmanager import (HIT_STATUS_REVIEW, HIT_STATUS_SEEN, HIT_STATUS_MISC
+    HIT_STATUS_REJECTED, HIT_STATUS_POSTED, HIT_STATUS_APPROVED)
 # SSL subclass of bottle cribbed from:
 # http://dgtool.blogspot.com.au/2011/12/ssl-encryption-in-python-bottle.html
 
@@ -24,7 +20,6 @@ from serverauth import AUTH_TOKEN, TEST_PORT
 class MySSLCherryPy(ServerAdapter):
     def run(self, handler):
         import cherrypy
-        from cherrypy import wsgiserver
         server = cherrypy.wsgiserver.CherryPyWSGIServer(
                                                         (self.host, self.port),
                                                         handler,
@@ -61,11 +56,12 @@ def get_hits():
     if not authenticate(auth):
         return
     # update data
-    hits = hitmanager.all_hits()
-    if (request.query.status):
-        hits = [h for h in hits if h['status'] == request.query.status]
-    else:
-        hits = [h for h in hits if h['status'] not in [CLIENT_ACTION_POST, CLIENT_ACTION_REJECT, CLIENT_ACTION_FAILED]]
+    status = str(request.query.status)
+    status = status if status else HIT_STATUS_REVIEW
+    cutoff = int(request.query.id)
+    hits = hitmanager.all_hits(status, cutoff)
+    if cutoff:
+        hits = hits[:cutoff]
     print("returned %i hits" % len(hits))
     return {'hits': hits}
 
@@ -81,26 +77,31 @@ def modify_hit():
     print(hit_id, action)
     if not hit_id or not action:
         abort(400, 'v0_0v')
-    if action == CLIENT_ACTION_POST:
+    if action == HIT_STATUS_POSTED:
         # if data.post_hit(hit_id):
         print('post requested')
         if hitmanager.post_hit(hit_id):
             return {'hit': hitmanager.get_hit(hit_id), 'response': True}
         else:
             return {'hit': hitmanager.get_hit(hit_id), 'response': False}
-    if action == CLIENT_ACTION_APPROVE:
+    if action == HIT_STATUS_APPROVED:
         print('approve requested')
         if hitmanager.approve_hit(hit_id):
             return {'hit': hitmanager.get_hit(hit_id), 'response': True}
         else:
             return {'hit': hitmanager.get_hit(hit_id), 'response': False}
-    if action == CLIENT_ACTION_REJECT:
+    if action == HIT_STATUS_REJECTED:
         print('reject requested')
         if hitmanager.reject_hit(hit_id):
             return {'hit': hitmanager.get_hit(hit_id), 'response': True}
         else:
             return {'hit': hitmanager.get_hit(hit_id), 'response': False}
-
+    if action == HIT_STATUS_SEEN:
+        print('ignore requested')
+        if hitmanager.set_hit_status(hit_id, HIT_STATUS_SEEN):
+            return {'hit': hitmanager.get_hit(hit_id), 'response': True}
+        else:
+            return {'hit': hitmanager.get_hit(hit_id), 'response': False}
 
 @app.route('/blacklist')
 def add_to_blacklist():
@@ -144,6 +145,7 @@ def info():
 
     stats_dict = stats.stats_dict()
     new_hits = hitmanager.new_hits_count()
+    last_post = hitmanager.last_post_time()
     return {'stats': stats_dict, 'new_hits': new_hits}
 
 
@@ -194,7 +196,7 @@ def get_hits2():
         print("%i: %s, %s" % (hit['id'], timestring, hit['status']))
 
     if return_hits:
-        hitmanager.server_sent_hits(return_hits)
+        # hitmanager.server_sent_hits(return_hits)
         return {'hits': return_hits}
     else:
         return {'hits': None}
