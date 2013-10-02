@@ -6,7 +6,7 @@ import hitmanager
 import anagramstats as stats
 
 
-from hitmanager import (HIT_STATUS_REVIEW, HIT_STATUS_SEEN, HIT_STATUS_MISC
+from hitmanager import (HIT_STATUS_REVIEW, HIT_STATUS_SEEN, HIT_STATUS_MISC,
     HIT_STATUS_REJECTED, HIT_STATUS_POSTED, HIT_STATUS_APPROVED)
 # SSL subclass of bottle cribbed from:
 # http://dgtool.blogspot.com.au/2011/12/ssl-encryption-in-python-bottle.html
@@ -42,6 +42,7 @@ server_names['sslbottle'] = MySSLCherryPy
 app = Bottle()
 
 def authenticate(auth):
+    return True
     if auth == AUTH_TOKEN:
         return True
     print('failed authentication')
@@ -52,16 +53,21 @@ def authenticate(auth):
 @app.route('/hits')
 def get_hits():
     print(request)
+    hits_to_return = 10
     auth = request.get_header('Authorization')
     if not authenticate(auth):
         return
     # update data
-    status = str(request.query.status)
-    status = status if status else HIT_STATUS_REVIEW
-    cutoff = int(request.query.id)
+    try:
+        status = str(request.query.status)
+    except ValueError:
+        status = HIT_STATUS_REVIEW
+    try:
+        cutoff = int(request.query.id)
+    except ValueError:
+        cutoff = 0
     hits = hitmanager.all_hits(status, cutoff)
-    if cutoff:
-        hits = hits[:cutoff]
+    hits = hits[:hits_to_return]
     print("returned %i hits" % len(hits))
     return {'hits': hits}
 
@@ -201,7 +207,8 @@ def get_hits2():
     else:
         return {'hits': None}
 
-run(app, host='0.0.0.0', port=TEST_PORT, debug=True, server='sslbottle')
+# run(app, host='0.0.0.0', port=TEST_PORT, debug=True, server='sslbottle')
+run(app, host='127.0.0.1', port=TEST_PORT, debug=True)
 
 # if __name__ == "__main__":
 #     print hit_for_id(1368809545607)
