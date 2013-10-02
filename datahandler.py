@@ -307,7 +307,6 @@ def combine_databases(path1, path2, minlen=20):
                 continue
             stats.passed_filter()
             if k in db1:
-                stats.possible_hit()
                 tweet2 = _tweet_from_dbm(db1[k])
                 if anagramfunctions.test_anagram(
                     tweet['tweet_text'],
