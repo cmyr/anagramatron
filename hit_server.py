@@ -37,8 +37,8 @@ class MySSLCherryPy(ServerAdapter):
 
 # Add our new MySSLCherryPy class to the supported servers
 # under the key 'mysslcherrypy'
+
 server_names['sslbottle'] = MySSLCherryPy
-# data = None
 app = Bottle()
 
 def authenticate(auth):
@@ -207,8 +207,8 @@ def get_hits2():
     else:
         return {'hits': None}
 
-# run(app, host='0.0.0.0', port=TEST_PORT, debug=True, server='sslbottle')
-run(app, host='127.0.0.1', port=TEST_PORT, debug=True)
+run(app, host='0.0.0.0', port=TEST_PORT, debug=True, server='sslbottle')
+# run(app, host='127.0.0.1', port=TEST_PORT, debug=True)
 
 # if __name__ == "__main__":
 #     print hit_for_id(1368809545607)
