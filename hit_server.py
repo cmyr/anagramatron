@@ -116,6 +116,26 @@ def modify_hit():
         else:
             return {'hit': hitmanager.get_hit(hit_id), 'response': False}
 
+
+@app.route('/seen')
+def mark_seen():
+    auth = request.get_header('Authorization')
+    if not authenticate(auth):
+        return
+
+    hit_ids = request.query.hits
+    if not len(hit_ids):
+        print('no ids -_-')
+
+    if len(hit_ids) == 1:
+        itwerked = hitmanager.set_hit_status(hit_ids[0], HIT_STATUS_SEEN)
+        print('status changed? %s' % str(itwerked))
+    for i in hit_ids:
+        hitmanager.set_hit_status(i, HIT_STATUS_SEEN)
+
+
+
+
 @app.route('/blacklist')
 def add_to_blacklist():
     auth = request.get_header('Authorization')
