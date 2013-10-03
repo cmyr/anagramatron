@@ -122,7 +122,7 @@ def mark_seen():
     auth = request.get_header('Authorization')
     if not authenticate(auth):
         return
-    hit_ids = request.query.hits
+    hit_ids = list(request.query.hits)
     print(hit_ids)
     if not len(hit_ids):
         print('no ids -_-')
