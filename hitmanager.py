@@ -253,7 +253,7 @@ def all_hits(with_status=None, cutoff_id=None):
     for item in results:
         hits.append(hit_from_sql(item))
     if cutoff_id:
-        hits = [h for h in hits if h['id'] < cutoff_id]
+        hits = [h for h in hits if h['id'] > cutoff_id]
     return hits
 
 
