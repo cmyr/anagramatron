@@ -141,7 +141,7 @@ def new_hits_count():
         return "420"
 
 
-def last_point_time():
+def last_post_time():
     # return the time of the last successful post
     cursor = hitsdb.cursor()
     cursor.execute("SELECT * from hitinfo")
