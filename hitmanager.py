@@ -373,7 +373,7 @@ def review_hits(to_post=False):
                     set_hit_status(display_hits[h]['id'], HIT_STATUS_POSTED)
             else:
                 if not to_post:
-                    set_hit_status(display_hits[h]['id'], HIT_STATU2S_SEEN)
+                    set_hit_status(display_hits[h]['id'], HIT_STATUS_SEEN)
             hits.remove(display_hits[h])
 
 
