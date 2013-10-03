@@ -239,6 +239,7 @@ def set_hit_status(hit_id, status):
     remove_hit(hit_id)
     _add_hit(hit)
     assert(get_hit(hit_id)['status'] == status)
+    return True
 
 
 def all_hits(with_status=None, cutoff_id=None):

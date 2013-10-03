@@ -75,6 +75,7 @@ def get_hits():
     hits = hitmanager.all_hits(status, cutoff)
     print('hitmanager returned %i hits' % len(hits))
     hits = hits[:count]
+    hits.reverse()
     print("returned %i hits" % len(hits))
     return {'hits': hits}
 
