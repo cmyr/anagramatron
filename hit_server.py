@@ -123,7 +123,7 @@ def mark_seen():
     if not authenticate(auth):
         return
     hit_ids = request.query.hits
-    hit_ids.split(',')
+    hit_ids = hit_ids.split(',')
     print(hit_ids)
     if not len(hit_ids):
         print('no ids -_-')
