@@ -127,7 +127,7 @@ def hits_newer_than_hit(hit_id):
 
 def new_hits_count():
     _checkit()
-    # cursor = hitsdb.cursor()
+    cursor = hitsdb.cursor()
     # cursor.execute("SELECT * from hitinfo")
     try:
         # last_hit = cursor.fetchall()[0][0]

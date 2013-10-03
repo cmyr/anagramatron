@@ -64,12 +64,16 @@ def get_hits():
     except ValueError:
         status = HIT_STATUS_REVIEW
     try:
-        cutoff = int(request.query.id)
+        cutoff = int(request.query.cutoff)
     except ValueError:
         cutoff = 0
     if (request.query.count):
         count = int(request.query.count)
+
+    print('client requested %i hits with %s status, from %i' % 
+        (count, status, cutoff))    
     hits = hitmanager.all_hits(status, cutoff)
+    print('hitmanager returned %i hits' % len(hits))
     hits = hits[:count]
     print("returned %i hits" % len(hits))
     return {'hits': hits}
