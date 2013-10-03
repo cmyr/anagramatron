@@ -11,6 +11,7 @@ import logging
 import sys
 
 from twitterhandler import TwitterHandler
+from twitter.api import TwitterError
 from constants import STORAGE_DIRECTORY_PATH
 HIT_PATH_COMPONENT = 'hitdata2'
 
@@ -73,9 +74,13 @@ def new_hit(first, second):
         return
 
     stats.hit()
-    hit = _fetch_hit_tweets(hit)
-    _new_hits_counter += 1
-    _add_hit(hit)
+    try:
+        hit = _fetch_hit_tweets(hit)
+        _new_hits_counter += 1
+        _add_hit(hit)
+    except TwitterError as err:
+        print('tweet missing, will pass')
+        pass
 
 
 def _fetch_hit_tweets(hit):

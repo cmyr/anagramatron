@@ -1,10 +1,8 @@
 from __future__ import print_function
-import sqlite3 as lite
 import anydbm
 import os
 import re
 import sys
-import shutil
 import logging
 import time
 import cPickle as pickle
@@ -51,7 +49,6 @@ class DataCoordinator(object):
         self.languages = languages
         self.cache = dict()
         self.fetch_pool = dict()
-        self.hashes = set()
         self.datastore = None
         self._should_trim_cache = False
         self._write_process = None
@@ -74,13 +71,6 @@ class DataCoordinator(object):
         """
         self.cache = self._load_cache()
         self.datastore = anydbm.open(self.dbpath, 'c')
-        # extract hashes
-        print('extracting hashes')
-        operation_start_time = time.time()
-        self.hashes.update(set(self.datastore.keys()))
-        print('extracted %i hashes in %s' %
-              (len(self.hashes), anagramfunctions.format_seconds(time.time()-operation_start_time)))
-        # setup hit manager:
         hitmanager._setup(self.languages)
 
     def handle_input(self, tweet):
@@ -103,7 +93,7 @@ class DataCoordinator(object):
                 self.cache[key]['hit_count'] += 1
         else:
             # not in cache. in datastore?
-            if key in self.hashes:
+            if key in self.datastore:
             # add to fetch_pool
                 self._add_to_fetch_pool(tweet)
             else:
@@ -146,7 +136,11 @@ class DataCoordinator(object):
         fetches all the tweets in our fetch pool and runs comparisons
         deleting from
         """
-                # when we're done writing, check to see how long our buffer is.
+        # 'batch fetching' in it's current form is a big hangover (like much of this file)
+        # from a previous iteration, where we were using sqlite3 instead of dbm.
+        # this is now pretty baroque and not necessary; hits could be fetched immediately.
+
+        # when we're done writing, check to see how long our buffer is.
         # if it's gotten too long, we raise our NeedsMaintenance exception.
         buffer_size = stats.buffer_size()
         should_raise_maintenance_flag = False
@@ -166,7 +160,6 @@ class DataCoordinator(object):
         results = []
         for h in hashes:
             results.append(self.datastore[h])
-        self.hashes -= set(hashes)
         # self._lock.release()
         for result in results:
             fetched_tweet = _tweet_from_dbm(result)
@@ -179,9 +172,8 @@ class DataCoordinator(object):
                                                        'hit_count': 1}
         # reset our fetch_pool
         self.fetch_pool = dict()
-        logging.debug('fetched %i from %i in %s' % 
+        logging.debug('fetched %i in %s' % 
             (fetch_count,
-                len(self.hashes),
                 anagramfunctions.format_seconds(time.time()-load_time)))
 
         if buffer_size > ANAGRAM_STREAM_BUFFER_SIZE:
@@ -218,7 +210,6 @@ class DataCoordinator(object):
 
             self.datastore[x] = _dbm_from_tweet(self.cache[x]['tweet'])
             del self.cache[x]
-        self.hashes |= set(hashes_to_save)
 
     def _save_cache(self):
         """
@@ -272,7 +263,6 @@ class DataCoordinator(object):
 
 
     def close(self):
-        self.hashes = set()
         if self._write_process and self._write_process.is_alive():
             print('write process active. waiting.')
             self._write_process.join()
@@ -304,7 +294,6 @@ def combine_databases(path1, path2, minlen=20):
 
     db1 = gdbm.open(path1, 'w')
     db2 = gdbm.open(path2, 'w')
-    start_time = time.time()
 
     k = db2.firstkey()
     temp_k = None
@@ -318,7 +307,6 @@ def combine_databases(path1, path2, minlen=20):
                 continue
             stats.passed_filter()
             if k in db1:
-                stats.possible_hit()
                 tweet2 = _tweet_from_dbm(db1[k])
                 if anagramfunctions.test_anagram(
                     tweet['tweet_text'],

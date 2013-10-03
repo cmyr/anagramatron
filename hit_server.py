@@ -20,6 +20,7 @@ from serverauth import AUTH_TOKEN, TEST_PORT
 class MySSLCherryPy(ServerAdapter):
     def run(self, handler):
         import cherrypy
+        from cherrypy import wsgiserver
         server = cherrypy.wsgiserver.CherryPyWSGIServer(
                                                         (self.host, self.port),
                                                         handler,
@@ -37,8 +38,8 @@ class MySSLCherryPy(ServerAdapter):
 
 # Add our new MySSLCherryPy class to the supported servers
 # under the key 'mysslcherrypy'
+
 server_names['sslbottle'] = MySSLCherryPy
-# data = None
 app = Bottle()
 
 def authenticate(auth):
@@ -53,7 +54,7 @@ def authenticate(auth):
 @app.route('/hits')
 def get_hits():
     print(request)
-    hits_to_return = 10
+    count = 50
     auth = request.get_header('Authorization')
     if not authenticate(auth):
         return
@@ -66,8 +67,10 @@ def get_hits():
         cutoff = int(request.query.id)
     except ValueError:
         cutoff = 0
+    if (request.query.count):
+        count = int(request.query.count)
     hits = hitmanager.all_hits(status, cutoff)
-    hits = hits[:hits_to_return]
+    hits = hits[:count]
     print("returned %i hits" % len(hits))
     return {'hits': hits}
 
@@ -207,8 +210,8 @@ def get_hits2():
     else:
         return {'hits': None}
 
-# run(app, host='0.0.0.0', port=TEST_PORT, debug=True, server='sslbottle')
-run(app, host='127.0.0.1', port=TEST_PORT, debug=True)
+run(app, host='0.0.0.0', port=TEST_PORT, debug=True, server='sslbottle')
+# run(app, host='127.0.0.1', port=TEST_PORT, debug=True)
 
 # if __name__ == "__main__":
 #     print hit_for_id(1368809545607)

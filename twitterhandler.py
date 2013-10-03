@@ -300,7 +300,13 @@ class TwitterHandler(object):
             return False
         except TwitterError as err:
             logging.debug(err)
-            print(err)
+            try:
+                if err.e.code == 404:
+                    # we reraise 404s, and return false on other exceptions.
+                    # 404 means we should not use this resource any more.
+                    raise
+            except AttributeError:
+                pass
             return False
 
     def retweet(self, tweet_id):
