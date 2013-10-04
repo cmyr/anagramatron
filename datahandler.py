@@ -285,7 +285,7 @@ def _dbm_from_tweet(tweet):
     return dbm_string.encode('utf-8')
 
 
-def combine_databases(path1, path2, minlen=20):
+def combine_databases(path1, path2, minlen=20, start=None):
     try:
         import gdbm
     except ImportError:
@@ -297,9 +297,20 @@ def combine_databases(path1, path2, minlen=20):
 
     k = db2.firstkey()
     temp_k = None
+    seen = 0
+    if not start:
+        start = 10**10
     try:
         while k is not None:
+
             tweet = _tweet_from_dbm(db2[k])
+            if seen < start:
+                seen += 1
+                k = db2.nextkey(k)
+                sys.stdout.write('skipping: %i/%i\n' % (seen, start))
+                sys.stdout.flush()
+
+                continue
             # print(k, tweet)
             stats.tweets_seen()
             if len(anagramfunctions.stripped_string(tweet['tweet_text'])) < minlen:
@@ -331,10 +342,12 @@ def combine_databases(path1, path2, minlen=20):
 
 if __name__ == "__main__":
     args = sys.argv[1:]
-    if len(args) is not 2:
+    if len(args) is < 2:
         print('please select exactly two target databases')
 
-    combine_databases(args[0], args[1])
+    start = args[2] if len(args) > 2 else None:
+
+    combine_databases(args[0], args[1], start=start)
     # dc = DataCoordinator()
     # sys.exit(1)
     pass
