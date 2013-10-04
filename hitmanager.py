@@ -27,7 +27,7 @@ dbpath = None
 hitsdb = None
 twitter_handler = None
 _new_hits_counter = 0
-_setup()
+
 
 def _setup(languages=['en']):
     global dbpath, hitsdb
@@ -358,6 +358,7 @@ def review_hits(to_post=False):
 
 
 
+_setup()
 
 if __name__ == "__main__":
     args = sys.argv[1:]
