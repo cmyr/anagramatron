@@ -342,10 +342,10 @@ def combine_databases(path1, path2, minlen=20, start=None):
 
 if __name__ == "__main__":
     args = sys.argv[1:]
-    if len(args) is < 2:
+    if len(args) < 2:
         print('please select exactly two target databases')
 
-    start = args[2] if len(args) > 2 else None:
+    start = args[2] if len(args) > 2 else None
 
     combine_databases(args[0], args[1], start=start)
     # dc = DataCoordinator()
