@@ -298,20 +298,20 @@ def combine_databases(path1, path2, minlen=20, start=0):
     k = db2.firstkey()
     temp_k = None
     seen = 0
-    if not start:
-        start = 10**10
+    # if not start:
+    #     start = 10**10
+
+    if start:
+        seen = 0
+        while seen < start:
+            k = db2.nextkey(k)
+            sys.stdout.write('skipping: %i/%i \r' % (seen, start))
+            sys.stdout.flush()
+            seen += 1
+    
     try:
         while k is not None:
-
             tweet = _tweet_from_dbm(db2[k])
-            if seen < start:
-                seen += 1
-                k = db2.nextkey(k)
-                sys.stdout.write('skipping: %i/%i \n' % (seen, start))
-                sys.stdout.flush()
-
-                continue
-            # print(k, tweet)
             stats.tweets_seen()
             if len(anagramfunctions.stripped_string(tweet['tweet_text'])) < minlen:
                 k = db2.nextkey(k)
