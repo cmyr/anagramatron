@@ -42,15 +42,11 @@ def _setup(languages=['en']):
         cursor.execute("""CREATE TABLE hits
             (hit_id INTEGER, hit_status TEXT, hit_date INTEGER, hit_hash TEXT, hit_rating text, flags TEXT,
                 tweet_one TEXT, tweet_two TEXT)""")
+        cursor.execute("CREATE TABLE hitinfo (last_post REAL)")
         # cursor.execute("CREATE TABLE blacklist (bad_hash TEXT UNIQUE)")
         hitsdb.commit()
     else:
         hitsdb = lite.connect(dbpath)
-        cursor = hitsdb.cursor()
-        cursor.execute("DROP TABLE IF EXISTS hitinfo")
-        cursor.execute("CREATE TABLE hitinfo (last_post REAL)")
-        hitsdb.commit()
-
 
 # def _checkit():
 #     if not dbpath or hitsdb:
@@ -68,8 +64,8 @@ def new_hit(first, second):
            "tweet_two": second
         }
 
-    if _hit_on_blacklist(hit):
-        return
+    # if _hit_on_blacklist(hit):
+    #     return
     if _hit_collides_with_previous_hit(hit):
         return
 
