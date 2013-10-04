@@ -92,32 +92,7 @@ def modify_hit():
     print(hit_id, action)
     if not hit_id or not action:
         abort(400, 'v0_0v')
-    # if action == HIT_STATUS_POSTED:
-    #     # if data.post_hit(hit_id):
-    #     print('post requested')
-    #     if hitmanager.post_hit(hit_id):
-    #         return {'hit': hitmanager.get_hit(hit_id), 'response': True}
-    #     else:
-    #         return {'hit': hitmanager.get_hit(hit_id), 'response': False}
-    # if action == HIT_STATUS_APPROVED:
-    #     print('approve requested')
-    #     if hitmanager.approve_hit(hit_id):
-    #         return {'hit': hitmanager.get_hit(hit_id), 'response': True}
-    #     else:
-    #         return {'hit': hitmanager.get_hit(hit_id), 'response': False}
-    # if action == HIT_STATUS_REJECTED:
-    #     print('reject requested')
-    #     if hitmanager.reject_hit(hit_id):
-    #         return {'hit': hitmanager.get_hit(hit_id), 'response': True}
-    #     else:
-    #         return {'hit': hitmanager.get_hit(hit_id), 'response': False}
-    # if action == HIT_STATUS_SEEN:
-    #     print('ignore requested')
-    #     if hitmanager.set_hit_status(hit_id, HIT_STATUS_SEEN):
-    #         return {'hit': hitmanager.get_hit(hit_id), 'response': True}
-    #     else:
-    #         return {'hit': hitmanager.get_hit(hit_id), 'response': False}
-
+        
     success_flag = hitmanager.set_hit_status(hit_id, action)
     success_string = 'succeeded' if success_flag else 'FAILED'
     print('modification of hit %i to status %s %s'
@@ -164,8 +139,8 @@ def approve_hit():
     action = HIT_STATUS_POSTED if post_now else HIT_STATUS_APPROVED
     return {
         'action': action,
-        'hit': hitmanager.get_hit(hit_id),
-        'response': flag}
+        'hit': hit_id,
+        'success': flag}
 
 
 @app.route('/info')
