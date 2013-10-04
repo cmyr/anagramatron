@@ -299,6 +299,7 @@ def post_hit(hit_id):
         # keep track of most recent post:
         cursor = hitsdb.cursor()
         cursor.execute("INSERT INTO hitinfo VALUES (?)", (time.time(),))
+        hitsdb.commit()
         return True
     else:
         set_hit_status(hit_id, HIT_STATUS_FAILED)
@@ -308,31 +309,6 @@ def post_hit(hit_id):
 def approve_hit(hit_id):
     set_hit_status(hit_id, HIT_STATUS_APPROVED)
     return True
-
-# def server_sent_hits(hits):
-#     """
-#     this is exclusively for keeping track of the newest hit the client has seen
-#     """
-#     newest_hit_sent = max([h['id'] for h in hits])
-#     print(newest_hit_sent)
-#     _checkit()
-#     cursor = hitsdb.cursor()
-#     try:
-#         cursor.execute("SELECT * FROM hitinfo")
-#         last_hit = cursor.fetchone()[0]
-#         print(last_hit)
-#         if newest_hit_sent < last_hit:
-#             return
-#     except (lite.OperationalError, IndexError, TypeError):
-#         # probably only happens if we just don't have a value?
-#         pass
-
-#     cursor.execute("DROP TABLE IF EXISTS hitinfo")
-#     cursor.execute("CREATE TABLE hitinfo (last_hit INTEGER)")
-#     cursor.execute("INSERT INTO hitinfo VALUES (?)", (newest_hit_sent,))
-#     hitsdb.commit()
-#     print('inserted hit %i' % newest_hit_sent)
-
 
 def review_hits(to_post=False):
     """
