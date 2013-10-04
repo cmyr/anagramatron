@@ -285,7 +285,7 @@ def _dbm_from_tweet(tweet):
     return dbm_string.encode('utf-8')
 
 
-def combine_databases(path1, path2, minlen=20, start=None):
+def combine_databases(path1, path2, minlen=20, start=0):
     try:
         import gdbm
     except ImportError:
@@ -307,7 +307,7 @@ def combine_databases(path1, path2, minlen=20, start=None):
             if seen < start:
                 seen += 1
                 k = db2.nextkey(k)
-                sys.stdout.write('skipping: %i/%i\n' % (seen, start))
+                sys.stdout.write('skipping: %i/%i \n' % (seen, start))
                 sys.stdout.flush()
 
                 continue
