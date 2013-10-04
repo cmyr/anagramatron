@@ -51,7 +51,7 @@ def improved_hash(text, debug=False):
     # return t_hash
 
 
-def _correct_encodings(text):
+def correct_encodings(text):
     """
     twitter auto converts &, <, > to &amp; &lt; &gt;
     """
@@ -116,7 +116,7 @@ def filter_tweet(tweet):
     if not _basic_filters(tweet):
         return False
 
-    tweet_text = _correct_encodings(tweet.get('text'))
+    tweet_text = correct_encodings(tweet.get('text'))
     if not _text_decodes_to_ascii(tweet_text):
         # check for latin chars:
         if _text_contains_tricky_chars(tweet_text):

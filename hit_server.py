@@ -73,11 +73,12 @@ def get_hits():
     print('client requested %i hits with %s status, from %i' % 
         (count, status, cutoff))    
     hits = hitmanager.all_hits(status, cutoff)
-    print('hitmanager returned %i hits' % len(hits))
+    total_hits = len(hits)
+    print('hitmanager returned %i hits' % total_hits)
     hits = hits[:count]
     hits.reverse()
     print("returned %i hits" % len(hits))
-    return {'hits': hits}
+    return {'hits': hits, 'total_count': total_hits}
 
 
 @app.route('/mod')
@@ -135,6 +136,8 @@ def mark_seen():
     for i in hit_ids:
         hitmanager.set_hit_status(i, HIT_STATUS_SEEN)
 
+    return {'completion': 'null string'}
+
 
 
 
@@ -181,7 +184,7 @@ def info():
     stats_dict = stats.stats_dict()
     new_hits = hitmanager.new_hits_count()
     last_post = hitmanager.last_post_time()
-    return {'stats': stats_dict, 'new_hits': new_hits}
+    return {'stats': stats_dict, 'new_hits': new_hits, 'last_post': last_post}
 
 
 # API v: 2.0:

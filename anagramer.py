@@ -44,21 +44,21 @@ def main():
             break
 
 
-def test(source, raw=True):
-    stats.clear_stats()
-    data_coordinator = DataCoordinator()
-    for tweet in source:
-        stats.tweets_seen()
-        if raw:
-            processed_tweet = filter_tweet(tweet)
-            if processed_tweet:
-                stats.passed_filter()
-                data_coordinator.handle_input(processed_tweet)
-        else:
-            tweet_text = tweet.get('text') or tweet.get('tweet_text')
-            tweet_id = tweet.get('id') or tweet.get('tweet_id')
+# def test(source, raw=True):
+#     stats.clear_stats()
+#     data_coordinator = DataCoordinator()
+#     for tweet in source:
+#         stats.tweets_seen()
+#         if raw:
+#             processed_tweet = filter_tweet(tweet)
+#             if processed_tweet:
+#                 stats.passed_filter()
+#                 data_coordinator.handle_input(processed_tweet)
+#         else:
+#             tweet_text = tweet.get('text') or tweet.get('tweet_text')
+#             tweet_id = tweet.get('id') or tweet.get('tweet_id')
 
-            tweet_text = _correct_encodings(tweet_text)
+#             tweet_text = _correct_encodings(tweet_text)
             tweet = {'tweet_hash': improved_hash(tweet_text),
                      'tweet_id': tweet_id,
                      'tweet_text': tweet_text

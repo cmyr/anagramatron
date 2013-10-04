@@ -107,7 +107,7 @@ def _cleaned_tweet(tweet):
     returns a dict of desirable twitter info
     """
     twict = dict()
-    twict['text'] = tweet.get('text')
+    twict['text'] = anagramfunctions.correct_encodings(tweet.get('text'))
     twict['user'] = {
         'name': tweet.get('user').get('name'),
         'screen_name': tweet.get('user').get('screen_name'), 
