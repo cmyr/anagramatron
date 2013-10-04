@@ -92,32 +92,37 @@ def modify_hit():
     print(hit_id, action)
     if not hit_id or not action:
         abort(400, 'v0_0v')
-    if action == HIT_STATUS_POSTED:
-        # if data.post_hit(hit_id):
-        print('post requested')
-        if hitmanager.post_hit(hit_id):
-            return {'hit': hitmanager.get_hit(hit_id), 'response': True}
-        else:
-            return {'hit': hitmanager.get_hit(hit_id), 'response': False}
-    if action == HIT_STATUS_APPROVED:
-        print('approve requested')
-        if hitmanager.approve_hit(hit_id):
-            return {'hit': hitmanager.get_hit(hit_id), 'response': True}
-        else:
-            return {'hit': hitmanager.get_hit(hit_id), 'response': False}
-    if action == HIT_STATUS_REJECTED:
-        print('reject requested')
-        if hitmanager.reject_hit(hit_id):
-            return {'hit': hitmanager.get_hit(hit_id), 'response': True}
-        else:
-            return {'hit': hitmanager.get_hit(hit_id), 'response': False}
-    if action == HIT_STATUS_SEEN:
-        print('ignore requested')
-        if hitmanager.set_hit_status(hit_id, HIT_STATUS_SEEN):
-            return {'hit': hitmanager.get_hit(hit_id), 'response': True}
-        else:
-            return {'hit': hitmanager.get_hit(hit_id), 'response': False}
+    # if action == HIT_STATUS_POSTED:
+    #     # if data.post_hit(hit_id):
+    #     print('post requested')
+    #     if hitmanager.post_hit(hit_id):
+    #         return {'hit': hitmanager.get_hit(hit_id), 'response': True}
+    #     else:
+    #         return {'hit': hitmanager.get_hit(hit_id), 'response': False}
+    # if action == HIT_STATUS_APPROVED:
+    #     print('approve requested')
+    #     if hitmanager.approve_hit(hit_id):
+    #         return {'hit': hitmanager.get_hit(hit_id), 'response': True}
+    #     else:
+    #         return {'hit': hitmanager.get_hit(hit_id), 'response': False}
+    # if action == HIT_STATUS_REJECTED:
+    #     print('reject requested')
+    #     if hitmanager.reject_hit(hit_id):
+    #         return {'hit': hitmanager.get_hit(hit_id), 'response': True}
+    #     else:
+    #         return {'hit': hitmanager.get_hit(hit_id), 'response': False}
+    # if action == HIT_STATUS_SEEN:
+    #     print('ignore requested')
+    #     if hitmanager.set_hit_status(hit_id, HIT_STATUS_SEEN):
+    #         return {'hit': hitmanager.get_hit(hit_id), 'response': True}
+    #     else:
+    #         return {'hit': hitmanager.get_hit(hit_id), 'response': False}
 
+    success_flag = hitmanager.set_hit_status(hit_id, action)
+    success_string = 'succeeded' if success_flag else 'FAILED'
+    print('modification of hit %i to status %s %s'
+        % (hit_id, action, success_string))
+    return {'action': action, 'hit': hit_id, 'success': success_flag}
 
 @app.route('/seen')
 def mark_seen():
@@ -136,19 +141,7 @@ def mark_seen():
     for i in hit_ids:
         hitmanager.set_hit_status(i, HIT_STATUS_SEEN)
 
-    return {'completion': 'null string'}
-
-
-
-
-@app.route('/blacklist')
-def add_to_blacklist():
-    auth = request.get_header('Authorization')
-    if not authenticate(auth):
-        return
-    bad_hash = str(request.query.hash)
-    print('blacklisting hash: %s' % bad_hash)
-    hitmanager.add_to_blacklist(bad_hash)
+    return {'action': HIT_STATUS_SEEN, 'count': len(hit_ids)}
 
 
 @app.route('/approve')
@@ -167,7 +160,12 @@ def approve_hit():
     else:
         flag = hitmanager.approve_hit(hit_id)
         print('approved hit: %i' % hit_id)
-    return {'hit': hitmanager.get_hit(hit_id), 'response': flag}
+
+    action = HIT_STATUS_POSTED if post_now else HIT_STATUS_APPROVED
+    return {
+        'action': action,
+        'hit': hitmanager.get_hit(hit_id),
+        'response': flag}
 
 
 @app.route('/info')
@@ -188,56 +186,56 @@ def info():
 
 
 # API v: 2.0:
-@app.route('/2.0/hits')
-def get_hits2():
-    """
-    can take two arguments, count and older_than.
-    count is the number of hits to return.
-    older_than is a hit_id.
-    """
-    print('new hits requested')
-    auth = request.get_header('Authorization')
-    if not authenticate(auth):
-        return
+# @app.route('/2.0/hits')
+# def get_hits2():
+#     """
+#     can take two arguments, count and older_than.
+#     count is the number of hits to return.
+#     older_than is a hit_id.
+#     """
+#     print('new hits requested')
+#     auth = request.get_header('Authorization')
+#     if not authenticate(auth):
+#         return
 
-    count = 50
-    cutoff = 0
-    get_new = False
-    status = HIT_STATUS_REVIEW
-    hits = hitmanager.all_hits()
-    if (request.query.count):
-        count = int(request.query.count)
-    try:
-        cutoff = long(request.query.cutoff)
-    except ValueError:
-        cutoff = 0
-        # becuase we use %d to find a value below
-    if (request.query.status):
-        status = request.query.status
-    if (request.query.get_new):
-        get_new = True
+#     count = 50
+#     cutoff = 0
+#     get_new = False
+#     status = HIT_STATUS_REVIEW
+#     hits = hitmanager.all_hits()
+#     if (request.query.count):
+#         count = int(request.query.count)
+#     try:
+#         cutoff = long(request.query.cutoff)
+#     except ValueError:
+#         cutoff = 0
+#         # becuase we use %d to find a value below
+#     if (request.query.status):
+#         status = request.query.status
+#     if (request.query.get_new):
+#         get_new = True
 
-    msgstring = "new" if get_new else "old"
-    print('client requested %i %s hits with cutoff %i'
-          % (count, msgstring, cutoff))
-    hits = [h for h in hits if h['status'] == status]
-    if cutoff and get_new:
-        hits = [h for h in hits if h['id'] > cutoff]
-    elif cutoff and not get_new:
-        hits = [h for h in hits if h['id'] < cutoff]
-    hits.reverse()
-    return_hits = hits[:count]
+#     msgstring = "new" if get_new else "old"
+#     print('client requested %i %s hits with cutoff %i'
+#           % (count, msgstring, cutoff))
+#     hits = [h for h in hits if h['status'] == status]
+#     if cutoff and get_new:
+#         hits = [h for h in hits if h['id'] > cutoff]
+#     elif cutoff and not get_new:
+#         hits = [h for h in hits if h['id'] < cutoff]
+#     hits.reverse()
+#     return_hits = hits[:count]
 
-    print("returned %i hits" % len(return_hits))
-    for hit in return_hits:
-        timestring = time.strftime("%d, %H:%M:%S",time.localtime(hit['timestamp']))
-        print("%i: %s, %s" % (hit['id'], timestring, hit['status']))
+#     print("returned %i hits" % len(return_hits))
+#     for hit in return_hits:
+#         timestring = time.strftime("%d, %H:%M:%S",time.localtime(hit['timestamp']))
+#         print("%i: %s, %s" % (hit['id'], timestring, hit['status']))
 
-    if return_hits:
-        # hitmanager.server_sent_hits(return_hits)
-        return {'hits': return_hits}
-    else:
-        return {'hits': None}
+#     if return_hits:
+#         # hitmanager.server_sent_hits(return_hits)
+#         return {'hits': return_hits}
+#     else:
+#         return {'hits': None}
 
 run(app, host='0.0.0.0', port=TEST_PORT, debug=True, server='sslbottle')
 # run(app, host='127.0.0.1', port=TEST_PORT, debug=True)

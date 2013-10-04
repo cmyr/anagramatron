@@ -300,10 +300,10 @@ def post_hit(hit_id):
         twitter_handler = TwitterHandler()
     if twitter_handler.post_hit(get_hit(hit_id)):
         set_hit_status(hit_id, HIT_STATUS_POSTED)
-        return True
         # keep track of most recent post:
         cursor = hitsdb.cursor()
         cursor.execute("INSERT INTO hitinfo VALUES (?)", (time.time(),))
+        return True
     else:
         set_hit_status(hit_id, HIT_STATUS_FAILED)
         return False
