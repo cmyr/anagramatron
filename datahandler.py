@@ -347,7 +347,7 @@ if __name__ == "__main__":
 
     start = args[2] if len(args) > 2 else None
 
-    combine_databases(args[0], args[1], start=start)
+    combine_databases(args[0], args[1], start=int(start))
     # dc = DataCoordinator()
     # sys.exit(1)
     pass
