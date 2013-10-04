@@ -27,7 +27,7 @@ dbpath = None
 hitsdb = None
 twitter_handler = None
 _new_hits_counter = 0
-
+_setup()
 
 def _setup(languages=['en']):
     global dbpath, hitsdb
@@ -42,7 +42,7 @@ def _setup(languages=['en']):
         cursor.execute("""CREATE TABLE hits
             (hit_id INTEGER, hit_status TEXT, hit_date INTEGER, hit_hash TEXT, hit_rating text, flags TEXT,
                 tweet_one TEXT, tweet_two TEXT)""")
-        cursor.execute("CREATE TABLE blacklist (bad_hash TEXT UNIQUE)")
+        # cursor.execute("CREATE TABLE blacklist (bad_hash TEXT UNIQUE)")
         hitsdb.commit()
     else:
         hitsdb = lite.connect(dbpath)
@@ -52,14 +52,14 @@ def _setup(languages=['en']):
         hitsdb.commit()
 
 
-def _checkit():
-    if not dbpath or hitsdb:
-        _setup()
+# def _checkit():
+#     if not dbpath or hitsdb:
+#         _setup()
 
 
 def new_hit(first, second):
     global _new_hits_counter
-    _checkit()
+    
     hit = {
            "id": int(time.time()*1000),
            "status": HIT_STATUS_REVIEW,
@@ -118,7 +118,7 @@ def _cleaned_tweet(tweet):
 
 
 def hits_newer_than_hit(hit_id):
-    _checkit()
+    
     cursor = hitsdb.cursor()
     cursor.execute("SELECT * FROM hits WHERE hit_id > (?)", (hit_id,))
     results = cursor.fetchall()
@@ -126,7 +126,7 @@ def hits_newer_than_hit(hit_id):
 
 
 def new_hits_count():
-    _checkit()
+    
     cursor = hitsdb.cursor()
     try:
         cursor.execute("SELECT * FROM hits WHERE hit_status = (?)",
@@ -146,19 +146,19 @@ def last_post_time():
         return results.pop()[0]
 
 
-def _hit_on_blacklist(hit):
-    _checkit()
-    cursor = hitsdb.cursor()
-    cursor.execute("SELECT count(*) FROM blacklist WHERE bad_hash=?", (hit['hash'],))
-    result = cursor.fetchone()[0]
-    if result == 1:
-        logging.debug('hit on blacklist: %s' % hit['tweet_one']['tweet_text'])
-        return True
-    return False
+# def _hit_on_blacklist(hit):
+#     
+#     cursor = hitsdb.cursor()
+#     cursor.execute("SELECT count(*) FROM blacklist WHERE bad_hash=?", (hit['hash'],))
+#     result = cursor.fetchone()[0]
+#     if result == 1:
+#         logging.debug('hit on blacklist: %s' % hit['tweet_one']['tweet_text'])
+#         return True
+#     return False
 
 
 def _hit_collides_with_previous_hit(hit):
-    _checkit()
+    
     cursor = hitsdb.cursor()
     cursor.execute("SELECT * FROM hits WHERE hit_hash=?", (hit['hash'], ))
     result = cursor.fetchone()
@@ -206,7 +206,7 @@ def _add_hit(hit):
 
 
 def get_hit(hit_id):
-    _checkit()
+    
     cursor = hitsdb.cursor()
     cursor.execute("SELECT * FROM hits WHERE hit_id=:id",
                    {"id": str(hit_id)})
@@ -215,7 +215,7 @@ def get_hit(hit_id):
 
 
 def remove_hit(hit_id):
-    _checkit()
+    
     cursor = hitsdb.cursor()
     cursor.execute("DELETE FROM hits WHERE hit_id=:id",
                    {"id": str(hit_id)})
@@ -223,7 +223,7 @@ def remove_hit(hit_id):
 
 
 def set_hit_status(hit_id, status):
-    _checkit()
+    
     if status not in [HIT_STATUS_REVIEW, HIT_STATUS_MISC, HIT_STATUS_SEEN,
                       HIT_STATUS_APPROVED, HIT_STATUS_POSTED,
                       HIT_STATUS_REJECTED, HIT_STATUS_FAILED]:
@@ -239,7 +239,7 @@ def set_hit_status(hit_id, status):
 
 
 def all_hits(with_status=None, cutoff_id=None):
-    _checkit()
+    
     cursor = hitsdb.cursor()
     if not with_status:
         cursor.execute("SELECT * FROM hits")
@@ -254,11 +254,11 @@ def all_hits(with_status=None, cutoff_id=None):
     return hits
 
 
-def blacklist():
-    cursor = hitsdb.cursor()
-    cursor.execute("SELECT * from blacklist")
-    results = cursor.fetchall()
-    return results
+# def blacklist():
+#     cursor = hitsdb.cursor()
+#     cursor.execute("SELECT * from blacklist")
+#     results = cursor.fetchall()
+#     return results
 
 
 def hit_from_sql(item):
@@ -277,12 +277,12 @@ def hit_from_sql(item):
             }
 
 
-def add_to_blacklist(bad_hash):
-    _checkit()
-    cursor = hitsdb.cursor()
-    cursor.execute("INSERT OR IGNORE INTO blacklist VALUES (?)", (bad_hash,))
-    cursor.execute("DELETE FROM hits WHERE hit_hash=?", (bad_hash,))
-    hitsdb.commit()
+# def add_to_blacklist(bad_hash):
+#     _checkit()
+#     cursor = hitsdb.cursor()
+#     cursor.execute("INSERT OR IGNORE INTO blacklist VALUES (?)", (bad_hash,))
+#     cursor.execute("DELETE FROM hits WHERE hit_hash=?", (bad_hash,))
+#     hitsdb.commit()
 
 
 def reject_hit(hit_id):
@@ -314,7 +314,7 @@ def review_hits(to_post=False):
     """
     manual tool for reviewing hits on the command line
     """
-    _checkit()
+    
     status = HIT_STATUS_REVIEW if not to_post else HIT_STATUS_APPROVED
     hits = all_hits(status)
     hits = [(h, anagramfunctions.grade_anagram(h)) for h in hits]
