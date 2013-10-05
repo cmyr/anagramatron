@@ -38,22 +38,6 @@ def clear_stats():
     _fetch_pool_size = 0
 
 
-# def new_hash(hash_text):
-#     global hash_distributions
-#     hashlength = len(hash_text)
-#     if (hashlength < 140):
-#         hash_distributions[hashlength] += 1
-
-
-# def new_hit(self, hash_text):
-#     global hitlist
-#     global hit_distributions
-
-#     hitlist.append(hash_text)
-#     hashlength = len(hash_text)
-#     if (hashlength < 140):
-#         hit_distributions[hashlength] += 1
-
 def tweets_seen(seen=1):
     global _tweets_seen
     _tweets_seen += seen
@@ -132,7 +116,6 @@ def update_console():
         " agrams: " + str(_hits) +
         " cachesize: " + str(_cache_size) +
         " buffer: " + str(_buffer) +
-        " fetchpool: " + str(_fetch_pool_size) +
         " runtime: " + anagramfunctions.format_seconds(runtime)
     )
     sys.stdout.write(status + '\r')
