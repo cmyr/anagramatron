@@ -48,7 +48,6 @@ class DataCoordinator(object):
         """
         self.languages = languages
         self.cache = dict()
-        self.fetch_pool = dict()
         self.datastore = None
         self._should_trim_cache = False
         self._write_process = None
@@ -78,7 +77,7 @@ class DataCoordinator(object):
         recieves a filtered tweet.
         - checks if it exists in cache
         - checks if in database
-        - if yes adds to fetch queue(checks if in fetch queue)
+        - if yes checks for hit
         """
 
         key = tweet['tweet_hash']
@@ -94,8 +93,7 @@ class DataCoordinator(object):
         else:
             # not in cache. in datastore?
             if key in self.datastore:
-            # add to fetch_pool
-                self._add_to_fetch_pool(tweet)
+                self._process_hit(tweet)
             else:
                 # not in datastore. add to cache
                 self.cache[key] = {'tweet': tweet,
@@ -103,94 +101,24 @@ class DataCoordinator(object):
                 stats.set_cache_size(len(self.cache))
 
                 if len(self.cache) > ANAGRAM_CACHE_SIZE:
-                    # we imagine a future in which trimming isn't based on a constant
-                    self._should_trim_cache = True
+                    self._trim_cache()
 
-                if self._should_trim_cache:
-                    if self._is_writing.is_set():
-                        # means we're trying to write before previous write op is done
-                        if len(self.cache) > 4*ANAGRAM_CACHE_SIZE:
-                            raise NeedsMaintenance
-                    else:
-                        self._trim_cache()
 
-    def _add_to_fetch_pool(self, tweet):
+    def _process_hit(self, tweet):
         key = tweet['tweet_hash']
-        if self.fetch_pool.get(key):
-            # exists in fetch pool, run comps
-            hit_tweet = self.fetch_pool[key]
-            if anagramfunctions.test_anagram(tweet['tweet_text'], hit_tweet['tweet_text']):
-                del self.fetch_pool[key]
-                hitmanager.new_hit(tweet, hit_tweet)
-            else:
-                pass
+        hit_tweet = _tweet_from_dbm(self.datastore[key])
+        if anagramfunctions.test_anagram(tweet['tweet_text'],
+            hit_tweet['tweet_text']):
+            hitmanager.new_hit(hit_tweet, tweet)
         else:
-            self.fetch_pool[key] = tweet
-            if len(self.fetch_pool) > ANAGRAM_FETCH_POOL_SIZE:
-                self._batch_fetch()
-
-        stats.set_fetch_pool_size(len(self.fetch_pool))
-
-    def _batch_fetch(self):
-        """
-        fetches all the tweets in our fetch pool and runs comparisons
-        deleting from
-        """
-        # 'batch fetching' in it's current form is a big hangover (like much of this file)
-        # from a previous iteration, where we were using sqlite3 instead of dbm.
-        # this is now pretty baroque and not necessary; hits could be fetched immediately.
-
-        # when we're done writing, check to see how long our buffer is.
-        # if it's gotten too long, we raise our NeedsMaintenance exception.
-        buffer_size = stats.buffer_size()
-        should_raise_maintenance_flag = False
-        if buffer_size:
-            print('\nfinished with buffer size: %i\n' % buffer_size)
-            logging.debug('finished with buffer size: %i\n' % buffer_size)
-        if buffer_size > ANAGRAM_STREAM_BUFFER_SIZE:
-            should_raise_maintenance_flag = True
-            # putting this here because I forget how our processes work
-            # and am unsure if we'll still have a buffer when we exit this function?
-            # but if we perform maintenance now we'll have a crash on restart
-            # b/c there are things in the fetchpool that no longer exist in db
-
-        load_time = time.time()
-        fetch_count = len(self.fetch_pool)
-        hashes = [self.fetch_pool[i]['tweet_hash'] for i in self.fetch_pool]
-        results = []
-        for h in hashes:
-            results.append(self.datastore[h])
-        # self._lock.release()
-        for result in results:
-            fetched_tweet = _tweet_from_dbm(result)
-            new_tweet = self.fetch_pool[fetched_tweet['tweet_hash']]
-            if anagramfunctions.test_anagram(fetched_tweet['tweet_text'],
-                                             new_tweet['tweet_text']):
-                hitmanager.new_hit(fetched_tweet, new_tweet)
-            else:
-                self.cache[new_tweet['tweet_hash']] = {'tweet': new_tweet,
-                                                       'hit_count': 1}
-        # reset our fetch_pool
-        self.fetch_pool = dict()
-        logging.debug('fetched %i in %s' % 
-            (fetch_count,
-                anagramfunctions.format_seconds(time.time()-load_time)))
-
-        if buffer_size > ANAGRAM_STREAM_BUFFER_SIZE:
-            logging.debug('buffer size after fetch: %i' % stats.buffer_size())
-
-        if should_raise_maintenance_flag:
-            raise NeedsMaintenance
+            self.ANAGRAM_CACHE_SIZE[key] = {'tweet': new_tweet, 'hit_count': 1}
 
 
     def _trim_cache(self, to_trim=None):
         """
         takes least frequently hit tweets from cache and writes to datastore
         """
-        # self._is_writing.set()
-        # perform fetch before trimming cache:
-        if len(self.fetch_pool):
-            self._batch_fetch()
+
         self._should_trim_cache = False
         # first just grab hashes with zero hits. If that's less then 1/2 total
         # do a more complex filter
@@ -210,6 +138,10 @@ class DataCoordinator(object):
 
             self.datastore[x] = _dbm_from_tweet(self.cache[x]['tweet'])
             del self.cache[x]
+
+        buffer_size = stats.buffer_size()
+        if buffer_size > ANAGRAM_STREAM_BUFFER_SIZE:
+            raise NeedsMaintenance
 
     def _save_cache(self):
         """
