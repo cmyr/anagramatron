@@ -139,7 +139,7 @@ def last_post_time():
     cursor.execute("SELECT * from hitinfo")
     results = cursor.fetchall()
     if len(results):
-        return results.pop()[0]
+        return results
 
 
 # def _hit_on_blacklist(hit):
@@ -294,7 +294,7 @@ def post_hit(hit_id):
         set_hit_status(hit_id, HIT_STATUS_POSTED)
         # keep track of most recent post:
         cursor = hitsdb.cursor()
-        cursor.execute("INSERT INTO hitinfo VALUES (?)", (time.time(),))
+        cursor.execute("INSERT INTO hitinfo VALUES (?)", (str(time.time()),))
         hitsdb.commit()
         return True
     else:

@@ -157,6 +157,8 @@ def info():
     stats_dict = stats.stats_dict()
     new_hits = hitmanager.new_hits_count()
     last_post = hitmanager.last_post_time()
+    print(last_post)
+    last_post = last_post[len(last_post)-1]
     return {'stats': stats_dict, 'new_hits': new_hits, 'last_post': last_post}
 
 
