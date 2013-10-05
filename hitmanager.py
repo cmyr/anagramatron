@@ -48,9 +48,9 @@ def _setup(languages=['en']):
     else:
         hitsdb = lite.connect(dbpath)
 
-# def _checkit():
-#     if not dbpath or hitsdb:
-#         _setup()
+def _checkit():
+    if not dbpath or hitsdb:
+        _setup()
 
 
 def new_hit(first, second):
@@ -122,7 +122,7 @@ def hits_newer_than_hit(hit_id):
 
 
 def new_hits_count():
-    
+    _checkit()
     cursor = hitsdb.cursor()
     try:
         cursor.execute("SELECT * FROM hits WHERE hit_status = (?)",
@@ -235,7 +235,7 @@ def set_hit_status(hit_id, status):
 
 
 def all_hits(with_status=None, cutoff_id=None):
-    
+    _checkit()
     cursor = hitsdb.cursor()
     if not with_status:
         cursor.execute("SELECT * FROM hits")
@@ -352,9 +352,6 @@ def review_hits(to_post=False):
 
 
 
-
-
-_setup()
 
 if __name__ == "__main__":
     args = sys.argv[1:]
