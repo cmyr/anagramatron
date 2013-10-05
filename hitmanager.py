@@ -138,8 +138,9 @@ def last_post_time():
     cursor = hitsdb.cursor()
     cursor.execute("SELECT * from hitinfo")
     results = cursor.fetchall()
+    results = [float(x[0]) for x in results]
     if len(results):
-        return results
+        return max(results)
 
 
 # def _hit_on_blacklist(hit):

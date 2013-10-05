@@ -158,61 +158,8 @@ def info():
     new_hits = hitmanager.new_hits_count()
     last_post = hitmanager.last_post_time()
     print(last_post)
-    last_post = last_post[len(last_post)-1]
     return {'stats': stats_dict, 'new_hits': new_hits, 'last_post': last_post}
 
-
-# API v: 2.0:
-# @app.route('/2.0/hits')
-# def get_hits2():
-#     """
-#     can take two arguments, count and older_than.
-#     count is the number of hits to return.
-#     older_than is a hit_id.
-#     """
-#     print('new hits requested')
-#     auth = request.get_header('Authorization')
-#     if not authenticate(auth):
-#         return
-
-#     count = 50
-#     cutoff = 0
-#     get_new = False
-#     status = HIT_STATUS_REVIEW
-#     hits = hitmanager.all_hits()
-#     if (request.query.count):
-#         count = int(request.query.count)
-#     try:
-#         cutoff = long(request.query.cutoff)
-#     except ValueError:
-#         cutoff = 0
-#         # becuase we use %d to find a value below
-#     if (request.query.status):
-#         status = request.query.status
-#     if (request.query.get_new):
-#         get_new = True
-
-#     msgstring = "new" if get_new else "old"
-#     print('client requested %i %s hits with cutoff %i'
-#           % (count, msgstring, cutoff))
-#     hits = [h for h in hits if h['status'] == status]
-#     if cutoff and get_new:
-#         hits = [h for h in hits if h['id'] > cutoff]
-#     elif cutoff and not get_new:
-#         hits = [h for h in hits if h['id'] < cutoff]
-#     hits.reverse()
-#     return_hits = hits[:count]
-
-#     print("returned %i hits" % len(return_hits))
-#     for hit in return_hits:
-#         timestring = time.strftime("%d, %H:%M:%S",time.localtime(hit['timestamp']))
-#         print("%i: %s, %s" % (hit['id'], timestring, hit['status']))
-
-#     if return_hits:
-#         # hitmanager.server_sent_hits(return_hits)
-#         return {'hits': return_hits}
-#     else:
-#         return {'hits': None}
 
 run(app, host='0.0.0.0', port=TEST_PORT, debug=True, server='sslbottle')
 # run(app, host='127.0.0.1', port=TEST_PORT, debug=True)
