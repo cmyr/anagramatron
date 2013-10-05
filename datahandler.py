@@ -111,7 +111,7 @@ class DataCoordinator(object):
             hit_tweet['tweet_text']):
             hitmanager.new_hit(hit_tweet, tweet)
         else:
-            self.ANAGRAM_CACHE_SIZE[key] = {'tweet': new_tweet, 'hit_count': 1}
+            self.ANAGRAM_CACHE_SIZE[key] = {'tweet': tweet, 'hit_count': 1}
 
 
     def _trim_cache(self, to_trim=None):
