@@ -75,7 +75,7 @@ def get_hits():
     hits = hitmanager.all_hits(status, cutoff)
     total_hits = len(hits)
     print('hitmanager returned %i hits' % total_hits)
-    hits = sorted(hits, key=lambda k: k['hit_id'], reverse=True)
+    hits = sorted(hits, key=lambda k: k['id'], reverse=True)
     hits = hits[:count]
     print("returned %i hits" % len(hits))
     return {'hits': hits, 'total_count': total_hits}
