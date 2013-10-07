@@ -227,6 +227,7 @@ def delete_short_entries(dbpath, cutoff=20):
     except ImportError:
         print('database manipulation requires gdbm')
 
+    start_time = time.time()
     db = gdbm.open(dbpath, 'w')
     k = db.firstkey()
     seen = 0
@@ -245,10 +246,12 @@ def delete_short_entries(dbpath, cutoff=20):
             sys.stdout.flush()
             k = nextk
     finally:
-        print('\n', prevk)
         for i in todel:
             del db[i]
         db.close()
+        duration = time.time() - start_time
+        print('\ndeleted %i of %i in %s' %
+            (deleted, seen, anagramfunctions.format_seconds(duration)))
 
 
 def combine_databases(path1, path2, minlen=20, start=0):
