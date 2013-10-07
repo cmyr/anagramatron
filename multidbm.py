@@ -105,12 +105,13 @@ class MultiDBM(object):
         target = '%s/%s' % (self._path, filename)
         destination = '%s/archive/%s' % (self._path, filename)
         os.rename(target, destination)
+        return destination
 
     def section_count(self):
         return len(self._data)
 
     def archive(self):
-        self._remove_old()
+        return self._remove_old()
 
     def close(self):
         path = '%s/%s' % (self._path, _METADATA_FILE)
