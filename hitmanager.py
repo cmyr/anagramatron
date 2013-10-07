@@ -47,6 +47,7 @@ def _setup(languages=['en']):
         hitsdb.commit()
     else:
         hitsdb = lite.connect(dbpath)
+        cursor = hitsdb.cursor()
         cursor.execute("CREATE TABLE IF NOT EXISTS post_queue (hit_id INTEGER)")
 
 def _checkit():
