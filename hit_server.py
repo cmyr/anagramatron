@@ -76,7 +76,6 @@ def get_hits():
     total_hits = len(hits)
     print('hitmanager returned %i hits' % total_hits)
     hits = hits[:count]
-    hits.reverse()
     print("returned %i hits" % len(hits))
     return {'hits': hits, 'total_count': total_hits}
 
@@ -151,13 +150,9 @@ def info():
     auth = request.get_header('Authorization')
     if not authenticate(auth):
         return
-
-    # last_hit = request.query.last_hit
-
     stats_dict = stats.stats_dict()
     new_hits = hitmanager.new_hits_count()
     last_post = hitmanager.last_post_time()
-    print(last_post)
     return {'stats': stats_dict, 'new_hits': new_hits, 'last_post': last_post}
 
 
