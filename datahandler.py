@@ -231,7 +231,7 @@ def delete_short_entries(dbpath, cutoff=20):
     db = gdbm.open(dbpath, 'w')
     k = db.firstkey()
     seen = 0
-    deleted = 0
+    marked = 0
     prevk = k
     todel = set()
     try:
@@ -241,13 +241,18 @@ def delete_short_entries(dbpath, cutoff=20):
             nextk = db.nextkey(k)
             if anagramfunctions.length_from_hash(k) < cutoff:
                 todel.add(k)
-                deleted += 1
-            sys.stdout.write('seen/deleted: %i/%i\r' % (seen, deleted))
+                marked += 1
+            sys.stdout.write('seen/marked: %i/%i\r' % (seen, marked))
             sys.stdout.flush()
             k = nextk
     finally:
+        deleted = 0
+        print('\ndeleting %i entries' % marked)
         for i in todel:
             del db[i]
+            deleted += 1
+            sys.stdout.write('deleted %i/%i\r' % (deleted, marked))
+            sys.stdout.flush()
         db.close()
         duration = time.time() - start_time
         print('\ndeleted %i of %i in %s' %
