@@ -43,10 +43,11 @@ def _setup(languages=['en']):
             (hit_id INTEGER, hit_status TEXT, hit_date INTEGER, hit_hash TEXT, hit_rating text, flags TEXT,
                 tweet_one TEXT, tweet_two TEXT)""")
         cursor.execute("CREATE TABLE hitinfo (last_post REAL)")
-        # cursor.execute("CREATE TABLE blacklist (bad_hash TEXT UNIQUE)")
+        cursor.execute("CREATE TABLE post_queue (hit_id INTEGER)")
         hitsdb.commit()
     else:
         hitsdb = lite.connect(dbpath)
+        cursor.execute("CREATE TABLE IF NOT EXISTS post_queue (hit_id INTEGER)")
 
 def _checkit():
     if not dbpath or hitsdb:
@@ -301,6 +302,22 @@ def post_hit(hit_id):
     else:
         set_hit_status(hit_id, HIT_STATUS_FAILED)
         return False
+
+def queue_hit(hit_id):
+    cursor = hitsdb.cursor()
+    cursor.execute("INSERT INTO post_queue VALUES (?)", (str(hit_id),))
+    hitsdb.commit()
+
+def get_queued_hits():
+    cursor = hitsdb.cursor()
+    cursor.execute("SELECT * FROM post_queue")
+    hits = cursor.fetchall()
+    return [h[0] for h in hits]
+
+def post_queued_hit(hit_id):
+    cursor = hitsdb.cursor()
+    cursor.execute("DELETE FROM post_queue WHERE hit_id = (?)", (str(hit_id),))
+    return post_hit(hit_id)
 
 
 def approve_hit(hit_id):
