@@ -61,7 +61,13 @@ class MultiDBM(object):
         raise KeyError
 
     def __len__(self):
-        return self._metadata['totsize']
+        """
+        length calculations are estimates since we assume
+        all non-current chunks are at capacity.
+        In reality some keys will likely get deleted.
+        """
+        return (self._section_size * len(self._data-1)
+            + self._metadata['cursize'])
 
     def _setup(self):
         if os.path.exists(self._path):
@@ -71,6 +77,7 @@ class MultiDBM(object):
             dbses = sorted([i for i in ls if re.findall('mdbm', i)])
             for db in dbses:
                 dbpath = '%s/%s' % (self._path, db)
+                print(dbpath)
                 self._data.append(anydbm.open(dbpath, 'c'))
             print('loaded %i dbm files' % len(self._data))
         else:
@@ -85,19 +92,26 @@ class MultiDBM(object):
 
     def _add_db(self):
         filename = time.strftime("%b%d%H%M")
-        filename = str(time.time())
-        path = self._path + '/mdbm%s.db' % filename
+        filename = 'mdbm%s.db' % str(time.time())
+        path = self._path + '/%s' % filename
         db = anydbm.open(path, 'c')
         db[_PATHKEY] = filename
         self._data.append(db)
         self._metadata['cursize'] = 0
 
     def _remove_old(self):
+        print(self._path)
         db = self._data.pop(0)
         filename = db[_PATHKEY]
         db.close()
-        os.rename('%s/%s' % (self._path, filename),
-            '%s/archive/%s' % (self._path, filename))
+        target = '%s/%s' % (self._path, filename)
+        destination = '%s/archive/%s' % (self._path, filename)
+        print(target, destination)
+        assert(os.path.exists(target))
+        os.rename(target, destination)
+
+    def section_count(self):
+        return len(self._data)
 
     def archive(self):
         self._remove_old()
