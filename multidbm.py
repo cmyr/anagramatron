@@ -4,6 +4,7 @@ import cPickle as pickle
 import os
 import time
 import re
+import logging
 
 _METADATA_FILE = 'meta.p'
 _PATHKEY = 'X43q2smxlkFJ28h$@3xGN' # gurrenteed unlikely!!
@@ -90,13 +91,14 @@ class MultiDBM(object):
             self._add_db()
 
     def _add_db(self):
-        filename = time.strftime("%b%d%H%M")
-        filename = 'mdbm%s.db' % str(time.time())
+        filename = 'mdbm%s.db' % time.strftime("%b%d%H%M")
+        # filename = 'mdbm%s.db' % str(time.time())
         path = self._path + '/%s' % filename
         db = anydbm.open(path, 'c')
         db[_PATHKEY] = filename
         self._data.append(db)
         self._metadata['cursize'] = 0
+        logging.debug('mdbm added new dbm file: %s' % filename)
 
     def _remove_old(self):
         db = self._data.pop(0)
@@ -105,6 +107,7 @@ class MultiDBM(object):
         target = '%s/%s' % (self._path, filename)
         destination = '%s/archive/%s' % (self._path, filename)
         os.rename(target, destination)
+        logging.debug('mdbm moved old dbm file to %s' % destination)
         return destination
 
     def section_count(self):

@@ -26,3 +26,4 @@ Okay, So now we have to think about maintenance. Deleting items seems tricky.is 
    if there's no real way to make that more efficient, we should test the speed of just copying items we want to keep into a new database
  ☐ time moving items from one database to another
    if /that/ doesn't work, we should look into storing in seperate tables?
+

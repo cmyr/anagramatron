@@ -1,5 +1,6 @@
 from __future__ import print_function
 import anydbm
+import multidbm
 import os
 import re
 import sys
@@ -18,7 +19,7 @@ from constants import (ANAGRAM_FETCH_POOL_SIZE, ANAGRAM_CACHE_SIZE,
                        STORAGE_DIRECTORY_PATH, ANAGRAM_STREAM_BUFFER_SIZE)
 
 
-DATA_PATH_COMPONENT = 'anagramdbm2'
+DATA_PATH_COMPONENT = 'anagrammdbm'
 CACHE_PATH_COMPONENT = 'cachedump'
 
 from hitmanager import (HIT_STATUS_SEEN, HIT_STATUS_REVIEW, HIT_STATUS_POSTED,
@@ -69,7 +70,7 @@ class DataCoordinator(object):
         - extract hashes
         """
         self.cache = self._load_cache()
-        self.datastore = anydbm.open(self.dbpath, 'c')
+        self.datastore = multidbm.MultiDBM(self.dbpath)
         hitmanager._setup(self.languages)
 
     def handle_input(self, tweet):
@@ -130,7 +131,7 @@ class DataCoordinator(object):
         s = sorted(cache_list, key=itemgetter(1))
         cache_list = sorted(s, key=itemgetter(2))
         if not to_trim:
-            to_trim = 10000
+            to_trim = min(10000, (ANAGRAM_CACHE_SIZE/10))
         hashes_to_save = [x for (x, y, z) in cache_list[:to_trim]]
 
         # write those caches to disk, delete from cache, add to hashes
@@ -141,7 +142,7 @@ class DataCoordinator(object):
 
         buffer_size = stats.buffer_size()
         if buffer_size > ANAGRAM_STREAM_BUFFER_SIZE:
-            raise NeedsMaintenance
+            self.perform_maintenance()
 
     def _save_cache(self):
         """
@@ -180,18 +181,22 @@ class DataCoordinator(object):
         """
         print("perform maintenance called")
         # save our current cache to be restored after we run _setup (hacky)
-        oldcache = self.cache
-        print('stashing cache with %i items' % len(oldcache))
-        self.close()
-        # move current db out of the way
-        newpath = (STORAGE_DIRECTORY_PATH +
-                    DATA_PATH_COMPONENT +
-                    '_'.join(self.languages) +
-                    time.strftime("%b%d%H%M") + '.db')
-        os.rename(self.dbpath, newpath)
-        self._setup()
-        print('restoring cache with %i items' % len(oldcache))
-        self.cache = oldcache
+        moveddb = self.datastore.archive()
+        print('moved mdbm chunk: %s' % moveddb)
+        print('mdbm contains %s chunks' % self.datastore.section_count())
+
+        # oldcache = self.cache
+        # print('stashing cache with %i items' % len(oldcache))
+        # self.close()
+        # # move current db out of the way
+        # newpath = (STORAGE_DIRECTORY_PATH +
+        #             DATA_PATH_COMPONENT +
+        #             '_'.join(self.languages) +
+        #             time.strftime("%b%d%H%M") + '.db')
+        # os.rename(self.dbpath, newpath)
+        # self._setup()
+        # print('restoring cache with %i items' % len(oldcache))
+        # self.cache = oldcache
 
 
     def close(self):
