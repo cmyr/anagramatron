@@ -216,6 +216,35 @@ def _dbm_from_tweet(tweet):
     dbm_string = unichr(0017).join([unicode(i) for i in tweet.values()])
     return dbm_string.encode('utf-8')
 
+def delete_short_entries(dbpath, cutoff=20):
+    try:
+        import gdbm
+    except ImportError:
+        print('database manipulation requires gdbm')
+
+    db = gdbm.open(dbpath, 'w')
+    k = db.firstkey()
+    seen = 0
+    deleted = 0
+    prevk = k
+    todel = set()
+    try:
+        while k is not None:
+            seen += 1
+            prevk = k
+            nextk = db.nextkey(k)
+            if anagramfunctions.length_from_hash(k) < cutoff:
+                todel.add(k)
+                deleted += 1
+            sys.stdout.write('seen/deleted: %i/%i\r' % (seen, deleted))
+            sys.stdout.flush()
+            k = nextk
+    finally:
+        print('\n', prevk)
+        for i in todel:
+            del db[i]
+        db.close()
+
 
 def combine_databases(path1, path2, minlen=20, start=0):
     try:

@@ -77,7 +77,6 @@ class MultiDBM(object):
             dbses = sorted([i for i in ls if re.findall('mdbm', i)])
             for db in dbses:
                 dbpath = '%s/%s' % (self._path, db)
-                print(dbpath)
                 self._data.append(anydbm.open(dbpath, 'c'))
             print('loaded %i dbm files' % len(self._data))
         else:
@@ -100,14 +99,11 @@ class MultiDBM(object):
         self._metadata['cursize'] = 0
 
     def _remove_old(self):
-        print(self._path)
         db = self._data.pop(0)
         filename = db[_PATHKEY]
         db.close()
         target = '%s/%s' % (self._path, filename)
         destination = '%s/archive/%s' % (self._path, filename)
-        print(target, destination)
-        assert(os.path.exists(target))
         os.rename(target, destination)
 
     def section_count(self):

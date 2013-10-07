@@ -39,7 +39,7 @@ def improved_hash(text, debug=False):
         else:
             if freqsort[letter] > freqsort[break_letter]:
                 if len(compressed_hash) % 2:
-                    # an uneven number of bytes will cause unicode errors
+                    # an uneven number of bytes will cause unicode errors?
                     compressed_hash += chr(64)
                 break
             compressed_hash += chr(64)
@@ -49,6 +49,17 @@ def improved_hash(text, debug=False):
         return '@@'
     return compressed_hash
     # return t_hash
+
+def length_from_hash(in_hash):
+    """
+    takes an improved hash and returns the number of characters
+    in the original string.
+    """
+    length = 0
+    chars = list(in_hash)
+    for c in chars:
+        length += ord(c) - 64
+    return length
 
 
 def correct_encodings(text):
