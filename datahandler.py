@@ -221,14 +221,14 @@ def _dbm_from_tweet(tweet):
     dbm_string = unichr(0017).join([unicode(i) for i in tweet.values()])
     return dbm_string.encode('utf-8')
 
-def delete_short_entries(dbpath, cutoff=20):
+def delete_short_entries(srcdb, cutoff=20, start=0):
     try:
         import gdbm
     except ImportError:
         print('database manipulation requires gdbm')
 
     start_time = time.time()
-    db = gdbm.open(dbpath, 'w')
+    db = gdbm.open(srcdb, 'w')
     k = db.firstkey()
     seen = 0
     marked = 0
@@ -259,15 +259,15 @@ def delete_short_entries(dbpath, cutoff=20):
             (deleted, seen, anagramfunctions.format_seconds(duration)))
 
 
-def combine_databases(path1, path2, minlen=20, start=0):
+def combine_databases(srcdb, destdb, cutoff=20, start=0):
     try:
         import gdbm
     except ImportError:
         print('combining databases requires the gdbm module. :(')
-    print('adding tweets from %s to %s' % (path2, path1))
+    print('adding tweets from %s to %s' % (srcdb, destdb))
 
-    db1 = gdbm.open(path1, 'w')
-    db2 = gdbm.open(path2, 'w')
+    db1 = gdbm.open(destdb, 'w')
+    db2 = gdbm.open(srcdb, 'w')
 
     k = db2.firstkey()
     temp_k = None
@@ -287,7 +287,7 @@ def combine_databases(path1, path2, minlen=20, start=0):
         while k is not None:
             tweet = _tweet_from_dbm(db2[k])
             stats.tweets_seen()
-            if len(anagramfunctions.stripped_string(tweet['tweet_text'])) < minlen:
+            if len(anagramfunctions.stripped_string(tweet['tweet_text'])) < cutoff:
                 k = db2.nextkey(k)
                 continue
             stats.passed_filter()
@@ -314,14 +314,52 @@ def combine_databases(path1, path2, minlen=20, start=0):
         db2.close()
 
 
+def main():
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument('db', type=str, help="source database file")
+    parser.add_argument('-t', '--trim', type=int, help="trim low length values")
+    parser.add_argument('-d', '--destination', type=str, help="destination database file")
+    parser.add_argument('-s', '--start', type=int, help='skip-to position')
+    
+    args = parser.parse_args()
+
+    
+    if not args.db:
+        print('please specify a target database.')
+
+    outargs = dict()
+    outargs['srcdb'] = args.db
+
+    if args.trim:
+        print('trim requested %i' % args.trim)
+        outargs['cutoff'] = args.trim
+
+    if args.start:
+        outargs['start'] = args.start
+
+    if args.destination:
+        print('destination: %s' %args.destination)
+        outargs['destdb'] = args.destination
+        combine_databases(**outargs)
+    else:
+        delete_short_entries(**outargs)
+
+
+    
+
 if __name__ == "__main__":
-    args = sys.argv[1:]
-    if len(args) < 2:
-        print('please select exactly two target databases')
+    main()
+    
 
-    start = args[2] if len(args) > 2 else None
 
-    combine_databases(args[0], args[1], start=int(start))
+    # args = sys.argv[1:]
+    # if len(args) < 2:
+    #     print('please select exactly two target databases')
+
+    # start = args[2] if len(args) > 2 else None
+
+    # combine_databases(args[0], args[1], start=int(start))
     # dc = DataCoordinator()
     # sys.exit(1)
     pass
