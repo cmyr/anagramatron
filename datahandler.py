@@ -288,7 +288,7 @@ def combine_databases(srcdb, destdb, cutoff=20, start=0):
     try:
         while k is not None:
             stats.tweets_seen()
-            if (anagramfunctions.length_from_hash[k] < cutoff):
+            if (anagramfunctions.length_from_hash(k) < cutoff):
                 k = db2.nextkey(k)
                 continue                
             stats.passed_filter()
