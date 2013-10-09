@@ -268,7 +268,7 @@ def combine_databases(srcdb, destdb, cutoff=20, start=0):
         print('combining databases requires the gdbm module. :(')
     print('adding tweets from %s to %s' % (srcdb, destdb))
 
-    db1 = gdbm.open(destdb, 'w')
+    db1 = gdbm.open(destdb, 'wf')
     db2 = gdbm.open(srcdb, 'w')
 
     k = db2.firstkey()
@@ -287,12 +287,12 @@ def combine_databases(srcdb, destdb, cutoff=20, start=0):
     
     try:
         while k is not None:
-            tweet = _tweet_from_dbm(db2[k])
             stats.tweets_seen()
-            if len(anagramfunctions.stripped_string(tweet['tweet_text'])) < cutoff:
+            if (anagramfunctions.length_from_hash[k] < cutoff):
                 k = db2.nextkey(k)
-                continue
+                continue                
             stats.passed_filter()
+            tweet = _tweet_from_dbm(db2[k])
             if k in db1:
                 tweet2 = _tweet_from_dbm(db1[k])
                 if anagramfunctions.test_anagram(
@@ -312,6 +312,7 @@ def combine_databases(srcdb, destdb, cutoff=20, start=0):
                 k = temp_k
                 temp_k = None
     finally:
+        db1.sync()
         db1.close()
         db2.close()
 
