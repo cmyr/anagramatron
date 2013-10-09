@@ -228,7 +228,7 @@ def delete_short_entries(srcdb, cutoff=20, start=0):
         print('database manipulation requires gdbm')
 
     start_time = time.time()
-    db = gdbm.open(srcdb, 'w')
+    db = gdbm.open(srcdb, 'wf')
     k = db.firstkey()
     seen = 0
     marked = 0
@@ -253,6 +253,8 @@ def delete_short_entries(srcdb, cutoff=20, start=0):
             deleted += 1
             sys.stdout.write('deleted %i/%i\r' % (deleted, marked))
             sys.stdout.flush()
+        
+        db.sync()
         db.close()
         duration = time.time() - start_time
         print('\ndeleted %i of %i in %s' %
