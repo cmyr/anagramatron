@@ -1,6 +1,5 @@
 import re
 import anagramstats as stats
-import sqlite3 as lite
 import unicodedata
 
 from constants import (ANAGRAM_LOW_CHAR_CUTOFF, ANAGRAM_LOW_UNIQUE_CHAR_CUTOFF,

@@ -146,17 +146,6 @@ def last_post_time():
         return max(results)
 
 
-# def _hit_on_blacklist(hit):
-#     
-#     cursor = hitsdb.cursor()
-#     cursor.execute("SELECT count(*) FROM blacklist WHERE bad_hash=?", (hit['hash'],))
-#     result = cursor.fetchone()[0]
-#     if result == 1:
-#         logging.debug('hit on blacklist: %s' % hit['tweet_one']['tweet_text'])
-#         return True
-#     return False
-
-
 def _hit_collides_with_previous_hit(hit):
     
     cursor = hitsdb.cursor()
@@ -254,13 +243,6 @@ def all_hits(with_status=None, cutoff_id=None):
     return hits
 
 
-# def blacklist():
-#     cursor = hitsdb.cursor()
-#     cursor.execute("SELECT * from blacklist")
-#     results = cursor.fetchall()
-#     return results
-
-
 def hit_from_sql(item):
     """
     convenience method for converting the result of an sql query
@@ -275,15 +257,6 @@ def hit_from_sql(item):
             'tweet_one': eval(item[6]),
             'tweet_two': eval(item[7])
             }
-
-
-# def add_to_blacklist(bad_hash):
-#     _checkit()
-#     cursor = hitsdb.cursor()
-#     cursor.execute("INSERT OR IGNORE INTO blacklist VALUES (?)", (bad_hash,))
-#     cursor.execute("DELETE FROM hits WHERE hit_hash=?", (bad_hash,))
-#     hitsdb.commit()
-
 
 def reject_hit(hit_id):
     set_hit_status(hit_id, HIT_STATUS_REJECTED)

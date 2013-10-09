@@ -15,8 +15,8 @@ import anagramfunctions
 import hitmanager
 import anagramstats as stats
 
-from constants import (ANAGRAM_FETCH_POOL_SIZE, ANAGRAM_CACHE_SIZE,
-                       STORAGE_DIRECTORY_PATH, ANAGRAM_STREAM_BUFFER_SIZE)
+from constants import (ANAGRAM_CACHE_SIZE, STORAGE_DIRECTORY_PATH,
+ ANAGRAM_STREAM_BUFFER_SIZE)
 
 
 DATA_PATH_COMPONENT = 'anagrammdbm'
@@ -185,19 +185,6 @@ class DataCoordinator(object):
         print('moved mdbm chunk: %s' % moveddb)
         print('mdbm contains %s chunks' % self.datastore.section_count())
 
-        # oldcache = self.cache
-        # print('stashing cache with %i items' % len(oldcache))
-        # self.close()
-        # # move current db out of the way
-        # newpath = (STORAGE_DIRECTORY_PATH +
-        #             DATA_PATH_COMPONENT +
-        #             '_'.join(self.languages) +
-        #             time.strftime("%b%d%H%M") + '.db')
-        # os.rename(self.dbpath, newpath)
-        # self._setup()
-        # print('restoring cache with %i items' % len(oldcache))
-        # self.cache = oldcache
-
 
     def close(self):
         if self._write_process and self._write_process.is_alive():
@@ -297,7 +284,7 @@ def combine_databases(srcdb, destdb, cutoff=20, start=0):
                 tweet2 = _tweet_from_dbm(db1[k])
                 if anagramfunctions.test_anagram(
                     tweet['tweet_text'],
-                    tweet2['tweet_text']
+                    tweet2['tweet_text'] 
                     ):
                     temp_k = db2.nextkey(k)
                     del db2[k]
@@ -353,16 +340,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-    
-
-
-    # args = sys.argv[1:]
-    # if len(args) < 2:
-    #     print('please select exactly two target databases')
-
-    # start = args[2] if len(args) > 2 else None
-
-    # combine_databases(args[0], args[1], start=int(start))
-    # dc = DataCoordinator()
-    # sys.exit(1)
-    pass

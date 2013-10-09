@@ -398,8 +398,6 @@ class TwitterHandler(object):
 
 
 if __name__ == "__main__":
-    # listner = AnagramStream()
-    # listner._setup_stream()
 
     count = 0
     stream = StreamHandler()

@@ -15,9 +15,6 @@ _max_buffer = 0
 _cache_hits = 0
 _cache_size = 0
 _fetch_pool_size = 0
-# hit_distributions = [0 for x in range(140)]
-# hash_distributions = [0 for x in range(140)]
-# hitlist = []
 
 
 def clear_stats():
@@ -121,10 +118,3 @@ def update_console():
     sys.stdout.write(status + '\r')
     sys.stdout.flush()
 
-
-def close():
-    pass
-    # self.end_time = time.time()
-    # filename = "data/stats/%s.p" % time.strftime("%b%d%H%M")
-    # pickle.dump(self, open(filename, 'wb'))
-    # logging.debug('saved stats with %i hits' % len(self.hitlist))

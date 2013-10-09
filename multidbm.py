@@ -123,40 +123,5 @@ class MultiDBM(object):
         for db in self._data:
             db.close()
 
-
-
-
-
-def test():
-    # import pudb; pu.db
-    mdbm = MultiDBM('mdbmtest', 10000, 5)
-    print('running tests')
-
-    for i in range(15410):
-        key = str(i)
-        mdbm[key] = 'tstmsg'
-        # print('%s/%s' % (mdbm._metadata['cursize'], mdbm._metadata['totsize']))
-    print(len(mdbm))
-    assert(len(mdbm) == 15410)
-    print(len(mdbm._data))
-    assert(mdbm._section_size == 2000)
-    assert(len(mdbm._data) == 3)
-    assert('12' in mdbm)
-    assert('198' in mdbm)
-    assert('11411' not in mdbm)
-
-    mdbm.close()
-    mdbm = MultiDBM('mdbmtest', 10000, 5)
-
-
-    assert(len(mdbm) == 5410)
-    for i in range(5410):
-        assert(str(i) in mdbm)
-
-    if 'teststr' in mdbm:
-        print('arbitrary string found')
-    else:
-        print('arbitary string not found')
-
 if __name__ == '__main__':
     test()
