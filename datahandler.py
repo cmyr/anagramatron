@@ -107,7 +107,12 @@ class DataCoordinator(object):
 
     def _process_hit(self, tweet):
         key = tweet['tweet_hash']
-        hit_tweet = _tweet_from_dbm(self.datastore[key])
+        try:
+            hit_tweet = _tweet_from_dbm(self.datastore[key])
+        except UnicodeDecodeError as err:
+            print('error decoding hit for key %s' % key)
+            self.cache[key] = {'tweet': tweet, 'hit_count': 1}
+            return
         if anagramfunctions.test_anagram(tweet['tweet_text'],
             hit_tweet['tweet_text']):
             hitmanager.new_hit(hit_tweet, tweet)
