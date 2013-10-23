@@ -142,7 +142,8 @@ class DataCoordinator(object):
 
         buffer_size = stats.buffer_size()
         if buffer_size > ANAGRAM_STREAM_BUFFER_SIZE:
-            self.perform_maintenance()
+            # self.perform_maintenance()
+            raise NeedsMaintenance
 
     def _save_cache(self):
         """

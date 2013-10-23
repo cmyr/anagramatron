@@ -78,7 +78,11 @@ class MultiDBM(object):
             dbses = sorted([i for i in ls if re.findall('mdbm', i)])
             for db in dbses:
                 dbpath = '%s/%s' % (self._path, db)
-                self._data.append(anydbm.open(dbpath, 'c'))
+                try:
+                    self._data.append(anydbm.open(dbpath, 'c'))
+                except Error as err:
+                    print('error appending dbfile: %s' % dbpath)
+                    
             print('loaded %i dbm files' % len(self._data))
         else:
             print('path not found, creating')

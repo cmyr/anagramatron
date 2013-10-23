@@ -299,7 +299,7 @@ class TwitterHandler(object):
             print(err)
             return False
         except TwitterError as err:
-            logging.debug(err)
+            logging.debug('error fetching tweet %i' tweet_id)
             try:
                 if err.e.code == 404:
                     # we reraise 404s, and return false on other exceptions.
@@ -308,6 +308,8 @@ class TwitterHandler(object):
             except AttributeError:
                 pass
             return False
+        except Exception as err:
+            print('unhandled exception suppressed in fetch_tweet', err)
 
     def retweet(self, tweet_id):
         try:
