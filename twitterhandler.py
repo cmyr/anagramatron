@@ -299,7 +299,7 @@ class TwitterHandler(object):
             print(err)
             return False
         except TwitterError as err:
-            logging.debug('error fetching tweet %i' tweet_id)
+            logging.debug('error fetching tweet %i' % tweet_id)
             try:
                 if err.e.code == 404:
                     # we reraise 404s, and return false on other exceptions.

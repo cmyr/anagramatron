@@ -80,9 +80,9 @@ class MultiDBM(object):
                 dbpath = '%s/%s' % (self._path, db)
                 try:
                     self._data.append(anydbm.open(dbpath, 'c'))
-                except Error as err:
+                except Exception as err:
                     print('error appending dbfile: %s' % dbpath)
-                    
+
             print('loaded %i dbm files' % len(self._data))
         else:
             print('path not found, creating')
