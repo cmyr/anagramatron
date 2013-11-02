@@ -148,6 +148,7 @@ class DataCoordinator(object):
         buffer_size = stats.buffer_size()
         if buffer_size > ANAGRAM_STREAM_BUFFER_SIZE:
             # self.perform_maintenance()
+            print('raised needs maintenance')
             raise NeedsMaintenance
 
     def _save_cache(self):
@@ -327,14 +328,15 @@ def main():
     args = parser.parse_args()
 
     
+    if args.repair:
+        return repair_database()
+
+
     if not args.db:
         print('please specify a target database.')
 
     outargs = dict()
     outargs['srcdb'] = args.db
-
-    if args.repair:
-        return repair_database()
 
     if args.trim:
         print('trim requested %i' % args.trim)
