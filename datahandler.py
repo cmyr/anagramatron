@@ -214,6 +214,12 @@ def _dbm_from_tweet(tweet):
     dbm_string = unichr(0017).join([unicode(i) for i in tweet.values()])
     return dbm_string.encode('utf-8')
 
+
+def repair_database():
+    db = DataCoordinator()
+    db.datastore.perform_maintenance()
+
+
 def delete_short_entries(srcdb, cutoff=20, start=0):
     try:
         import gdbm
@@ -317,7 +323,7 @@ def main():
     parser.add_argument('-t', '--trim', type=int, help="trim low length values")
     parser.add_argument('-d', '--destination', type=str, help="destination database file")
     parser.add_argument('-s', '--start', type=int, help='skip-to position')
-    
+    parser.add_argument('-r', '--repair', type=None, help='repair target database')
     args = parser.parse_args()
 
     
@@ -326,6 +332,9 @@ def main():
 
     outargs = dict()
     outargs['srcdb'] = args.db
+
+    if args.repair:
+        return repair_database()
 
     if args.trim:
         print('trim requested %i' % args.trim)

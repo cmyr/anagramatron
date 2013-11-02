@@ -127,5 +127,10 @@ class MultiDBM(object):
         for db in self._data:
             db.close()
 
+
+    def perform_maintenance(self):
+        for db in self._data:
+            db.reorganize()
+
 if __name__ == '__main__':
     test()
