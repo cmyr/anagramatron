@@ -320,11 +320,11 @@ def combine_databases(srcdb, destdb, cutoff=20, start=0):
 def main():
     import argparse
     parser = argparse.ArgumentParser()
+    parser.add_argument('-r', '--repair', help='repair target database', action="store_true")
     parser.add_argument('db', type=str, help="source database file")
     parser.add_argument('-t', '--trim', type=int, help="trim low length values")
     parser.add_argument('-d', '--destination', type=str, help="destination database file")
     parser.add_argument('-s', '--start', type=int, help='skip-to position')
-    parser.add_argument('-r', '--repair', help='repair target database')
     args = parser.parse_args()
 
     
