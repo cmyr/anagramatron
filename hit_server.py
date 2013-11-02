@@ -131,10 +131,12 @@ def approve_hit():
     flag = None
     if (post_now):
         flag = hitmanager.post_hit(hit_id)
-        print('posting hit: %i' % hit_id)
+        if flag:
+            print('posting hit: %i' % hit_id)
     else:
         flag = hitmanager.approve_hit(hit_id)
-        print('approved hit: %i' % hit_id)
+        if flag:
+            print('approved hit: %i' % hit_id)
 
     action = HIT_STATUS_POSTED if post_now else HIT_STATUS_APPROVED
     return {
