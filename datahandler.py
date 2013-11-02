@@ -324,7 +324,7 @@ def main():
     parser.add_argument('-t', '--trim', type=int, help="trim low length values")
     parser.add_argument('-d', '--destination', type=str, help="destination database file")
     parser.add_argument('-s', '--start', type=int, help='skip-to position')
-    parser.add_argument('-r', '--repair', type=None, help='repair target database')
+    parser.add_argument('-r', '--repair', help='repair target database')
     args = parser.parse_args()
 
     
