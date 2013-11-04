@@ -47,6 +47,7 @@ class MultiDBM(object):
                 if i == last_db and key not in db:
                     self._metadata['totsize'] += 1
                     self._metadata['cursize'] += 1
+                logging.debug('adding key to file # %i' i)
                 db[key] = value
                 return
             i += 1
@@ -73,6 +74,7 @@ class MultiDBM(object):
         if os.path.exists(self._path):
             self._metadata = pickle.load(open('%s/%s' % (self._path, _METADATA_FILE), 'r'))
             print('loaded metadata: %s' % repr(self._metadata))
+            logging.debug('loaded metadata' % repr(self._metadata))
             
             # sort our dbm segments by creation date
             ls = (os.path.join(self._path, i) for i in os.listdir(self._path)
