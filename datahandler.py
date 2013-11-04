@@ -227,6 +227,7 @@ def delete_short_entries(srcdb, cutoff=20, start=0):
     except ImportError:
         print('database manipulation requires gdbm')
 
+    print('trimming %s, cutoff %i' %(srcdb, cutoff))
     start_time = time.time()
     db = gdbm.open(srcdb, 'wf')
     k = db.firstkey()
@@ -249,7 +250,10 @@ def delete_short_entries(srcdb, cutoff=20, start=0):
         deleted = 0
         print('\ndeleting %i entries' % marked)
         for i in todel:
-            del db[i]
+            try:
+                del db[i]
+            except KeyError:
+                print('key error for key %s' i)
             deleted += 1
             sys.stdout.write('deleted %i/%i\r' % (deleted, marked))
             sys.stdout.flush()
