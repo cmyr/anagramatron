@@ -253,7 +253,7 @@ def delete_short_entries(srcdb, cutoff=20, start=0):
             try:
                 del db[i]
             except KeyError:
-                print('key error for key %s' i)
+                print('key error for key %s' % i)
             deleted += 1
             sys.stdout.write('deleted %i/%i\r' % (deleted, marked))
             sys.stdout.flush()
