@@ -6,6 +6,10 @@ from twittercreds import (CONSUMER_KEY, CONSUMER_SECRET,
                           ACCESS_KEY, ACCESS_SECRET)
 
 
+# disable logging from requests
+import logging
+requests_log = logging.getLogger("requests")
+requests_log.setLevel(logging.WARNING)
 
 class AnagramStream(object):
     """

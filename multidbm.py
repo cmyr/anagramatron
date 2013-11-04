@@ -80,7 +80,6 @@ class MultiDBM(object):
             ls = ((os.stat(path), path) for path in ls)
             ls = ((stat[ST_CTIME], path) for stat, path in ls)
             dbses = [path for stat, path in sorted(ls)]
-            print(dbses)
             for db in dbses:
                 try:
                     self._data.append(anydbm.open(db, 'c'))

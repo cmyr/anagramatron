@@ -19,11 +19,13 @@ def main():
         format='%(asctime)s - %(levelname)s:%(message)s',
         level=logging.DEBUG
     )
+
     data_coordinator = DataCoordinator()
     stats.clear_stats()
 
     while 1:
         print('top of run loop')
+        logging.debug('top of run loop')
         try:
             print('starting stream handler')
             stream_handler = StreamHandler()
@@ -33,6 +35,7 @@ def main():
                 stats.update_console()
 
         except NeedsMaintenance:
+            logging.debug('caught NeedsMaintenance exception')
             print('performing maintenance')
             stream_handler.close()
             data_coordinator.perform_maintenance()
