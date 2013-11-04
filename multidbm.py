@@ -5,13 +5,11 @@ import os
 import time
 import re
 import logging
+from stat import S_ISREG, ST_CTIME, ST_MODE
+
 
 _METADATA_FILE = 'meta.p'
 _PATHKEY = 'X43q2smxlkFJ28h$@3xGN' # gurrenteed unlikely!!
-
-
-# def open(path, flag):
-#     return MultiDBM(path, flag)
 
 
 class MultiDBM(object):
@@ -70,18 +68,24 @@ class MultiDBM(object):
         return (self._section_size * len(self._data-1)
             + self._metadata['cursize'])
 
+
     def _setup(self):
         if os.path.exists(self._path):
             self._metadata = pickle.load(open('%s/%s' % (self._path, _METADATA_FILE), 'r'))
             print('loaded metadata: %s' % repr(self._metadata))
-            ls = os.listdir(self._path)
-            dbses = sorted([i for i in ls if re.findall('mdbm', i)])
+            
+            # sort our dbm segments by creation date
+            ls = (os.path.join(self._path, i) for i in os.listdir(self._path)
+                if re.findall('mdbm', i))
+            ls = ((os.stat(path), path) for path in ls)
+            ls = ((stat[ST_CTIME], path) for stat, path in ls)
+            dbses = [path for stat, path in sorted(ls)]
+            print(dbses)
             for db in dbses:
-                dbpath = '%s/%s' % (self._path, db)
                 try:
-                    self._data.append(anydbm.open(dbpath, 'c'))
+                    self._data.append(anydbm.open(db, 'c'))
                 except Exception as err:
-                    print('error appending dbfile: %s' % dbpath, err)
+                    print('error appending dbfile: %s' % db, err)
 
             print('loaded %i dbm files' % len(self._data))
         else:
