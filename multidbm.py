@@ -47,7 +47,7 @@ class MultiDBM(object):
                 if i == last_db and key not in db:
                     self._metadata['totsize'] += 1
                     self._metadata['cursize'] += 1
-                logging.debug('adding key to file # %i' i)
+                logging.debug('adding key to file # %i' % i)
                 db[key] = value
                 return
             i += 1
