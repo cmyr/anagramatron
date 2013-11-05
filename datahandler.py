@@ -243,7 +243,7 @@ def delete_short_entries(srcdb, cutoff=20, start=0):
             if anagramfunctions.length_from_hash(k) < cutoff:
                 todel.add(k)
                 marked += 1
-            sys.stdout.write('seen/marked: %i/%i\r' % (seen, marked))
+            sys.stdout.write('seen/marked: %i/%i next: %s\t\t\t\t\r' % (seen, marked, nextk))
             sys.stdout.flush()
             k = nextk
     finally:
