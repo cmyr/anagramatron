@@ -7,6 +7,7 @@ import cPickle as pickle
 from twitterhandler import StreamHandler
 from datahandler import (DataCoordinator, NeedsMaintenance)
 import anagramstats as stats
+import hit_server
 
 
 LOG_FILE_NAME = 'data/anagramer.log'
@@ -20,6 +21,7 @@ def main():
         level=logging.DEBUG
     )
 
+    hit_server.start_hit_daemon()
     data_coordinator = DataCoordinator()
     stats.clear_stats()
 

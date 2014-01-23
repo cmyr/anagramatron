@@ -138,6 +138,7 @@ def new_hits_count():
 
 def last_post_time():
     # return the time of the last successful post
+    _checkit()
     cursor = hitsdb.cursor()
     cursor.execute("SELECT * from hitinfo")
     results = cursor.fetchall()
@@ -241,6 +242,14 @@ def all_hits(with_status=None, cutoff_id=None):
     if cutoff_id:
         hits = [h for h in hits if h['id'] < cutoff_id]
     return hits
+
+
+def next_approved_hit():
+    """ no, this is not particuarly efficient """
+    hits = all_hits(HIT_STATUS_APPROVED)
+    hits = sorted(hits, key=lambda k: k['id'])
+    if len(hits):
+        return hits.pop()
 
 
 def hit_from_sql(item):

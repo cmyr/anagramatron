@@ -4,7 +4,9 @@ from bottle import (Bottle, run, request, server_names,
 import time
 import hitmanager
 import anagramstats as stats
-
+import daemon
+# import os
+# import sys
 
 from hitmanager import (HIT_STATUS_REVIEW, HIT_STATUS_SEEN, HIT_STATUS_MISC,
     HIT_STATUS_REJECTED, HIT_STATUS_POSTED, HIT_STATUS_APPROVED)
@@ -21,6 +23,7 @@ class MySSLCherryPy(ServerAdapter):
     def run(self, handler):
         import cherrypy
         from cherrypy import wsgiserver
+        print('daemon starting')
         server = cherrypy.wsgiserver.CherryPyWSGIServer(
                                                         (self.host, self.port),
                                                         handler,
@@ -159,6 +162,68 @@ def info():
     return {'stats': stats_dict, 'new_hits': new_hits, 'last_post': last_post}
 
 
-run(app, host='0.0.0.0', port=TEST_PORT, debug=True, server='sslbottle')
-# run(app, host='127.0.0.1', port=TEST_PORT, debug=True)
+def start_hit_server(debug=False):
+    if debug:
+        run(app, host='127.0.0.1', port=TEST_PORT, debug=True)
+    else:
+        run(app, host='0.0.0.0', port=TEST_PORT, debug=True, server='sslbottle')
+    return True
 
+
+DAEMON_LOG_FILE = 'data/serverd.log'
+DAEMON_LOCK = 'data/.server.lock'
+
+def start_hit_daemon(debug=False):
+    print('starting hit server daemon')
+    # if existing_instance():
+    #     return
+    # else:
+    #     set_lock()
+    #     # start daemon
+    with daemon.DaemonContext():
+        start_hit_server(debug)
+
+# it is unclear whether this is necessary, and whether it would work if it was.
+
+# def existing_instance():
+
+#     if os.access(DAEMON_LOCK, os.F_OK):
+#         print('accessed lockfile')
+#         #if the lockfile is already there then check the PID number 
+#         #in the lock file
+#         pidfile = open(DAEMON_LOCK, "r")
+#         pidfile.seek(0)
+#         old_pd = pidfile.readline()
+#         print('found pidfile %d' % int(old_pd))
+#         # Now we check the PID from lock file matches to the current
+#         # process PID
+#         if os.path.exists("/proc/%s" % old_pd):
+#             print("You already have an instance of the program running")
+#             print("It is running as process %s," % old_pd)
+#             return True
+#         else:
+
+#             os.remove(DAEMON_LOCK)
+#             return False
+#     else:
+#         print('no lock file found')
+
+# def set_lock():
+#     print('setting lock file')
+#     pidfile = open(DAEMON_LOCK, "w")
+#     pidfile.write("%s" % os.getpid())
+#     pidfile.close
+
+
+if __name__ == "__main__":
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-d', '--daemonize',
+                        help='run as daemon', action="store_true")
+    parser.add_argument('--debug',
+                        help='run locally', action="store_true")
+    args = parser.parse_args()
+    if args.daemonize:
+        start_hit_daemon(args.debug)
+    else:
+        start_hit_server(args.debug)

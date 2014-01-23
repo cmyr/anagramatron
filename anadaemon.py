@@ -4,21 +4,16 @@ from __future__ import print_function
 import time
 import sys
 import random
+import hitmanager
+import anagramfunctions
 
-
-# from twitter.oauth import OAuth
-# from twitter.stream import TwitterStream
-# from twitter.api import Twitter, TwitterError, TwitterHTTPError
-
-POST_INTERVAL = 240
+POST_INTERVAL = 120
 
 
 class Daemon(object):
 
     """
-    I sit idle, calm
-    waiting for the call that wakes
-    so I may hold forth
+    A stand alone tool for automatic posting of approved anagrams
     """
 
     def __init__(self, post_interval=POST_INTERVAL, debug=False):
@@ -39,7 +34,7 @@ class Daemon(object):
             sys.exit(0)
 
     def _check_post_time(self):
-        last_post = self.datasource.last_post()
+        last_post = hitmanager.last_post_time() or 0
         temps_perdu = time.time() - last_post
         if last_post and temps_perdu < (self.post_interval / 2):
             print('skipping post. %d elapsed, post_interval %d' %
@@ -49,24 +44,17 @@ class Daemon(object):
 
     def entertain_the_huddled_masses(self):
 
-        count = self.datasource.count()
-        self._check_count(count)
-        print('datasource count = %d' % count)
-        if not count:
+        # get most recent hit:
+        hit = hitmanager.next_approved_hit()
+        if not hit:
+            print('no postable hit found')
             return
 
-        haiku = self.datasource.haiku_for_post()
-        formatted_haiku = self.format_haiku(haiku)
-
-        if formatted_haiku and self.post(formatted_haiku):
-            self.datasource.post_succeeded(haiku)
-        else:
-            self.datasource.post_failed(haiku)
+        if not hitmanager.post_hit(hit['id']):
+            # on failed post attempt again
             self.entertain_the_huddled_masses()
 
-
-
-    def sleep(self, interval):
+    def sleep(self, interval, debug=False):
         interval = int(interval)
         randfactor = random.randrange(0, interval)
         interval = interval * 0.5 + randfactor
@@ -74,22 +62,19 @@ class Daemon(object):
 
         print('sleeping for %d minutes' % (interval / 60))
 
-        while interval > 0:
-            sleep_status = ' %s remaining \r' % (
-                anagramfunctions.format_seconds(interval))
-            sys.stdout.write(sleep_status.rjust(35))
-            sys.stdout.flush()
-            time.sleep(sleep_chunk)
-            interval -= sleep_chunk
+        if not debug:
+            while interval > 0:
+                sleep_status = ' %s remaining \r' % (
+                    anagramfunctions.format_seconds(interval))
+                sys.stdout.write(sleep_status.rjust(35))
+                sys.stdout.flush()
+                time.sleep(sleep_chunk)
+                interval -= sleep_chunk
 
-        print('\n')
+            print('\n')
 
-    def send_dm(self, message):
-        """sends me a DM if I'm running out of haiku"""
-        try:
-            self.twitter.direct_messages.new(user=BOSS_USERNAME, text=message)
-        except TwitterError as err:
-            print(err)
+        else:
+            return interval / 60
 
 
 def main():
