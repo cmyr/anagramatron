@@ -8,6 +8,7 @@ from twitterhandler import StreamHandler
 from datahandler import (DataCoordinator, NeedsMaintenance)
 import anagramstats as stats
 import hit_server
+import multiprocessing
 
 
 LOG_FILE_NAME = 'data/anagramer.log'
@@ -21,7 +22,11 @@ def main():
         level=logging.DEBUG
     )
 
-    hit_server.start_hit_daemon()
+    # hit_server.start_hit_daemon()
+    hitserver = multiprocessing.Process(target=hit_server.start_hit_server)
+    hitserver.daemon = True
+    hitserver.start()
+
     data_coordinator = DataCoordinator()
     stats.clear_stats()
 
@@ -48,6 +53,8 @@ def main():
             break
 
 
+
 if __name__ == "__main__":
-    main()
+    test()
+    # main()
 

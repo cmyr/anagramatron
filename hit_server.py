@@ -170,51 +170,6 @@ def start_hit_server(debug=False):
     return True
 
 
-DAEMON_LOG_FILE = 'data/serverd.log'
-DAEMON_LOCK = 'data/.server.lock'
-
-def start_hit_daemon(debug=False):
-    print('starting hit server daemon')
-    # if existing_instance():
-    #     return
-    # else:
-    #     set_lock()
-    #     # start daemon
-    with daemon.DaemonContext():
-        start_hit_server(debug)
-
-# it is unclear whether this is necessary, and whether it would work if it was.
-
-# def existing_instance():
-
-#     if os.access(DAEMON_LOCK, os.F_OK):
-#         print('accessed lockfile')
-#         #if the lockfile is already there then check the PID number 
-#         #in the lock file
-#         pidfile = open(DAEMON_LOCK, "r")
-#         pidfile.seek(0)
-#         old_pd = pidfile.readline()
-#         print('found pidfile %d' % int(old_pd))
-#         # Now we check the PID from lock file matches to the current
-#         # process PID
-#         if os.path.exists("/proc/%s" % old_pd):
-#             print("You already have an instance of the program running")
-#             print("It is running as process %s," % old_pd)
-#             return True
-#         else:
-
-#             os.remove(DAEMON_LOCK)
-#             return False
-#     else:
-#         print('no lock file found')
-
-# def set_lock():
-#     print('setting lock file')
-#     pidfile = open(DAEMON_LOCK, "w")
-#     pidfile.write("%s" % os.getpid())
-#     pidfile.close
-
-
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser()

@@ -7,6 +7,8 @@ import random
 import hitmanager
 import anagramfunctions
 
+# we want to make our post_interval reloadable / dynamically changeable, yea?
+
 POST_INTERVAL = 120
 
 
@@ -50,9 +52,13 @@ class Daemon(object):
             print('no postable hit found')
             return
 
+        print(hit['tweet_one']['tweet_text'], hit['tweet_two']['tweet_text'])
         if not hitmanager.post_hit(hit['id']):
+            print('failed to post hit')
             # on failed post attempt again
             self.entertain_the_huddled_masses()
+        else:
+            print('posted hit')
 
     def sleep(self, interval, debug=False):
         interval = int(interval)
@@ -75,6 +81,39 @@ class Daemon(object):
 
         else:
             return interval / 60
+
+
+# some reference stuff if we want to make this an actual daemon:
+
+
+# def existing_instance():
+
+#     if os.access(DAEMON_LOCK, os.F_OK):
+#         print('accessed lockfile')
+#         #if the lockfile is already there then check the PID number 
+#         #in the lock file
+#         pidfile = open(DAEMON_LOCK, "r")
+#         pidfile.seek(0)
+#         old_pd = pidfile.readline()
+#         print('found pidfile %d' % int(old_pd))
+#         # Now we check the PID from lock file matches to the current
+#         # process PID
+#         if os.path.exists("/proc/%s" % old_pd):
+#             print("You already have an instance of the program running")
+#             print("It is running as process %s," % old_pd)
+#             return True
+#         else:
+
+#             os.remove(DAEMON_LOCK)
+#             return False
+#     else:
+#         print('no lock file found')
+
+# def set_lock():
+#     print('setting lock file')
+#     pidfile = open(DAEMON_LOCK, "w")
+#     pidfile.write("%s" % os.getpid())
+#     pidfile.close
 
 
 def main():
