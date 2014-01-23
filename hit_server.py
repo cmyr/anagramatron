@@ -23,7 +23,6 @@ class MySSLCherryPy(ServerAdapter):
     def run(self, handler):
         import cherrypy
         from cherrypy import wsgiserver
-        print('daemon starting')
         server = cherrypy.wsgiserver.CherryPyWSGIServer(
                                                         (self.host, self.port),
                                                         handler,

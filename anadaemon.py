@@ -6,10 +6,8 @@ import sys
 import random
 import hitmanager
 import anagramfunctions
-
+import constants
 # we want to make our post_interval reloadable / dynamically changeable, yea?
-
-POST_INTERVAL = 120
 
 
 class Daemon(object):
@@ -18,11 +16,11 @@ class Daemon(object):
     A stand alone tool for automatic posting of approved anagrams
     """
 
-    def __init__(self, post_interval=POST_INTERVAL, debug=False):
+    def __init__(self, post_interval=0, debug=False):
         super(Daemon, self).__init__()
         self.datasource = None
         self._debug = debug
-        self.post_interval = post_interval * 60
+        self.post_interval = post_interval
 
     def run(self):
         try:
@@ -42,7 +40,7 @@ class Daemon(object):
             print('skipping post. %d elapsed, post_interval %d' %
                   (temps_perdu, self.post_interval))
 
-            self.sleep(self.post_interval - temps_perdu)
+            self.sleep()
 
     def entertain_the_huddled_masses(self):
 
@@ -60,8 +58,13 @@ class Daemon(object):
         else:
             print('posted hit')
 
-    def sleep(self, interval, debug=False):
+    def sleep(self, interval=0, debug=False):
         interval = int(interval)
+        
+        if not interval:
+            reload(constants)
+            interval = constants.ANAGRAM_POST_INTERVAL * 60
+
         randfactor = random.randrange(0, interval)
         interval = interval * 0.5 + randfactor
         sleep_chunk = 10  # seconds
@@ -90,14 +93,14 @@ class Daemon(object):
 
 #     if os.access(DAEMON_LOCK, os.F_OK):
 #         print('accessed lockfile')
-#         #if the lockfile is already there then check the PID number 
-#         #in the lock file
+# if the lockfile is already there then check the PID number
+# in the lock file
 #         pidfile = open(DAEMON_LOCK, "r")
 #         pidfile.seek(0)
 #         old_pd = pidfile.readline()
 #         print('found pidfile %d' % int(old_pd))
-#         # Now we check the PID from lock file matches to the current
-#         # process PID
+# Now we check the PID from lock file matches to the current
+# process PID
 #         if os.path.exists("/proc/%s" % old_pd):
 #             print("You already have an instance of the program running")
 #             print("It is running as process %s," % old_pd)
@@ -127,7 +130,7 @@ def main():
 
     kwargs = {}
     kwargs['debug'] = args.debug
-    kwargs['post_interval'] = args.post_interval or POST_INTERVAL
+    kwargs['post_interval'] = args.post_interval or 0
 
     print(kwargs)
     print(type(kwargs['post_interval']))
