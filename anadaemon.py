@@ -65,6 +65,8 @@ class Daemon(object):
             reload(constants)
             interval = constants.ANAGRAM_POST_INTERVAL * 60
 
+        print('base interval is %d' % interval / 60)
+
         randfactor = random.randrange(0, interval)
         interval = interval * 0.5 + randfactor
         sleep_chunk = 10  # seconds
