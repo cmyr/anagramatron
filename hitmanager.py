@@ -29,11 +29,13 @@ twitter_handler = None
 _new_hits_counter = 0
 
 
-def _setup(languages=['en']):
+def _setup(languages=['en'], path=None):
     global dbpath, hitsdb
-    dbpath = (STORAGE_DIRECTORY_PATH +
-              HIT_PATH_COMPONENT +
-              '_'.join(languages) + '.db')
+    dbpath = path
+    if not dbpath:
+        dbpath = (STORAGE_DIRECTORY_PATH +
+                  HIT_PATH_COMPONENT +
+                  '_'.join(languages) + '.db')
 
     if not os.path.exists(dbpath):
         hitsdb = lite.connect(dbpath)
@@ -224,7 +226,7 @@ def set_hit_status(hit_id, status):
     hit['status'] = status
     remove_hit(hit_id)
     _add_hit(hit)
-    assert(get_hit(hit_id)['status'] == status)
+    # assert(get_hit(hit_id)['status'] == status)
     return True
 
 

@@ -7,7 +7,9 @@ import random
 import hitmanager
 import anagramfunctions
 import constants
-# we want to make our post_interval reloadable / dynamically changeable, yea?
+import requests
+
+
 
 
 class Daemon(object):
@@ -34,15 +36,24 @@ class Daemon(object):
             sys.exit(0)
 
     def _check_post_time(self):
+        print('checking last post time')
         last_post = hitmanager.last_post_time() or 0
+        print('last post at %s' % str(last_post))
         temps_perdu = time.time() - last_post
-        if last_post and temps_perdu < (self.post_interval / 2):
+        if last_post and temps_perdu < (self.post_interval or constants.ANAGRAM_POST_INTERVAL) / 2:
             print('skipping post. %d elapsed, post_interval %d' %
                   (temps_perdu, self.post_interval))
 
             self.sleep()
 
     def entertain_the_huddled_masses(self):
+
+        # ah, experience, my old master
+        try:
+            requests.head('http://www.twitter.com')
+        except Exception as err:
+            print('server appears offline', err, sep='\n')
+            return
 
         # get most recent hit:
         hit = hitmanager.next_approved_hit()
@@ -65,7 +76,7 @@ class Daemon(object):
             reload(constants)
             interval = constants.ANAGRAM_POST_INTERVAL * 60
 
-        print('base interval is %d' % interval / 60)
+        print('base interval is %d' % (interval / 60))
 
         randfactor = random.randrange(0, interval)
         interval = interval * 0.5 + randfactor
