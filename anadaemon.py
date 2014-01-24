@@ -36,7 +36,7 @@ class Daemon(object):
     def _check_post_time(self):
         last_post = hitmanager.last_post_time() or 0
         temps_perdu = time.time() - last_post
-        if last_post and temps_perdu < (self.post_interval / 2):
+        if last_post and temps_perdu < (self.post_interval or constants.ANAGRAM_POST_INTERVAL) / 2:
             print('skipping post. %d elapsed, post_interval %d' %
                   (temps_perdu, self.post_interval))
 
@@ -65,7 +65,7 @@ class Daemon(object):
             reload(constants)
             interval = constants.ANAGRAM_POST_INTERVAL * 60
 
-        print('base interval is %d' % interval / 60)
+        print('base interval is %d' % (interval / 60))
 
         randfactor = random.randrange(0, interval)
         interval = interval * 0.5 + randfactor
