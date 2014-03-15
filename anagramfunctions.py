@@ -101,7 +101,7 @@ def _basic_filters(tweet):
     # check for links:
     if len(tweet.get('entities').get('urls')) is not 0:
         return False
-    if re.search(r'[0-9]', tweet.['text']):
+    if re.search(r'[0-9]', tweet['text']):
         return False
     t = stripped_string(tweet['text'])
     if len(t) <= ANAGRAM_LOW_CHAR_CUTOFF:
