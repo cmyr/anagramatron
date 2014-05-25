@@ -22,7 +22,6 @@ def main():
         level=logging.DEBUG
     )
 
-    # hit_server.start_hit_daemon()
     hitserver = multiprocessing.Process(target=hit_server.start_hit_server)
     hitserver.daemon = True
     hitserver.start()
