@@ -26,12 +26,13 @@ def run(server_only=False):
     hitserver.daemon = True
     hitserver.start()
 
-    data_coordinator = DataCoordinator()
-    stats.clear_stats()
-
     if server_only:
         print('running in server only mode')
     else:
+        
+        data_coordinator = DataCoordinator()
+        stats.clear_stats()
+
         while 1:
             print('top of run loop')
             logging.debug('top of run loop')
