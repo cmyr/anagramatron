@@ -52,20 +52,20 @@ def run(server_only=False):
             except KeyboardInterrupt:
                 stream_handler.close()
                 data_coordinator.close()
-                break
+                return 0
 
     
     
-    def main():
-        import argparse
-        parser = argparse.ArgumentParser()
-        parser.add_argument('-s', '--server-only', help="run in server mode only", action="store_true")
-        args = parser.parse_args()
+def main():
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-s', '--server-only', help="run in server mode only", action="store_true")
+    args = parser.parse_args()
 
-        run(args.server_only)
+    return run(args.server_only)
 
-    
-    
-    if __name__ == "__main__":
-        main()
+
+
+if __name__ == "__main__":
+    main()
 
