@@ -22,13 +22,15 @@ def run(server_only=False):
         level=logging.DEBUG
     )
 
-    hitserver = multiprocessing.Process(target=hit_server.start_hit_server)
-    hitserver.daemon = True
-    hitserver.start()
+
 
     if server_only:
-        print('running in server only mode')
+        hit_server.start_hit_server()
     else:
+
+        hitserver = multiprocessing.Process(target=hit_server.start_hit_server)
+        hitserver.daemon = True
+        hitserver.start()
         
         data_coordinator = DataCoordinator()
         stats.clear_stats()
