@@ -14,7 +14,7 @@ import multiprocessing
 LOG_FILE_NAME = 'data/anagramer.log'
 
 
-def main():
+def run(server_only=False):
     # set up logging:
     logging.basicConfig(
         filename=LOG_FILE_NAME,
@@ -29,30 +29,43 @@ def main():
     data_coordinator = DataCoordinator()
     stats.clear_stats()
 
-    while 1:
-        print('top of run loop')
-        logging.debug('top of run loop')
-        try:
-            print('starting stream handler')
-            stream_handler = StreamHandler()
-            stream_handler.start()
-            for processed_tweet in stream_handler:
-                data_coordinator.handle_input(processed_tweet)
-                stats.update_console()
+    if server_only:
+        print('running in server only mode')
+    else:
+        while 1:
+            print('top of run loop')
+            logging.debug('top of run loop')
+            try:
+                print('starting stream handler')
+                stream_handler = StreamHandler()
+                stream_handler.start()
+                for processed_tweet in stream_handler:
+                    data_coordinator.handle_input(processed_tweet)
+                    stats.update_console()
 
-        except NeedsMaintenance:
-            logging.debug('caught NeedsMaintenance exception')
-            print('performing maintenance')
-            stream_handler.close()
-            data_coordinator.perform_maintenance()
+            except NeedsMaintenance:
+                logging.debug('caught NeedsMaintenance exception')
+                print('performing maintenance')
+                stream_handler.close()
+                data_coordinator.perform_maintenance()
 
-        except KeyboardInterrupt:
-            stream_handler.close()
-            data_coordinator.close()
-            break
+            except KeyboardInterrupt:
+                stream_handler.close()
+                data_coordinator.close()
+                break
 
+    
+    
+    def main():
+        import argparse
+        parser = argparse.ArgumentParser()
+        parser.add_argument('-s', '--server-only', help="run in server mode only", action="store_true")
+        args = parser.parse_args()
 
+        run(args.server_only)
 
-if __name__ == "__main__":
-    main()
+    
+    
+    if __name__ == "__main__":
+        main()
 
