@@ -5,6 +5,7 @@ import time
 import hitmanager
 import anagramstats as stats
 import daemon
+import os
 # import os
 # import sys
 
@@ -30,7 +31,12 @@ class MySSLCherryPy(ServerAdapter):
                                                         max=1)
         # If cert variable is has a valid path, SSL will be used
         # You can set it to None to disable SSL
-        cert = 'data/server.pem'  # certificate path
+        cert_path = 'data/server.pem'  # certificate path
+        if os.path.exists(cert_path):
+            cert = cert_path
+        else:
+            cert = None
+            print('WARNING: no cert found, running without SSL')
         server.ssl_certificate = cert
         server.ssl_private_key = cert
         try:
