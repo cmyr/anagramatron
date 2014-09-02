@@ -135,16 +135,48 @@ class MultiDBM(object):
 
     def perform_maintenance(self):
         import whichdb
-        print("performing maintenance on %d database chunks" % len(self._data))
-        for db in self._data:
-            path = db[_PATHKEY]
-            db_type = whichdb.whichdb(path)
-            print("checking %s, type: %s" % (path, db_type))
-            try:
-                db.reorganize()
-            except gdbm.error:
-                print("error: failed to reorganize db chunk")
-                continue
+        try:
+            print("performing maintenance on %d database chunks" % len(self._data))
+            for db in self._data:
+                path = db[_PATHKEY]
+                db_type = whichdb.whichdb(path)
+                print("checking %s, type: %s" % (path, db_type))
+                try:
+                    db.reorganize()
+                except gdbm.error:
+                    print("error: failed to reorganize db chunk")
+                    continue
+        finally:
+            self.close()
+
+
+def check_integrity_for_chunk(db_chunk):
+    path = db_chunk[_PATHKEY]
+    print("checking keys in db: %s" % path)
+    k = db.firstkey()
+    seen = 0
+    while k is not None:
+        k = db.nextkey(k)
+        sys.stdout.write('checked: %i' % seen)
+            sys.stdout.flush()
+
+                
+def verify_database(dbpath):
+    datastore = MultiDBM(dbpath)
+    print("verifying mdbm datastore with %i chunks" % len(datastore._data))
+    try:
+        for dbchunk in datstore._data:
+            check_integrity_for_chunk(dbchunk)
 
 if __name__ == '__main__':
-    test()
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-r', '--repair', help='repair/verify datastore', action="store_true")
+    parser.add_argument('db', type=str, help="source database file")
+    args = parser.parse_args()
+
+    if not args.db:
+        print('please specify the mdbm directory')
+
+    if args.repair:
+        return verify_database(args.db)
