@@ -181,4 +181,4 @@ if __name__ == '__main__':
         print('please specify the mdbm directory')
 
     if args.repair:
-        return verify_database(args.db)
+        verify_database(args.db)
