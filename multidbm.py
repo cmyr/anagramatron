@@ -167,6 +167,8 @@ def verify_database(dbpath):
     try:
         for dbchunk in datstore._data:
             check_integrity_for_chunk(dbchunk)
+    finally:
+        datastore.close()
 
 if __name__ == '__main__':
     import argparse
