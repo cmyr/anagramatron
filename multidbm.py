@@ -169,6 +169,7 @@ def verify_database(dbpath):
     print("verifying mdbm datastore with %i chunks" % len(datastore._data))
     try:
         for dbchunk in datastore._data:
+            dbchunk.reorganize()
             check_integrity_for_chunk(dbchunk)
     finally:
         datastore.close()
