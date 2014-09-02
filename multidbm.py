@@ -140,7 +140,11 @@ class MultiDBM(object):
             path = db[_PATHKEY]
             db_type = whichdb.whichdb(path)
             print("checking %s, type: %s" % (path, db_type))
-            db.reorganize()
+            try:
+                db.reorganize()
+            except gdbm.error:
+                print("error: failed to reorganize db chunk")
+                continue
 
 if __name__ == '__main__':
     test()
