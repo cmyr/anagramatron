@@ -1,5 +1,5 @@
 from __future__ import print_function
-import anydbm
+import gdbm
 import cPickle as pickle
 import os
 import time
@@ -84,7 +84,7 @@ class MultiDBM(object):
             dbses = [path for stat, path in sorted(ls)]
             for db in dbses:
                 try:
-                    self._data.append(anydbm.open(db, 'c'))
+                    self._data.append(gdbm.open(db, 'c'))
                 except Exception as err:
                     print('error appending dbfile: %s' % db, err)
 
@@ -103,7 +103,7 @@ class MultiDBM(object):
         filename = 'mdbm%s.db' % time.strftime("%b%d%H%M")
         # filename = 'mdbm%s.db' % str(time.time())
         path = self._path + '/%s' % filename
-        db = anydbm.open(path, 'c')
+        db = gdbm.open(path, 'c')
         db[_PATHKEY] = filename
         self._data.append(db)
         self._metadata['cursize'] = 0
