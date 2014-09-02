@@ -158,7 +158,7 @@ def check_integrity_for_chunk(db_chunk):
     while k is not None:
         k = db.nextkey(k)
         sys.stdout.write('checked: %i' % seen)
-            sys.stdout.flush()
+        sys.stdout.flush()
 
                 
 def verify_database(dbpath):
