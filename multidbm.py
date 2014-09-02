@@ -134,7 +134,9 @@ class MultiDBM(object):
 
 
     def perform_maintenance(self):
+        print("performing maintenance on %d database chunks" % len(self._data))
         for db in self._data:
+            print("checking %s" % db[_PATHKEY])
             db.reorganize()
 
 if __name__ == '__main__':
