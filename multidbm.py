@@ -161,6 +161,7 @@ def check_integrity_for_chunk(db_chunk):
         seen += 1
         sys.stdout.write('checked: %i\t\t\r' % seen)
         sys.stdout.flush()
+    print("\nno next key found. total keys: %i" % seen)
 
                 
 def verify_database(dbpath):
