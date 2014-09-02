@@ -165,7 +165,7 @@ def verify_database(dbpath):
     datastore = MultiDBM(dbpath)
     print("verifying mdbm datastore with %i chunks" % len(datastore._data))
     try:
-        for dbchunk in datstore._data:
+        for dbchunk in datastore._data:
             check_integrity_for_chunk(dbchunk)
     finally:
         datastore.close()
