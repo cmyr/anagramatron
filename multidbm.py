@@ -152,12 +152,13 @@ class MultiDBM(object):
 
 def check_integrity_for_chunk(db_chunk):
     path = db_chunk[_PATHKEY]
-    print("checking keys in db: %s" % path)
-    k = db.firstkey()
+    print("checking keys in db: %s\n" % path)
+    k = db_chunk.firstkey()
     seen = 0
     while k is not None:
-        k = db.nextkey(k)
-        sys.stdout.write('checked: %i' % seen)
+        k = db_chunk.nextkey(k)
+        seen += 1
+        sys.stdout.write('checked: %i\t\t\r' % seen)
         sys.stdout.flush()
 
                 
