@@ -77,12 +77,7 @@ class MultiDBM(object):
             print('loaded metadata: %s' % repr(self._metadata))
             logging.debug('loaded metadata %s' % repr(self._metadata))
             
-            # sort our dbm segments by creation date
-            ls = (os.path.join(self._path, i) for i in os.listdir(self._path)
-                if re.findall('mdbm', i))
-            ls = ((os.stat(path), path) for path in ls)
-            ls = ((stat[ST_CTIME], path) for stat, path in ls)
-            dbses = [path for stat, path in sorted(ls)]
+            dbses = _load_paths(self._path)
             for db in dbses:
                 try:
                     self._data.append(gdbm.open(db, 'c'))
@@ -163,16 +158,25 @@ def check_integrity_for_chunk(db_chunk):
         sys.stdout.flush()
     print("\nno next key found. total keys: %i" % seen)
 
-                
+def _load_paths(mdbm_path):
+    """returns a creation-date sorted list of chunks in our path"""
+    ls = (os.path.join(mdbm_path, i) for i in os.listdir(mdbm_path)
+            if re.findall('mdbm', i))
+    ls = ((os.stat(path), path) for path in ls)
+    ls = ((stat[ST_CTIME], path) for stat, path in ls)
+    return [path for stat, path in sorted(ls)]
+            
 def verify_database(dbpath):
-    datastore = MultiDBM(dbpath)
-    print("verifying mdbm datastore with %i chunks" % len(datastore._data))
-    try:
-        for dbchunk in datastore._data:
+    db_files = _load_paths(dbpath)
+    print("verifying %i mdbm chunks" % len(db_files))
+    for db in db_files:
+        dbchunk = gdbm.open(db, 'w')
+        try:
             dbchunk.reorganize()
             check_integrity_for_chunk(dbchunk)
-    finally:
-        datastore.close()
+            dbchunk.close()
+        finally:
+            dbchunk.close()
 
 if __name__ == '__main__':
     import argparse
