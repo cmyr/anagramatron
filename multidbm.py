@@ -172,6 +172,7 @@ def verify_database(dbpath):
     for db in db_files:
         dbchunk = gdbm.open(db, 'w')
         try:
+            print("verifying %s" % db)
             dbchunk.reorganize()
             check_integrity_for_chunk(dbchunk)
             dbchunk.close()
