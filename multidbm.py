@@ -78,7 +78,7 @@ class MultiDBM(object):
             logging.debug('loaded metadata %s' % repr(self._metadata))
             
             dbses = _load_paths(self._path)
-            for db in dbses:dgdbm   
+            for db in dbses:
                 try:
                     self._data.append(gdbm.open(db, 'c'))
                 except Exception as err:
