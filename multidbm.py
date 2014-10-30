@@ -178,7 +178,9 @@ def verify_database(dbpath):
             print("couldn't reorganize: error %s" % err)
         print("checking %s" % db)
         try:
-            check_integrity_for_chunk(dbchunk)
+            # check_integrity_for_chunk(dbchunk)
+            k = dbchunk.firstkey()
+            print("first key: %s" % k)
         except Exception as err:
             print("integrity check failed: error %s" % err)
         finally:
