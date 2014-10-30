@@ -78,7 +78,7 @@ class MultiDBM(object):
             logging.debug('loaded metadata %s' % repr(self._metadata))
             
             dbses = _load_paths(self._path)
-            for db in dbses:
+            for db in dbses:dgdbm   
                 try:
                     self._data.append(gdbm.open(db, 'c'))
                 except Exception as err:
@@ -147,8 +147,8 @@ class MultiDBM(object):
 
 
 def check_integrity_for_chunk(db_chunk):
-    path = db_chunk[_PATHKEY]
-    print("checking keys in db: %s\n" % path)
+    # path = db_chunk[_PATHKEY]
+    # print("checking keys in db: %s\n" % path)
     k = db_chunk.firstkey()
     seen = 0
     while k is not None:
@@ -171,11 +171,16 @@ def verify_database(dbpath):
     print("verifying %i mdbm chunks" % len(db_files))
     for db in db_files:
         dbchunk = gdbm.open(db, 'w')
+        print("reorganizing %s" % db)
         try:
-            print("verifying %s" % db)
             dbchunk.reorganize()
+        except Exception as err:
+            print("couldn't reorganize: error %s" % err)
+        print("checking %s" % db)
+        try:
             check_integrity_for_chunk(dbchunk)
-            dbchunk.close()
+        except Exception as err:
+            print("integrity check failed: error %s" % err)
         finally:
             dbchunk.close()
 
