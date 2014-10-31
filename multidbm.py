@@ -150,9 +150,14 @@ def check_integrity_for_chunk(db_chunk):
     # path = db_chunk[_PATHKEY]
     # print("checking keys in db: %s\n" % path)
     k = db_chunk.firstkey()
+    nextkey = k
     seen = 0
     while k is not None:
-        k = db_chunk.nextkey(k)
+        nextkey = db_chunk.nextkey(k)
+        if nextkey == k:
+            print("next key == current key!")
+            break
+        k = nextkey
         seen += 1
         sys.stdout.write('checked: %i\t\t\r' % seen)
         sys.stdout.flush()
@@ -181,6 +186,7 @@ def verify_database(dbpath):
             # check_integrity_for_chunk(dbchunk)
             k = dbchunk.firstkey()
             print("first key: %s" % k)
+            check_integrity_for_chunk(dbchunk)
         except Exception as err:
             print("integrity check failed: error %s" % err)
         finally:
