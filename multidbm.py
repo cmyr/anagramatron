@@ -171,11 +171,11 @@ def verify_database(dbpath):
     print("verifying %i mdbm chunks" % len(db_files))
     for db in db_files:
         dbchunk = gdbm.open(db, 'w')
-        print("reorganizing %s" % db)
-        try:
-            dbchunk.reorganize()
-        except Exception as err:
-            print("couldn't reorganize: error %s" % err)
+        # print("reorganizing %s" % db)
+        # try:
+        #     dbchunk.reorganize()
+        # except Exception as err:
+        #     print("couldn't reorganize: error %s" % err)
         print("checking %s" % db)
         try:
             # check_integrity_for_chunk(dbchunk)
