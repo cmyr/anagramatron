@@ -73,9 +73,12 @@ class MultiDBM(object):
 
     def _setup(self):
         if os.path.exists(self._path):
-            self._metadata = pickle.load(open('%s/%s' % (self._path, _METADATA_FILE), 'r'))
-            print('loaded metadata: %s' % repr(self._metadata))
-            logging.debug('loaded metadata %s' % repr(self._metadata))
+            try:
+                self._metadata = pickle.load(open('%s/%s' % (self._path, _METADATA_FILE), 'r'))
+                print('loaded metadata: %s' % repr(self._metadata))
+                logging.debug('loaded metadata %s' % repr(self._metadata))
+            except IOError:
+                print("IO error loading metadata?")
             
             dbses = _load_paths(self._path)
             for db in dbses:
