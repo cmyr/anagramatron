@@ -79,6 +79,7 @@ class MultiDBM(object):
                 logging.debug('loaded metadata %s' % repr(self._metadata))
             except IOError:
                 print("IO error loading metadata?")
+                self._setup_metadata()
             
             dbses = _load_paths(self._path)
             for db in dbses:
@@ -92,11 +93,15 @@ class MultiDBM(object):
             print('path not found, creating')
             os.makedirs(self._path)
             os.makedirs('%s/archive' % self._path)
-            self._metadata['totsize'] = 0
-            self._metadata['cursize'] = 0
+            self._setup_metadata()
 
         if not len(self._data):
             self._add_db()
+
+    def _setup_metadata(self):
+        # this is basically vestigal at this point?
+        self._metadata['totsize'] = 0
+        self._metadata['cursize'] = 0
 
     def _add_db(self):
         filename = 'mdbm%s.db' % time.strftime("%b%d%H%M")
