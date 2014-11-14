@@ -119,7 +119,11 @@ class MultiDBM(object):
         db.close()
         target = '%s/%s' % (self._path, filename)
         destination = '%s/archive/%s' % (self._path, filename)
-        os.rename(target, destination)
+        try:
+            os.rename(target, destination)
+        except OSError as err:
+            print("error moving file %s to %s: %s" % (target, destination, err))
+            sys.exit(1)
         logging.debug('mdbm moved old dbm file to %s' % destination)
         return destination
 
