@@ -16,6 +16,7 @@ from twitter.stream import TwitterStream
 from twitter.api import Twitter, TwitterError, TwitterHTTPError
 import tumblpy
 import json
+import requests
 
 import anagramfunctions
 import anagramstats as stats
@@ -24,7 +25,8 @@ from anagramstream import AnagramStream
 
 # my twitter OAuth key:
 from twittercreds import (CONSUMER_KEY, CONSUMER_SECRET,
-                          ACCESS_KEY, ACCESS_SECRET, BOSS_USERNAME)
+                          ACCESS_KEY, ACCESS_SECRET, 
+                          BOSS_USERNAME, PRIVATE_POST_URL)
 # my tumblr OAuth key:
 from tumblrcreds import (TUMBLR_KEY, TUMBLR_SECRET,
                          TOKEN_KEY, TOKEN_SECRET, TUMBLR_BLOG_URL)
@@ -409,16 +411,38 @@ class TwitterHandler(object):
             text=message
             )
 
+    def handle_directs(self):
+        dms = self.twitter.direct_messages()
+        handled_dm = False
+        for d in dms:
+            sender = d.get('sender_screen_name')
+            if sender == BOSS_USERNAME:
+                if not handled_dm:
+                    response = self._private_update_function()
+                    self.send_message(response)
+                    handled_dm = True
+                self.twitter.direct_messages.destroy(id=d.get("id_str"))
+
+
+    def _private_update_function(self):
+        response = requests.get(PRIVATE_POST_URL)
+        if response.status_code == 200:
+            return "update successful"
+        return "update returned response %d" % response.status_code
+
 if __name__ == "__main__":
 
-    count = 0
-    stream = StreamHandler()
-    stream.start()
+    t = TwitterHandler()
+    t.handle_directs()
 
-    for t in stream:
-        count += 1
-        # print(count)
+    # count = 0
+    # stream = StreamHandler()
+    # stream.start()
 
-        print(t['tweet_text'], 'buffer length: %i' % len(stream._buffer))
-        # if count > 100:
-        #     stream.close()
+    # for t in stream:
+    #     count += 1
+    #     # print(count)
+
+    #     print(t['tweet_text'], 'buffer length: %i' % len(stream._buffer))
+    #     # if count > 100:
+    #     #     stream.close()
