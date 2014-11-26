@@ -24,7 +24,7 @@ from anagramstream import AnagramStream
 
 # my twitter OAuth key:
 from twittercreds import (CONSUMER_KEY, CONSUMER_SECRET,
-                          ACCESS_KEY, ACCESS_SECRET)
+                          ACCESS_KEY, ACCESS_SECRET, BOSS_USERNAME)
 # my tumblr OAuth key:
 from tumblrcreds import (TUMBLR_KEY, TUMBLR_SECRET,
                          TOKEN_KEY, TOKEN_SECRET, TUMBLR_BLOG_URL)
@@ -402,6 +402,12 @@ class TwitterHandler(object):
             logging.warning('tumblr failed with hit', hit)
         return True
 
+    # send a DM to a responsible human
+    def send_message(self, message):
+        self.twitter.direct_messages.new(
+            user=BOSS_USERNAME,
+            text=message
+            )
 
 if __name__ == "__main__":
 
