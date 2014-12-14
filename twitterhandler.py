@@ -54,22 +54,15 @@ class StreamHandler(object):
         self._buffer = deque()
         self._should_return = False
         self._iter = self.__iter__()
-        self._overflow = multiprocessing.Value('L', 0)
         self._tweets_seen = multiprocessing.Value('L', 0)
         self._passed_filter = multiprocessing.Value('L', 0)
         self._lock = multiprocessing.Lock()
         self._backoff_time = 0
         self._start_time = time.time()
 
-    @property
-    def overflow(self):
-        return long(self._overflow.value)
 
     def update_stats(self):
         with self._lock:
-            if self._overflow.value:
-                stats.overflow(self._overflow.value)
-                self._overflow.value = 0
             if self._tweets_seen.value:
                 stats.tweets_seen(self._tweets_seen.value)
                 self._tweets_seen.value = 0
@@ -143,7 +136,6 @@ class StreamHandler(object):
                                 args=(self.queue,
                                       self._error_queue,
                                       self._backoff_time,
-                                      self._overflow,
                                       self._tweets_seen,
                                       self._passed_filter,
                                       self._lock,
@@ -198,15 +190,15 @@ class StreamHandler(object):
         self._should_return = True
         if self.stream_process:
             self.stream_process.terminate()
-        print("\nstream handler closed with overflow %i from buffer size %i" %
-              (self.overflow, self.buffersize))
-        logging.debug("stream handler closed with overflow %i from buffer size %i" %
-              (self.overflow, self.buffersize))
+        print("\nstream handler closed with buffer size %i" %
+              (self.buffersize))
+        logging.debug("stream handler closed with buffer size %i" %
+              (self.buffersize))
 
     def bufferlength(self):
         return len(self._buffer)
 
-    def _run(self, queue, errors, backoff_time, overflow, seen, passed, lock, languages):
+    def _run(self, queue, errors, backoff_time, seen, passed, lock, languages):
         """
         handle connection to streaming endpoint.
         adds incoming tweets to queue.

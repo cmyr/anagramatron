@@ -88,7 +88,6 @@ def stats_dict():
             'passed_filter': _passed_filter,
             'possible_hits': _possible_hits,
             'hits': _hits,
-            'overflow': _overflow,
             'start_time': _start_time
             }
 
