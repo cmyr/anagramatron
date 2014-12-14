@@ -406,6 +406,9 @@ class TwitterHandler(object):
 
     # send a DM to a responsible human
     def send_message(self, message):
+        if len(message) > 140:
+            message = message[:140]
+
         self.twitter.direct_messages.new(
             user=BOSS_USERNAME,
             text=message

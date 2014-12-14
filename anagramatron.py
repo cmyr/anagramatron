@@ -4,7 +4,7 @@ import time
 import logging
 import cPickle as pickle
 
-from twitterhandler import StreamHandler
+from twitterhandler import StreamHandler, TwitterHandler
 from datahandler import (DataCoordinator, NeedsMaintenance)
 import anagramstats as stats
 import hit_server
@@ -21,7 +21,6 @@ def run(server_only=False):
         format='%(asctime)s - %(levelname)s:%(message)s',
         level=logging.DEBUG
     )
-
 
 
     if server_only:
@@ -57,8 +56,14 @@ def run(server_only=False):
                 data_coordinator.close()
                 return 0
 
-    
-    
+            except Exception as err:
+                logging.error(err)
+                stream_handler.close()
+                data_coordinator.close()
+                TwitterHandler().send_message(err)
+                return 1
+
+
 def main():
     import argparse
     parser = argparse.ArgumentParser()
