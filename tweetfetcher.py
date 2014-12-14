@@ -1,11 +1,13 @@
 import cPickle as pickle
 import time
 import sys
-import twitterhandler
+from streamhandler import StreamHandler
 import anagramer
 
+"""a helper file for fetching & saving test data from the twitter stream"""
+
 if __name__ == "__main__":
-    stream = twitterhandler.StreamHandler(languages=['en'])
+    stream = StreamHandler(languages=['en'])
     stream.start()
     count = 0
     save_interval = 50000

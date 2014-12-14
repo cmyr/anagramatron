@@ -2,6 +2,9 @@ from __future__ import print_function
 import time
 import sys
 
+# this is the oldest python code I've written that is still in use
+# it's a nonsensical shit show. avert your eyes.
+
 import anagramfunctions
 
 _tweets_seen = 0

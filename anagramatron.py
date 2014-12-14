@@ -4,7 +4,8 @@ import time
 import logging
 import cPickle as pickle
 
-from twitterhandler import StreamHandler, TwitterHandler
+from twitterhandler import TwitterHandler
+from streamhandler import StreamHandler
 from datahandler import (DataCoordinator, NeedsMaintenance)
 import anagramstats as stats
 import hit_server
