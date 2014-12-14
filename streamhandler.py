@@ -184,9 +184,9 @@ class StreamHandler(object):
         if self.stream_process:
             self.stream_process.terminate()
         print("\nstream handler closed with buffer size %i" %
-              (self.buffersize))
+              (self.bufferlength))
         logging.debug("stream handler closed with buffer size %i" %
-              (self.buffersize))
+              (self.bufferlength))
 
     def bufferlength(self):
         return len(self._buffer)
