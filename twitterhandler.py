@@ -33,6 +33,7 @@ from tumblrcreds import (TUMBLR_KEY, TUMBLR_SECRET,
 
 from constants import (ANAGRAM_STREAM_BUFFER_SIZE)
 
+SECONDS_SINCE_LAUNCH_TO_IGNORE_BUFFER = 30 * 60
 
 class StreamHandler(object):
     """
@@ -58,6 +59,7 @@ class StreamHandler(object):
         self._passed_filter = multiprocessing.Value('L', 0)
         self._lock = multiprocessing.Lock()
         self._backoff_time = 0
+        self._start_time = time.time()
 
     @property
     def overflow(self):
@@ -90,6 +92,13 @@ class StreamHandler(object):
             while 1:
                 # add all new items from the queue to the buffer
                 try:
+                    # after launch we don't have any keys in memory, so processing is slow.
+                    # this checks if launch was recent, and resets the buffer if it was.
+                    if len(self._buffer) > ANAGRAM_STREAM_BUFFER_SIZE * 0.9:
+                        if time.time() - self._start_time < SECONDS_SINCE_LAUNCH_TO_IGNORE_BUFFER:
+                            self._buffer = self._buffer[:100]  # keep a hundred items in buffer
+                            logging.debug('recent launch, reset buffer')
+
                     self._buffer.append(self.queue.get_nowait())
                 except Queue.Empty:
                     break
