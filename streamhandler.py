@@ -17,7 +17,7 @@ import json
 import anagramfunctions
 import anagramstats as stats
 from anagramstream import AnagramStream
-
+from twitterhandler import TwitterHandler
 
 # my twitter OAuth key:
 from twittercreds import (CONSUMER_KEY, CONSUMER_SECRET,
@@ -52,6 +52,7 @@ class StreamHandler(object):
         self._lock = multiprocessing.Lock()
         self._backoff_time = 0
         self._start_time = time.time()
+        self._last_message_check = self._start_time
 
 
     def update_stats(self):
@@ -90,6 +91,10 @@ class StreamHandler(object):
                     break
             try:
                 self.update_stats()
+                if time.time() - self._last_message_check > (5 * 60):  # 5 minutes
+                    self._last_message_check = time.time()
+                    TwitterHandler().handle_directs()
+
                 if len(self._buffer):
                     # if there's a buffer element return it
                     yield self._buffer.popleft()
