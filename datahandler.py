@@ -1,5 +1,5 @@
 from __future__ import print_function
-import anydbm
+import gdbm
 import multidbm
 import os
 import re
@@ -210,6 +210,9 @@ def _tweet_from_dbm(dbm_tweet):
     t['tweet_text'] = tweet_values[2]
     return t
 
+
+# I turn my tweet objects into strings by joining them with the u0017 char,
+# because when I wrote this I didn't know about __repr__. o_Ô
 
 def _dbm_from_tweet(tweet):
     dbm_string = unichr(0017).join([unicode(i) for i in tweet.values()])
