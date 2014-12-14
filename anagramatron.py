@@ -61,7 +61,7 @@ def run(server_only=False):
                 logging.error(err)
                 stream_handler.close()
                 data_coordinator.close()
-                TwitterHandler().send_message(err)
+                TwitterHandler().send_message(str(err))
                 return 1
 
 
