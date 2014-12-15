@@ -2,6 +2,7 @@ from __future__ import print_function
 
 import time
 import logging
+import sys
 import cPickle as pickle
 
 from twitterhandler import TwitterHandler
@@ -57,12 +58,12 @@ def run(server_only=False):
                 data_coordinator.close()
                 return 0
 
-            # except Exception as err:
-            #     logging.error(err)
-            #     stream_handler.close()
-            #     data_coordinator.close()
-            #     TwitterHandler().send_message(str(err))
-            #     raise err
+            except Exception as err:
+                logging.error(sys.exc_info())
+                stream_handler.close()
+                data_coordinator.close()
+                TwitterHandler().send_message(str(err))
+                print(sys.exc_info())
 
 
 def main():

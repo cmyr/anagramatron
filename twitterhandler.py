@@ -1,6 +1,7 @@
 from __future__ import print_function
 
 import httplib
+from urllib2 import URLError
 import logging
 import Queue
 import multiprocessing
@@ -190,16 +191,20 @@ class TwitterHandler(object):
             )
 
     def handle_directs(self):
-        dms = self.twitter.direct_messages()
-        handled_dm = False
-        for d in dms:
-            sender = d.get('sender_screen_name')
-            if sender == BOSS_USERNAME:
-                if not handled_dm:
-                    response = self._private_update_function()
-                    self.send_message(response)
-                    handled_dm = True
-                self.twitter.direct_messages.destroy(id=d.get("id_str"))
+        try:
+            dms = self.twitter.direct_messages()
+            handled_dm = False
+            for d in dms:
+                sender = d.get('sender_screen_name')
+                if sender == BOSS_USERNAME:
+                    if not handled_dm:
+                        response = self._private_update_function()
+                        self.send_message(response)
+                        handled_dm = True
+                    self.twitter.direct_messages.destroy(id=d.get("id_str"))
+        except URLError as err:
+            logging.error(str(err))
+
 
 
     def _private_update_function(self):
