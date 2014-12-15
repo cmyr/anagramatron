@@ -26,7 +26,7 @@ from twittercreds import (CONSUMER_KEY, CONSUMER_SECRET,
 
 from constants import (ANAGRAM_STREAM_BUFFER_SIZE)
 
-SECONDS_SINCE_LAUNCH_TO_IGNORE_BUFFER = 60 * 60
+SECONDS_SINCE_LAUNCH_TO_IGNORE_BUFFER = 60 * 60 * 2
 
 class StreamHandler(object):
     """
