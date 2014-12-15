@@ -206,7 +206,7 @@ class TwitterHandler(object):
             logging.error(str(err))
 
 
-
+    # this is a silly way for me to update my ddns server
     def _private_update_function(self):
         response = requests.get(PRIVATE_POST_URL)
         if response.status_code == 200:
