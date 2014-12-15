@@ -79,17 +79,17 @@ class StreamHandler(object):
             while 1:
                 # add all new items from the queue to the buffer
                 try:
-                    # after launch we don't have any keys in memory, so processing is slow.
-                    # this checks if launch was recent, and resets the buffer if it was.
-                    if len(self._buffer) > ANAGRAM_STREAM_BUFFER_SIZE * 0.9:
-                        if time.time() - self._start_time < SECONDS_SINCE_LAUNCH_TO_IGNORE_BUFFER:
-                            self._buffer = deque()
-                            logging.debug('recent launch, reset buffer')
-
                     self._buffer.append(self.queue.get_nowait())
                 except Queue.Empty:
                     break
             try:
+                # after launch we don't have any keys in memory, so processing is slow.
+                # this checks if launch was recent, and resets the buffer if it was.
+                if len(self._buffer) > ANAGRAM_STREAM_BUFFER_SIZE * 0.9:
+                    if time.time() - self._start_time < SECONDS_SINCE_LAUNCH_TO_IGNORE_BUFFER:
+                        self._buffer = deque()
+                        logging.debug('recent launch, reset buffer')
+
                 self.update_stats()
                 if time.time() - self._last_message_check > (5 * 60):  # 5 minutes
                     self._last_message_check = time.time()
