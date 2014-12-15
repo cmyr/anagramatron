@@ -83,7 +83,7 @@ class StreamHandler(object):
                     # this checks if launch was recent, and resets the buffer if it was.
                     if len(self._buffer) > ANAGRAM_STREAM_BUFFER_SIZE * 0.9:
                         if time.time() - self._start_time < SECONDS_SINCE_LAUNCH_TO_IGNORE_BUFFER:
-                            self._buffer = self._buffer[:100]  # keep a hundred items in buffer
+                            self._buffer = deque()
                             logging.debug('recent launch, reset buffer')
 
                     self._buffer.append(self.queue.get_nowait())
