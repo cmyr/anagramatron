@@ -290,6 +290,7 @@ def reject_hit(hit_id):
 
 
 def post_hit(hit_id):
+    hitsdb = lite.connect(dbpath)
     global twitter_handler
     if not twitter_handler:
         twitter_handler = TwitterHandler()
@@ -299,6 +300,7 @@ def post_hit(hit_id):
         cursor = hitsdb.cursor()
         cursor.execute("INSERT INTO hitinfo VALUES (?)", (str(time.time()),))
         hitsdb.commit()
+        cursor.close()
         return True
     else:
         set_hit_status(hit_id, HIT_STATUS_FAILED)
