@@ -24,13 +24,13 @@ HIT_STATUS_MISC = 'misc'
 HIT_STATUS_FAILED = 'failed'
 
 dbpath = None
-hitsdb = None
+# hitsdb = None
 twitter_handler = None
 _new_hits_counter = 0
 
 
 def _setup(languages=['en'], path=None):
-    global dbpath, hitsdb
+    global dbpath
     dbpath = path
     if not dbpath:
         dbpath = (STORAGE_DIRECTORY_PATH +
@@ -52,9 +52,12 @@ def _setup(languages=['en'], path=None):
         cursor = hitsdb.cursor() 
         cursor.execute("CREATE TABLE IF NOT EXISTS post_queue (hit_id INTEGER)")
 
-def _checkit():
-    if not dbpath or hitsdb:
-        _setup()
+
+_setup()
+
+# def _checkit():
+#     if not dbpath or hitsdb:
+#         _setup()
 
 
 def new_hit(first, second):
@@ -120,19 +123,22 @@ def _cleaned_tweet(tweet):
 
 def hits_newer_than_hit(hit_id):
     
+    hitsdb = lite.connect(dbpath)
     cursor = hitsdb.cursor()
     cursor.execute("SELECT * FROM hits WHERE hit_id > (?)", (hit_id,))
     results = cursor.fetchall()
+    cursor.close()
     return len(results)
 
 
 def new_hits_count():
-    _checkit()
+    hitsdb = lite.connect(dbpath)
     cursor = hitsdb.cursor()
     try:
         cursor.execute("SELECT * FROM hits WHERE hit_status = (?)",
             (HIT_STATUS_REVIEW,))
         results = cursor.fetchall()
+        cursor.close()
         return len(results)
     except ValueError:
         return "420"
@@ -140,20 +146,22 @@ def new_hits_count():
 
 def last_post_time():
     # return the time of the last successful post
-    _checkit()
+    hitsdb = lite.connect(dbpath)
     cursor = hitsdb.cursor()
     cursor.execute("SELECT * from hitinfo")
     results = cursor.fetchall()
     results = [float(x[0]) for x in results]
+    cursor.close()
     if len(results):
         return max(results)
 
 
 def _hit_collides_with_previous_hit(hit):
-    
+    hitsdb = lite.connect(dbpath)
     cursor = hitsdb.cursor()
     cursor.execute("SELECT * FROM hits WHERE hit_hash=?", (hit['hash'], ))
     result = cursor.fetchone()
+    cursor.close()
     if result:
         # do some comparisons
         result = hit_from_sql(result)
@@ -182,6 +190,7 @@ def _hit_collides_with_previous_hit(hit):
 
 
 def _add_hit(hit):
+    hitsdb = lite.connect(dbpath)
     cursor = hitsdb.cursor()
 
     cursor.execute("INSERT INTO hits VALUES (?,?,?,?,?,?,?,?)",
@@ -195,23 +204,27 @@ def _add_hit(hit):
                    repr(hit['tweet_two'])
                    ))
     hitsdb.commit()
+    cursor.close()
 
 
 def get_hit(hit_id):
-    
+    hitsdb = lite.connect(dbpath)
     cursor = hitsdb.cursor()
     cursor.execute("SELECT * FROM hits WHERE hit_id=:id",
                    {"id": str(hit_id)})
     result = cursor.fetchone()
+    cursor.close()
     return hit_from_sql(result)
 
 
 def remove_hit(hit_id):
     
+    hitsdb = lite.connect(dbpath)
     cursor = hitsdb.cursor()
     cursor.execute("DELETE FROM hits WHERE hit_id=:id",
                    {"id": str(hit_id)})
     hitsdb.commit()
+    cursor.close()
 
 
 def set_hit_status(hit_id, status):
@@ -231,7 +244,7 @@ def set_hit_status(hit_id, status):
 
 
 def all_hits(with_status=None, cutoff_id=None):
-    _checkit()
+    hitsdb = lite.connect(dbpath)
     cursor = hitsdb.cursor()
     if not with_status:
         cursor.execute("SELECT * FROM hits")
@@ -243,6 +256,8 @@ def all_hits(with_status=None, cutoff_id=None):
         hits.append(hit_from_sql(item))
     if cutoff_id:
         hits = [h for h in hits if h['id'] < cutoff_id]
+
+    cursor.close()
     return hits
 
 
@@ -290,19 +305,26 @@ def post_hit(hit_id):
         return False
 
 def queue_hit(hit_id):
+    hitsdb = lite.connect(dbpath)
     cursor = hitsdb.cursor()
     cursor.execute("INSERT INTO post_queue VALUES (?)", (str(hit_id),))
     hitsdb.commit()
+    cursor.close()
 
 def get_queued_hits():
+    hitsdb = lite.connect(dbpath)
     cursor = hitsdb.cursor()
     cursor.execute("SELECT * FROM post_queue")
     hits = cursor.fetchall()
+    cursor.close()
     return [h[0] for h in hits]
 
 def post_queued_hit(hit_id):
+    hitsdb = lite.connect(dbpath)
     cursor = hitsdb.cursor()
     cursor.execute("DELETE FROM post_queue WHERE hit_id = (?)", (str(hit_id),))
+    cursor.close()
+    
     return post_hit(hit_id)
 
 
