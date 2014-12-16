@@ -2,12 +2,12 @@ import cPickle as pickle
 import time
 import sys
 from streamhandler import StreamHandler
-import anagramer
+import anagramfunctions
 
 """a helper file for fetching & saving test data from the twitter stream"""
 
 if __name__ == "__main__":
-    stream = StreamHandler(languages=['en'])
+    stream = StreamHandler()
     stream.start()
     count = 0
     save_interval = 50000
@@ -15,7 +15,6 @@ if __name__ == "__main__":
 
     try:
         for t in stream:
-            t = anagramer.filter_tweet(t)
             if not t: 
                 continue
 
