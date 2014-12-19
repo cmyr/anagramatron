@@ -45,7 +45,10 @@ class DataCoordinator(object):
     It caches newly returned or requested candidates to memory,
     and maintains & manages a persistent database of older candidates.
     """
-    def __init__(self, languages=['en'], noload=False):
+    def __init__(self, languages=['en'],
+        noload=False,
+        storage_location=STORAGE_DIRECTORY_PATH,
+        hit_handler=None):
         """
         language selection is not currently implemented
         """
@@ -56,12 +59,18 @@ class DataCoordinator(object):
         self._write_process = None
         self._lock = multiprocessing.Lock()
         self._is_writing = multiprocessing.Event()
-        self.dbpath = (STORAGE_DIRECTORY_PATH +
+        self.dbpath = (storage_location +
                        DATA_PATH_COMPONENT +
                        '_'.join(self.languages) + '.db')
-        self.cachepath = (STORAGE_DIRECTORY_PATH +
+        self.cachepath = (storage_location +
                           CACHE_PATH_COMPONENT +
                           '_'.join(self.languages) + '.p')
+
+        if hit_handler:
+            self.hit_handler = hit_handler
+        else:
+            self.hit_handler = hitmanager.new_hit
+
         if not noload:
             self._setup()
 
@@ -73,7 +82,7 @@ class DataCoordinator(object):
         """
         self.cache = self._load_cache()
         self.datastore = multidbm.MultiDBM(self.dbpath)
-        hitmanager._setup(self.languages)
+        # hitmanager._setup(self.languages)
 
     def handle_input(self, tweet):
         """
@@ -89,7 +98,7 @@ class DataCoordinator(object):
             hit_tweet = self.cache[key]['tweet']
             if anagramfunctions.test_anagram(tweet['tweet_text'], hit_tweet['tweet_text']):
                 del self.cache[key]
-                hitmanager.new_hit(tweet, hit_tweet)
+                self.hit_handler(tweet, hit_tweet)
             else:
                 self.cache[key]['tweet'] = tweet
                 self.cache[key]['hit_count'] += 1
@@ -117,7 +126,7 @@ class DataCoordinator(object):
             return
         if anagramfunctions.test_anagram(tweet['tweet_text'],
             hit_tweet['tweet_text']):
-            hitmanager.new_hit(hit_tweet, tweet)
+            self.hit_handler(hit_tweet, tweet)
         else:
             self.cache[key] = {'tweet': tweet, 'hit_count': 1}
 
@@ -310,7 +319,7 @@ def combine_databases(srcdb, destdb, cutoff=20, start=0):
                     ):
                     temp_k = db2.nextkey(k)
                     del db2[k]
-                    hitmanager.new_hit(tweet, tweet2)
+                    self.hit_handler(tweet, tweet2)
                 else:
                     pass
             else:
