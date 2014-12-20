@@ -24,9 +24,9 @@ from constants import (ANAGRAM_CACHE_SIZE, STORAGE_DIRECTORY_PATH,
 DATA_PATH_COMPONENT = 'anagrammdbm'
 CACHE_PATH_COMPONENT = 'cachedump'
 
-from hitmanager import (HIT_STATUS_SEEN, HIT_STATUS_REVIEW, HIT_STATUS_POSTED,
-        HIT_STATUS_REJECTED, HIT_STATUS_APPROVED, HIT_STATUS_MISC,
-        HIT_STATUS_FAILED)
+# from hitmanager import (HIT_STATUS_SEEN, HIT_STATUS_REVIEW, HIT_STATUS_POSTED,
+#         HIT_STATUS_REJECTED, HIT_STATUS_APPROVED, HIT_STATUS_MISC,
+#         HIT_STATUS_FAILED)
 
 
 
@@ -48,7 +48,8 @@ class DataCoordinator(object):
     def __init__(self, languages=['en'],
         noload=False,
         storage_location=STORAGE_DIRECTORY_PATH,
-        hit_handler=None):
+        hit_handler=hitmanager.new_hit,
+        anagram_test=anagramfunctions.test_anagram):
         """
         language selection is not currently implemented
         """
@@ -66,10 +67,9 @@ class DataCoordinator(object):
                           CACHE_PATH_COMPONENT +
                           '_'.join(self.languages) + '.p')
 
-        if hit_handler:
-            self.hit_handler = hit_handler
-        else:
-            self.hit_handler = hitmanager.new_hit
+
+        self.hit_handler = hit_handler
+        self.anagram_test = anagram_test
 
         if not noload:
             self._setup()
@@ -96,7 +96,7 @@ class DataCoordinator(object):
         if key in self.cache:
             stats.cache_hit()
             hit_tweet = self.cache[key]['tweet']
-            if anagramfunctions.test_anagram(tweet['tweet_text'], hit_tweet['tweet_text']):
+            if self.anagram_test(tweet['tweet_text'], hit_tweet['tweet_text']):
                 del self.cache[key]
                 self.hit_handler(tweet, hit_tweet)
             else:
@@ -124,7 +124,7 @@ class DataCoordinator(object):
             print('error decoding hit for key %s' % key)
             self.cache[key] = {'tweet': tweet, 'hit_count': 1}
             return
-        if anagramfunctions.test_anagram(tweet['tweet_text'],
+        if self.anagram_test(tweet['tweet_text'],
             hit_tweet['tweet_text']):
             self.hit_handler(hit_tweet, tweet)
         else:
