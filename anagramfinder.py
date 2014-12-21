@@ -27,15 +27,15 @@ CACHE_PATH_COMPONENT = 'cachedump'
 
 class NeedsMaintenance(Exception):
     """
-    hacky exception raised when DataCoordinator is no longer able to keep up.
+    hacky exception raised when AnagramFinder is no longer able to keep up.
     use this to signal that we should shutdown and perform maintenance.
     """
     pass
 
 
-class DataCoordinator(object):
+class AnagramFinder(object):
     """
-    DataCoordinator handles the storage, retrieval and comparisons
+    AnagramFinder handles the storage, retrieval and comparisons
     of anagram candidates.
     It caches newly returned or requested candidates to memory,
     and maintains & manages a persistent database of older candidates.
@@ -235,7 +235,7 @@ def _dbm_from_tweet(tweet):
 
 
 def repair_database():
-    db = DataCoordinator()
+    db = AnagramFinder()
     db.datastore.perform_maintenance()
 
 

@@ -16,7 +16,7 @@ For each tweet that passes these filters, the occurrences of each letter are cou
 This hash is checked against a list of all the hashes we have stored so far. If nothing is found, the hash and the original text are saved in a database. If a match is found, the original text of both tweets are run through some comparison tests to check for like-ness. If they pass that text they are flagged for review, to make sure they aren't too similar, or haven't been posted previously, etcetera.
 
 #### How
-anagramatron.py contains the main run loop, which uses classes in twitterhandler to connect to the twitter streaming and REST api, and classes in datahandler to archive and retrieve possible anagrams for likeness comparison. Data storage is handled by multidbm.py, a wrapper for a flexible number of dbm databases, which lets older tweets be automatically removed when the database gets too full.
+anagramatron.py contains the main run loop, which uses classes in twitterhandler to connect to the twitter streaming and REST api, and classes in anagramfinder to archive and retrieve possible anagrams for likeness comparison. Data storage is handled by multidbm.py, a wrapper for a flexible number of dbm databases, which lets older tweets be automatically removed when the database gets too full.
 
 there is also a small bottle-powered webserver that allows remote review of possible anagrams. There is a companion iPhone app that I use to check up on progress.
 

@@ -7,7 +7,7 @@ import cPickle as pickle
 
 from twitterhandler import TwitterHandler
 from streamhandler import StreamHandler
-from datahandler import (DataCoordinator, NeedsMaintenance)
+from anagramfinder import (AnagramFinder, NeedsMaintenance)
 import anagramstats as stats
 import hit_server
 import multiprocessing
@@ -33,7 +33,7 @@ def run(server_only=False):
         hitserver.daemon = True
         hitserver.start()
         
-        data_coordinator = DataCoordinator()
+        data_coordinator = AnagramFinder()
         stats.clear_stats()
 
         while 1:
