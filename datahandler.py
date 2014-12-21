@@ -24,11 +24,6 @@ from constants import (ANAGRAM_CACHE_SIZE, STORAGE_DIRECTORY_PATH,
 DATA_PATH_COMPONENT = 'anagrammdbm'
 CACHE_PATH_COMPONENT = 'cachedump'
 
-# from hitmanager import (HIT_STATUS_SEEN, HIT_STATUS_REVIEW, HIT_STATUS_POSTED,
-#         HIT_STATUS_REJECTED, HIT_STATUS_APPROVED, HIT_STATUS_MISC,
-#         HIT_STATUS_FAILED)
-
-
 
 class NeedsMaintenance(Exception):
     """
@@ -84,52 +79,60 @@ class DataCoordinator(object):
         self.datastore = multidbm.MultiDBM(self.dbpath)
         # hitmanager._setup(self.languages)
 
-    def handle_input(self, tweet):
+    def handle_input(self, inp, text_key="text"):
         """
-        recieves a filtered tweet.
-        - checks if it exists in cache
-        - checks if in database
-        - if yes checks for hit
+        takes either a string or a dict, and compares it against
+        all previous input. if an anagram is found, runs self.anagram_test
+        and then self.hit_handler if test passes.
         """
-
-        key = tweet['tweet_hash']
+        text = self._text_from_input(inp, text_key)
+        key = anagramfunctions.improved_hash(text)
         if key in self.cache:
             stats.cache_hit()
-            hit_tweet = self.cache[key]['tweet']
-            if self.anagram_test(tweet['tweet_text'], hit_tweet['tweet_text']):
+            match = self.cache[key]['tweet']
+            match_text = self._text_from_input(match, key)
+            if self.anagram_test(text, match_text):
                 del self.cache[key]
-                self.hit_handler(tweet, hit_tweet)
+                self.hit_handler(inp, match)
             else:
-                self.cache[key]['tweet'] = tweet
+                self.cache[key]['tweet'] = inp
                 self.cache[key]['hit_count'] += 1
         else:
             # not in cache. in datastore?
             if key in self.datastore:
-                self._process_hit(tweet)
+                self._process_hit(inp, key, text_key)
             else:
                 # not in datastore. add to cache
-                self.cache[key] = {'tweet': tweet,
+                self.cache[key] = {'tweet': inp,
                                    'hit_count': 0}
                 stats.set_cache_size(len(self.cache))
 
                 if len(self.cache) > ANAGRAM_CACHE_SIZE:
                     self._trim_cache()
 
-
-    def _process_hit(self, tweet):
-        key = tweet['tweet_hash']
+    def _process_hit(self, inp, key, text_key):
         try:
-            hit_tweet = _tweet_from_dbm(self.datastore[key])
+            hit = _tweet_from_dbm(self.datastore[key])
+            hit_text = self._text_from_input(hit, text_key)
+            text = self._text_from_input(inp, text_key)
         except UnicodeDecodeError as err:
             print('error decoding hit for key %s' % key)
-            self.cache[key] = {'tweet': tweet, 'hit_count': 1}
+            self.cache[key] = {'tweet': inp, 'hit_count': 1}
             return
-        if self.anagram_test(tweet['tweet_text'],
-            hit_tweet['tweet_text']):
-            self.hit_handler(hit_tweet, tweet)
+        if self.anagram_test(text, hit_text):
+            self.hit_handler(inp, hit)
         else:
-            self.cache[key] = {'tweet': tweet, 'hit_count': 1}
+            self.cache[key] = {'tweet': inp, 'hit_count': 1}
 
+    def _text_from_input(self, inp, key=None):
+        LEGACY_KEY = 'tweet_text'
+        if isinstance(inp, unicode):
+            return inp
+        else:
+            text = inp.get(key) or inp.get(LEGACY_KEY)
+            if not text:
+                raise TypeError('expected string or dict')
+            return text
 
     def _trim_cache(self, to_trim=None):
         """
