@@ -1,5 +1,4 @@
 import re
-import anagramstats as stats
 import unicodedata
 
 from constants import (ANAGRAM_LOW_CHAR_CUTOFF, ANAGRAM_LOW_UNIQUE_CHAR_CUTOFF,
@@ -144,28 +143,27 @@ def filter_tweet(tweet):
 
 
 
-def test_anagram(string_one, string_two):
+def test_anagram(one, two):
     """
     most basic test, finds if tweets are just identical
     """
-    stats.possible_hit()
-    if not _char_diff_test(string_one, string_two):
+    if not _char_diff_test(one, two):
         return False
-    if not _word_diff_test(string_one, string_two):
+    if not _word_diff_test(one, two):
         return False
-    if not _combined_words_test(string_one, string_two):
+    if not _combined_words_test(one, two):
         return False
-    if not one_test_to_rule_them(string_one, string_two):
+    if not one_test_to_rule_them(one, two):
         return False
     return True
 
 
-def _char_diff_test(string_one, string_two, cutoff=0.3):
+def _char_diff_test(one, two, cutoff=0.3):
     """
     basic test, looks for similarity on a char by char basis
     """
-    stripped_one = stripped_string(string_one)
-    stripped_two = stripped_string(string_two)
+    stripped_one = stripped_string(one)
+    stripped_two = stripped_string(two)
 
     total_chars = len(stripped_two)
     same_chars = 0
@@ -180,16 +178,16 @@ def _char_diff_test(string_one, string_two, cutoff=0.3):
         if (float(same_chars) / total_chars) < cutoff:
             return True
     except ZeroDivisionError:
-        print(string_one, string_two)
+        print(one, two)
     return False
 
 
-def _word_diff_test(string_one, string_two, cutoff=0.3):
+def _word_diff_test(one, two, cutoff=0.3):
     """
     looks for tweets containing the same words in different orders
     """
-    words_one = stripped_string(string_one, spaces=True).split()
-    words_two = stripped_string(string_two, spaces=True).split()
+    words_one = stripped_string(one, spaces=True).split()
+    words_two = stripped_string(two, spaces=True).split()
 
     word_count = len(words_one)
     same_words = 0
@@ -206,13 +204,13 @@ def _word_diff_test(string_one, string_two, cutoff=0.3):
     else:
         return False
 
-def _combined_words_test(string_one, string_two, cutoff=0.5):
+def _combined_words_test(one, two, cutoff=0.5):
     """
     looks for tweets where the same words have been #CombinedWithoutSpaces
 
     """
-    words_one = stripped_string(string_one, spaces=True).split()
-    words_two = stripped_string(string_two, spaces=True).split()
+    words_one = stripped_string(one, spaces=True).split()
+    words_two = stripped_string(two, spaces=True).split()
 
     if len(words_one) == len(words_two):
         return True
@@ -236,15 +234,15 @@ def _combined_words_test(string_one, string_two, cutoff=0.5):
         return False
 
 
-def one_test_to_rule_them(string_one, string_two, cutoff=0.8, stop=False):
+def one_test_to_rule_them(one, two, cutoff=0.8, stop=False):
     """
     searches s2 for words from s1, removing them where found.
     repeats in the opposite order on pass.
     """
-    s1 = sorted(stripped_string(string_one, spaces=True).split(),
+    s1 = sorted(stripped_string(one, spaces=True).split(),
         key=len,
         reverse=True)
-    s2 = stripped_string(string_two, spaces=True)
+    s2 = stripped_string(two, spaces=True)
     for word in s1:
         if len(word) > 2 and re.search(word, s2):
             s2 = re.sub(word, '', s2, count=1)
@@ -256,7 +254,7 @@ def one_test_to_rule_them(string_one, string_two, cutoff=0.8, stop=False):
     else:
         if stop:
             return True
-        return one_test_to_rule_them(string_two, string_one, stop=True)
+        return one_test_to_rule_them(two, one, stop=True)
 
 
 def grade_anagram(hit):

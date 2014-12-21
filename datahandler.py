@@ -119,6 +119,7 @@ class DataCoordinator(object):
             print('error decoding hit for key %s' % key)
             self.cache[key] = {'tweet': inp, 'hit_count': 1}
             return
+        stats.possible_hit()
         if self.anagram_test(text, hit_text):
             self.hit_handler(inp, hit)
         else:
