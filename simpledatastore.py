@@ -2,6 +2,10 @@
 from __future__ import print_function
 from __future__ import unicode_literals
 
+from operator import itemgetter
+import cPickle as pickle
+import logging
+
 ITEM_KEY = 'tweet'
 COUNT_KEY = 'hit_count'
 
@@ -9,7 +13,7 @@ class AnagramSimpleStore(object):
     """AnagramSimpleStore is a simple data store implemented
     using standard library data structures. It is intended for use as
     a cache, or for smaller, static input sources."""
-    def __init__(self, path):
+    def __init__(self, path=None, maxsize=None):
         super(AnagramSimpleStore, self).__init__()
         self.path = path
         self.datastore = self.load()
@@ -30,10 +34,12 @@ class AnagramSimpleStore(object):
         else:
             self.datastore[key] = {ITEM_KEY: value, COUNT_KEY: 0}
 
-    def __delete__(self, instance):
-        del self.datastore[x]
+    def __delitem__(self, instance):
+        del self.datastore[instance]
         
     def load(self):
+        if not self.path:
+            return dict()
         print('loading cache')
         cache = dict()
         try:
@@ -45,7 +51,6 @@ class AnagramSimpleStore(object):
         except IOError:
             logging.error('error loading cache :(')
             return cache
-            # really not tons we can do ehre
 
     def save(self):
         """
@@ -53,20 +58,24 @@ class AnagramSimpleStore(object):
         doesn't save hit_count. we don't want to keep briefly popular
         items in cache indefinitely
         """
-        to_save = [self.datastore[t]['tweet'] for t in self.datastore]
-        try:
-            pickle.dump(tweets_to_save, open(self.path, 'wb'))
-            print('saved cache to disk with %i tweets' % len(tweets_to_save))
-        except:
-            logging.error('unable to save cache, writing')
-            self._trim_cache(len(self.datastore))
+        if self.path:
+            to_save = [self.datastore[t]['tweet'] for t in self.datastore]
+            try:
+                pickle.dump(tweets_to_save, open(self.path, 'wb'))
+                print('saved cache to disk with %i items' % len(to_save))
+            except:
+                logging.error('unable to save cache, writing')
+                self._trim_cache(len(self.datastore))
+
+    def least_used(self, count):
+        items = [(key, value[ITEM_KEY], value[COUNT_KEY])
+        for key, value in self.datastore.items()]
+
+        items = sorted(items, key=itemgetter(2))
+        return [x for (x, y, z) in items]
 
 def main():
-    import argparse
-    parser = argparse.ArgumentParser()
-    parser.add_argument('arg1', type=str, help="required argument")
-    parser.add_argument('arg2', '--argument-2', help='optional boolean argument', action="store_true")
-    args = parser.parse_args()
+    pass
 
 
 if __name__ == "__main__":
