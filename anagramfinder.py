@@ -233,110 +233,22 @@ def _dbm_from_tweet(tweet):
     dbm_string = unichr(0017).join([unicode(i) for i in tweet.values()])
     return dbm_string.encode('utf-8')
 
+def dbm_iter(dbm_path):
+    db = gdbm.open(dbm_path)
+    key = db.firstkey()
+    while key is not None:
+        try:
+            yield _tweet_from_dbm(db[key])
+        # value isn't a tweet; should be metadata (filepath)
+        except ValueError:
+            pass
+        key = db.nextkey(key)
+    raise StopIteration()
+
 
 def repair_database():
     db = AnagramFinder()
     db.datastore.perform_maintenance()
-
-
-def delete_short_entries(srcdb, cutoff=20, start=0):
-    try:
-        import gdbm
-    except ImportError:
-        print('database manipulation requires gdbm')
-
-    print('trimming %s, cutoff %i' %(srcdb, cutoff))
-    start_time = time.time()
-    db = gdbm.open(srcdb, 'wf')
-    k = db.firstkey()
-    seen = 0
-    marked = 0
-    prevk = k
-    todel = set()
-    try:
-        while k is not None:
-            seen += 1
-            prevk = k
-            nextk = db.nextkey(k)
-            if anagramfunctions.length_from_hash(k) < cutoff:
-                todel.add(k)
-                marked += 1
-            sys.stdout.write('seen/marked: %i/%i next: %s\t\t\t\t\r' % (seen, marked, nextk))
-            sys.stdout.flush()
-            k = nextk
-    finally:
-        deleted = 0
-        print('\ndeleting %i entries' % marked)
-        for i in todel:
-            try:
-                del db[i]
-            except KeyError:
-                print('key error for key %s' % i)
-            deleted += 1
-            sys.stdout.write('deleted %i/%i\r' % (deleted, marked))
-            sys.stdout.flush()
-        
-        db.sync()
-        db.close()
-        duration = time.time() - start_time
-        print('\ndeleted %i of %i in %s' %
-            (deleted, seen, anagramfunctions.format_seconds(duration)))
-
-
-def combine_databases(srcdb, destdb, cutoff=20, start=0):
-    try:
-        import gdbm
-    except ImportError:
-        print('combining databases requires the gdbm module. :(')
-    print('adding tweets from %s to %s' % (srcdb, destdb))
-
-    db1 = gdbm.open(destdb, 'wf')
-    db2 = gdbm.open(srcdb, 'w')
-
-    k = db2.firstkey()
-    temp_k = None
-    seen = 0
-    # if not start:
-    #     start = 10**10
-
-    if start:
-        seen = 0
-        while seen < start:
-            k = db2.nextkey(k)
-            sys.stdout.write('skipping: %i/%i \r' % (seen, start))
-            sys.stdout.flush()
-            seen += 1
-    
-    try:
-        while k is not None:
-            stats.tweets_seen()
-            if (anagramfunctions.length_from_hash(k) < cutoff):
-                k = db2.nextkey(k)
-                continue                
-            stats.passed_filter()
-            tweet = _tweet_from_dbm(db2[k])
-            if k in db1:
-                tweet2 = _tweet_from_dbm(db1[k])
-                if anagramfunctions.test_anagram(
-                    tweet['tweet_text'],
-                    tweet2['tweet_text'] 
-                    ):
-                    temp_k = db2.nextkey(k)
-                    del db2[k]
-                    self.hit_handler(tweet, tweet2)
-                else:
-                    pass
-            else:
-                db1[k] = _dbm_from_tweet(tweet)
-            stats.update_console()
-            k = db2.nextkey(k)
-            if not k and temp_k:
-                k = temp_k
-                temp_k = None
-    finally:
-        db1.sync()
-        db1.close()
-        db2.close()
 
 
 def main():
