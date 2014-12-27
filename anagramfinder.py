@@ -1,8 +1,6 @@
 # coding: utf-8
 
 from __future__ import print_function
-import gdbm
-import multidbm
 import os
 import re
 import sys
@@ -13,11 +11,13 @@ import multiprocessing
 from operator import itemgetter
 
 
+import multidbm
+from simpledatastore import AnagramSimpleStore
 import anagramfunctions
 import hitmanager
 import anagramstats as stats
 
-from constants import (ANAGRAM_CACHE_SIZE, STORAGE_DIRECTORY_PATH,
+from constants~ import (ANAGRAM_CACHE_SIZE, STORAGE_DIRECTORY_PATH,
  ANAGRAM_STREAM_BUFFER_SIZE)
 
 
@@ -49,7 +49,7 @@ class AnagramFinder(object):
         language selection is not currently implemented
         """
         self.languages = languages
-        self.cache = dict()
+        self.cache = AnagramSimpleStore()
         self.datastore = None
         self._should_trim_cache = False
         self._write_process = None
@@ -75,9 +75,8 @@ class AnagramFinder(object):
         - load / init database
         - extract hashes
         """
-        self.cache = self._load_cache()
+        self.cache = AnagramSimpleStore(self.cachepath, ANAGRAM_CACHE_SIZE)
         self.datastore = multidbm.MultiDBM(self.dbpath)
-        # hitmanager._setup(self.languages)
 
     def handle_input(self, inp, text_key="text"):
         """
@@ -89,22 +88,21 @@ class AnagramFinder(object):
         key = anagramfunctions.improved_hash(text)
         if key in self.cache:
             stats.cache_hit()
-            match = self.cache[key]['tweet']
+            match = self.cache[key]
             match_text = self._text_from_input(match, key)
             if self.anagram_test(text, match_text):
                 del self.cache[key]
                 self.hit_handler(inp, match)
             else:
-                self.cache[key]['tweet'] = inp
-                self.cache[key]['hit_count'] += 1
+                # anagram, but fails tests (too similar)
+                self.cache[key] = inp
         else:
             # not in cache. in datastore?
             if key in self.datastore:
                 self._process_hit(inp, key, text_key)
             else:
                 # not in datastore. add to cache
-                self.cache[key] = {'tweet': inp,
-                                   'hit_count': 0}
+                self.cache[key] = inp
                 stats.set_cache_size(len(self.cache))
 
                 if len(self.cache) > ANAGRAM_CACHE_SIZE:
@@ -117,13 +115,13 @@ class AnagramFinder(object):
             text = self._text_from_input(inp, text_key)
         except UnicodeDecodeError as err:
             print('error decoding hit for key %s' % key)
-            self.cache[key] = {'tweet': inp, 'hit_count': 1}
+            self.cache[key] = inp
             return
         stats.possible_hit()
         if self.anagram_test(text, hit_text):
             self.hit_handler(inp, hit)
         else:
-            self.cache[key] = {'tweet': inp, 'hit_count': 1}
+            self.cache[key] = inp
 
     def _text_from_input(self, inp, key=None):
         LEGACY_KEY = 'tweet_text'
@@ -139,61 +137,22 @@ class AnagramFinder(object):
         """
         takes least frequently hit tweets from cache and writes to datastore
         """
-
         self._should_trim_cache = False
-        # first just grab hashes with zero hits. If that's less then 1/2 total
-        # do a more complex filter
-            # find the oldest, least frequently hit items in cache:
-        cache_list = self.cache.values()
-        cache_list = [(x['tweet']['tweet_hash'],
-                       x['tweet']['tweet_id'],
-                       x['hit_count']) for x in cache_list]
-        s = sorted(cache_list, key=itemgetter(1))
-        cache_list = sorted(s, key=itemgetter(2))
+
         if not to_trim:
             to_trim = min(10000, (ANAGRAM_CACHE_SIZE/10))
-        hashes_to_save = [x for (x, y, z) in cache_list[:to_trim]]
-
+        
+        to_store = self.cache.least_used(to_trim)
         # write those caches to disk, delete from cache, add to hashes
-        for x in hashes_to_save:
+        for x in to_trim:
 
-            self.datastore[x] = _dbm_from_tweet(self.cache[x]['tweet'])
+            self.datastore[x] = _dbm_from_tweet(self.cache[x])
             del self.cache[x]
 
         buffer_size = stats.buffer_size()
         if buffer_size > ANAGRAM_STREAM_BUFFER_SIZE:
-            # self.perform_maintenance()
             print('raised needs maintenance')
             raise NeedsMaintenance
-
-    def _save_cache(self):
-        """
-        pickles the tweets currently in the cache.
-        doesn't save hit_count. we don't want to keep briefly popular
-        tweets in cache indefinitely
-        """
-        tweets_to_save = [self.cache[t]['tweet'] for t in self.cache]
-        try:
-            pickle.dump(tweets_to_save, open(self.cachepath, 'wb'))
-            print('saved cache to disk with %i tweets' % len(tweets_to_save))
-        except:
-            logging.error('unable to save cache, writing')
-            self._trim_cache(len(self.cache))
-
-    def _load_cache(self):
-        print('loading cache')
-        cache = dict()
-        try:
-            loaded_tweets = pickle.load(open(self.cachepath, 'r'))
-            # print(loaded_tweets)
-            for t in loaded_tweets:
-                cache[t['tweet_hash']] = {'tweet': t, 'hit_count': 0}
-            print('loaded %i tweets to cache' % len(cache))
-            return cache
-        except IOError:
-            logging.error('error loading cache :(')
-            return cache
-            # really not tons we can do ehre
 
 
     def perform_maintenance(self):
@@ -213,7 +172,7 @@ class AnagramFinder(object):
             print('write process active. waiting.')
             self._write_process.join()
 
-        self._save_cache()
+        self.cache.save()
         self.datastore.close()
 
 
@@ -234,6 +193,7 @@ def _dbm_from_tweet(tweet):
     return dbm_string.encode('utf-8')
 
 def dbm_iter(dbm_path):
+    import gdbm
     db = gdbm.open(dbm_path)
     key = db.firstkey()
     while key is not None:
@@ -244,7 +204,6 @@ def dbm_iter(dbm_path):
             pass
         key = db.nextkey(key)
     raise StopIteration()
-
 
 def repair_database():
     db = AnagramFinder()
@@ -265,29 +224,6 @@ def main():
     if args.repair:
         return repair_database()
 
-
-    if not args.db:
-        print('please specify a target database.')
-
-    outargs = dict()
-    outargs['srcdb'] = args.db
-
-    if args.trim:
-        print('trim requested %i' % args.trim)
-        outargs['cutoff'] = args.trim
-
-    if args.start:
-        outargs['start'] = args.start
-
-    if args.destination:
-        print('destination: %s' %args.destination)
-        outargs['destdb'] = args.destination
-        combine_databases(**outargs)
-    else:
-        delete_short_entries(**outargs)
-
-
     
-
 if __name__ == "__main__":
     main()
