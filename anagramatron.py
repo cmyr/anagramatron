@@ -33,7 +33,7 @@ def run(server_only=False):
         hitserver.daemon = True
         hitserver.start()
         
-        data_coordinator = AnagramFinder()
+        anagram_finder = AnagramFinder()
         stats.clear_stats()
 
         while 1:
@@ -44,24 +44,24 @@ def run(server_only=False):
                 stream_handler = StreamHandler()
                 stream_handler.start()
                 for processed_tweet in stream_handler:
-                    data_coordinator.handle_input(processed_tweet)
+                    anagram_finder.handle_input(processed_tweet)
                     stats.update_console()
 
             except NeedsMaintenance:
                 logging.debug('caught NeedsMaintenance exception')
                 print('performing maintenance')
                 stream_handler.close()
-                data_coordinator.perform_maintenance()
+                anagram_finder.perform_maintenance()
 
             except KeyboardInterrupt:
                 stream_handler.close()
-                data_coordinator.close()
+                anagram_finder.close()
                 return 0
 
             except Exception as err:
                 logging.error(sys.exc_info())
                 stream_handler.close()
-                data_coordinator.close()
+                anagram_finder.close()
                 TwitterHandler().send_message(str(err))
                 print(sys.exc_info())
 
