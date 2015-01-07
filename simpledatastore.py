@@ -71,7 +71,9 @@ class AnagramSimpleStore(object):
         for key, value in self.datastore.items()]
 
         items = sorted(items, key=itemgetter(2))
-        return [x for (x, y, z) in items]
+        least_used_keys = [x for (x, y, z) in items]
+        print('returning %d least used keys: %s' % 
+            (len(least_used_keys), "\n".join(least_used_keys[:10])))
 
 def main():
     pass
