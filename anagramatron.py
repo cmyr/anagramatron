@@ -3,6 +3,7 @@ from __future__ import print_function
 import time
 import logging
 import sys
+import datetime
 import cPickle as pickle
 
 from twitterhandler import TwitterHandler
@@ -62,7 +63,7 @@ def run(server_only=False):
                 logging.error(sys.exc_info())
                 stream_handler.close()
                 anagram_finder.close()
-                TwitterHandler().send_message(str(err))
+                TwitterHandler().send_message(str(err) + "\n" + datetime.today().iosformat())
                 print(sys.exc_info())
 
 
