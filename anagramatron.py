@@ -3,7 +3,7 @@ from __future__ import print_function
 import time
 import logging
 import sys
-import datetime
+from datetime import datetime
 import cPickle as pickle
 
 from twitterhandler import TwitterHandler
@@ -25,7 +25,6 @@ def run(server_only=False):
         level=logging.DEBUG
     )
 
-
     if server_only:
         hit_server.start_hit_server()
     else:
@@ -33,7 +32,7 @@ def run(server_only=False):
         hitserver = multiprocessing.Process(target=hit_server.start_hit_server)
         hitserver.daemon = True
         hitserver.start()
-        
+
         anagram_finder = AnagramFinder()
         stats.clear_stats()
 
@@ -63,20 +62,24 @@ def run(server_only=False):
                 logging.error(sys.exc_info())
                 stream_handler.close()
                 anagram_finder.close()
-                TwitterHandler().send_message(str(err) + "\n" + datetime.today().iosformat())
+                TwitterHandler().send_message(str(err) +
+                                              "\n" +
+                                              datetime.today().isoformat())
                 print(sys.exc_info())
+                return 1
 
 
 def main():
     import argparse
     parser = argparse.ArgumentParser()
-    parser.add_argument('-s', '--server-only', help="run in server mode only", action="store_true")
+    parser.add_argument(
+        '-s', '--server-only',
+        help="run in server mode only",
+        action="store_true")
     args = parser.parse_args()
 
     return run(args.server_only)
 
 
-
 if __name__ == "__main__":
     main()
-

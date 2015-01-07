@@ -18,7 +18,7 @@ import hitmanager
 import anagramstats as stats
 
 from constants import (ANAGRAM_CACHE_SIZE, STORAGE_DIRECTORY_PATH,
- ANAGRAM_STREAM_BUFFER_SIZE)
+                       ANAGRAM_STREAM_BUFFER_SIZE)
 
 
 DATA_PATH_COMPONENT = 'anagrammdbm'
@@ -26,6 +26,7 @@ CACHE_PATH_COMPONENT = 'cachedump'
 
 
 class NeedsMaintenance(Exception):
+
     """
     hacky exception raised when AnagramFinder is no longer able to keep up.
     use this to signal that we should shutdown and perform maintenance.
@@ -34,23 +35,23 @@ class NeedsMaintenance(Exception):
 
 
 class AnagramFinder(object):
+
     """
     AnagramFinder handles the storage, retrieval and comparisons
     of anagram candidates.
     It caches newly returned or requested candidates to memory,
     and maintains & manages a persistent database of older candidates.
     """
+
     def __init__(self, languages=['en'],
-        noload=False,
-        storage_location=STORAGE_DIRECTORY_PATH,
-        hit_handler=hitmanager.new_hit,
-        anagram_test=anagramfunctions.test_anagram):
+                 noload=False,
+                 storage_location=STORAGE_DIRECTORY_PATH,
+                 hit_handler=hitmanager.new_hit,
+                 anagram_test=anagramfunctions.test_anagram):
         """
         language selection is not currently implemented
         """
         self.languages = languages
-        self.cache = AnagramSimpleStore()
-        self.datastore = None
         self._should_trim_cache = False
         self._write_process = None
         self._lock = multiprocessing.Lock()
@@ -62,21 +63,15 @@ class AnagramFinder(object):
                           CACHE_PATH_COMPONENT +
                           '_'.join(self.languages) + '.p')
 
-
         self.hit_handler = hit_handler
         self.anagram_test = anagram_test
 
-        if not noload:
-            self._setup()
-
-    def _setup(self):
-        """
-        - unpickle previous session's cache
-        - load / init database
-        - extract hashes
-        """
-        self.cache = AnagramSimpleStore(self.cachepath, ANAGRAM_CACHE_SIZE)
-        self.datastore = multidbm.MultiDBM(self.dbpath)
+        if noload:
+            self.cache = AnagramSimpleStore()
+            self.datastore = None
+        else:
+            self.cache = AnagramSimpleStore(self.cachepath, ANAGRAM_CACHE_SIZE)
+            self.datastore = multidbm.MultiDBM(self.dbpath)
 
     def handle_input(self, inp, text_key="text"):
         """
@@ -140,12 +135,11 @@ class AnagramFinder(object):
         self._should_trim_cache = False
 
         if not to_trim:
-            to_trim = min(10000, (ANAGRAM_CACHE_SIZE/10))
-        
+            to_trim = min(10000, (ANAGRAM_CACHE_SIZE / 10))
+
         to_store = self.cache.least_used(to_trim)
         # write those caches to disk, delete from cache, add to hashes
-        for x in to_trim:
-
+        for x in to_store:
             self.datastore[x] = _dbm_from_tweet(self.cache[x])
             del self.cache[x]
 
@@ -153,7 +147,6 @@ class AnagramFinder(object):
         if buffer_size > ANAGRAM_STREAM_BUFFER_SIZE:
             print('raised needs maintenance')
             raise NeedsMaintenance
-
 
     def perform_maintenance(self):
         """
@@ -165,7 +158,6 @@ class AnagramFinder(object):
         moveddb = self.datastore.archive()
         print('moved mdbm chunk: %s' % moveddb)
         print('mdbm contains %s chunks' % self.datastore.section_count())
-
 
     def close(self):
         if self._write_process and self._write_process.is_alive():
@@ -192,6 +184,7 @@ def _dbm_from_tweet(tweet):
     dbm_string = unichr(0017).join([unicode(i) for i in tweet.values()])
     return dbm_string.encode('utf-8')
 
+
 def dbm_iter(dbm_path):
     import gdbm
     db = gdbm.open(dbm_path)
@@ -205,6 +198,7 @@ def dbm_iter(dbm_path):
         key = db.nextkey(key)
     raise StopIteration()
 
+
 def repair_database():
     db = AnagramFinder()
     db.datastore.perform_maintenance()
@@ -213,17 +207,19 @@ def repair_database():
 def main():
     import argparse
     parser = argparse.ArgumentParser()
-    parser.add_argument('-r', '--repair', help='repair target database', action="store_true")
+    parser.add_argument(
+        '-r', '--repair', help='repair target database', action="store_true")
     parser.add_argument('db', type=str, help="source database file")
-    parser.add_argument('-t', '--trim', type=int, help="trim low length values")
-    parser.add_argument('-d', '--destination', type=str, help="destination database file")
+    parser.add_argument(
+        '-t', '--trim', type=int, help="trim low length values")
+    parser.add_argument(
+        '-d', '--destination', type=str, help="destination database file")
     parser.add_argument('-s', '--start', type=int, help='skip-to position')
     args = parser.parse_args()
 
-    
     if args.repair:
         return repair_database()
 
-    
+
 if __name__ == "__main__":
     main()
