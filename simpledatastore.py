@@ -61,11 +61,10 @@ class AnagramSimpleStore(object):
         if self.path:
             to_save = [self.datastore[t]['tweet'] for t in self.datastore]
             try:
-                pickle.dump(tweets_to_save, open(self.path, 'wb'))
+                pickle.dump(to_save, open(self.path, 'wb'))
                 print('saved cache to disk with %i items' % len(to_save))
             except:
-                logging.error('unable to save cache, writing')
-                self._trim_cache(len(self.datastore))
+                logging.error('unable to save cache')
 
     def least_used(self, count):
         items = [(key, value[ITEM_KEY], value[COUNT_KEY])

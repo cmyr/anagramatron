@@ -17,7 +17,7 @@ import anagramfunctions
 import hitmanager
 import anagramstats as stats
 
-from constants~ import (ANAGRAM_CACHE_SIZE, STORAGE_DIRECTORY_PATH,
+from constants import (ANAGRAM_CACHE_SIZE, STORAGE_DIRECTORY_PATH,
  ANAGRAM_STREAM_BUFFER_SIZE)
 
 
