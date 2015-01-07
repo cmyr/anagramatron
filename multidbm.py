@@ -104,7 +104,7 @@ class MultiDBM(object):
         self._metadata['cursize'] = 0
 
     def _add_db(self):
-        filename = 'mdbm%s.db' % time.strftime("%b%d%H%M")
+        filename = 'mdbm%s.db' % time.strftime("%b%d%H%M%Y")
         # filename = 'mdbm%s.db' % str(time.time())
         path = self._path + '/%s' % filename
         db = gdbm.open(path, 'c')
