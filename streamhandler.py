@@ -14,7 +14,7 @@ import json
 import anagramfunctions
 import anagramstats as stats
 from twitterhandler import TwitterHandler
-import zmqconsumer
+from zmqstream.consumer import zmq_iter
 # my twitter OAuth key:
 from twittercreds import (CONSUMER_KEY, CONSUMER_SECRET,
                           ACCESS_KEY, ACCESS_SECRET,
@@ -159,7 +159,7 @@ class StreamHandler(object):
         errors is a queue we use to transmit exceptions to parent process.
         """
 
-        stream_iter = zmqconsumer.zmq_iter()
+        stream_iter = zmq_iter()
         logging.debug('stream begun')
         for tweet in stream_iter:
             if not isinstance(tweet, dict):
