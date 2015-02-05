@@ -25,6 +25,13 @@ def run(server_only=False):
         level=logging.DEBUG
     )
 
+    try:
+        import setproctitle
+        setproctitle.setproctitle('anagramatron')
+    except ImportError:
+        print("missing module: setproctitle")
+        pass
+
     if server_only:
         hit_server.start_hit_server()
     else:
