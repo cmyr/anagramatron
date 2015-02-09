@@ -1,10 +1,8 @@
 from __future__ import print_function
 
-import time
 import logging
 import sys
 from datetime import datetime
-import cPickle as pickle
 
 from twitterhandler import TwitterHandler
 from streamhandler import StreamHandler
