@@ -6,8 +6,6 @@ import hitmanager
 import anagramstats as stats
 import daemon
 import os
-# import os
-# import sys
 
 from hitmanager import (HIT_STATUS_REVIEW, HIT_STATUS_SEEN, HIT_STATUS_MISC,
     HIT_STATUS_REJECTED, HIT_STATUS_POSTED, HIT_STATUS_APPROVED)
