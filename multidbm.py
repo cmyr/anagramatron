@@ -163,17 +163,20 @@ def check_integrity_for_chunk(db_chunk):
     # print("checking keys in db: %s\n" % path)
     k = db_chunk.firstkey()
     nextkey = k
-    seen = 0
+    seen = set()
     while k is not None:
+        if k in seen:
+            print('found duplicate key, aborting')
+            return
+        seen.add(k)
         nextkey = db_chunk.nextkey(k)
         if nextkey == k:
             print("next key == current key!")
             break
         k = nextkey
-        seen += 1
-        sys.stdout.write('checked: %i\t\t\r' % seen)
+        sys.stdout.write('checked: %i\t\t\r' % len(seen))
         sys.stdout.flush()
-    print("\nno next key found. total keys: %i" % seen)
+    print("\nno next key found. total keys: %i" % len(seen))
 
 def _load_paths(mdbm_path):
     """returns a creation-date sorted list of chunks in our path"""
