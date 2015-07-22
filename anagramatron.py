@@ -70,8 +70,7 @@ def run(server_only=False):
                 TwitterHandler().send_message(str(err) +
                                               "\n" +
                                               datetime.today().isoformat())
-                print(sys.exc_info())
-                return 1
+                raise
 
 
 def main():

@@ -108,7 +108,7 @@ class AnagramFinder(object):
             hit = _tweet_from_dbm(self.datastore[key])
             hit_text = self._text_from_input(hit, text_key)
             text = self._text_from_input(inp, text_key)
-        except UnicodeDecodeError as err:
+        except (UnicodeDecodeError, ValueError) as err:
             print('error decoding hit for key %s' % key)
             self.cache[key] = inp
             return
