@@ -112,15 +112,13 @@ def mark_seen():
         return
     hit_ids = request.query.hits
     hit_ids = hit_ids.split(',')
-    print(hit_ids)
-    if not len(hit_ids):
-        print('no ids -_-')
+    print('clearing %d hits' % len(hit_ids))
 
     if len(hit_ids) == 1:
         itwerked = hitmanager.set_hit_status(hit_ids[0], HIT_STATUS_SEEN)
         print('status changed? %s' % str(itwerked))
-    for i in hit_ids:
-        hitmanager.set_hit_status(i, HIT_STATUS_SEEN)
+    else:
+        hitmanager.seen_hits(hit_ids)
 
     return {'action': HIT_STATUS_SEEN, 'count': len(hit_ids)}
 
