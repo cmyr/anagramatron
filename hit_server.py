@@ -72,7 +72,7 @@ def get_hits():
     try:
         cutoff = int(request.query.cutoff)
     except ValueError:
-        cutoff = 0
+        cutoff = hitmanager.MAX_HIT_ID
     if (request.query.count):
         count = int(request.query.count)
 
