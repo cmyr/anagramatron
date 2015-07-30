@@ -248,8 +248,8 @@ def all_hits(with_status=None, cutoff_id=MAX_HIT_ID):
         cursor.execute(
             'SELECT * FROM hits WHERE hit_status = (?) AND hit_id < (?)', 
             (HIT_STATUS_REVIEW, cutoff_id))
-    return [hit_from_sql[h] for h in cursor.fetchall()] 
-    return hits
+    hits = cursor.fetchall()
+    return [hit_from_sql[h] for h in hits] 
 
 
 def next_approved_hit():
