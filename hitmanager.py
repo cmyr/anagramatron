@@ -249,7 +249,7 @@ def all_hits(with_status=None, cutoff_id=MAX_HIT_ID):
     else:
         cursor.execute(
             'SELECT * FROM hits WHERE hit_status = (?) AND hit_id < (?)', 
-            (HIT_STATUS_REVIEW, cutoff_id))
+            (with_status, cutoff_id))
     hits = cursor.fetchall()
     return [hit_from_sql(h) for h in hits] 
 
