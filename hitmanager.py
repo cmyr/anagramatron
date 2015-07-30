@@ -27,6 +27,9 @@ dbpath = None
 hitsdb = None
 twitter_handler = None
 _new_hits_counter = 0
+# we make ids from unix time so this is in 2255 somewhere
+MAX_HIT_ID = 9000000000000 
+
 
 
 def _setup(languages=['en'], path=None):
@@ -213,7 +216,12 @@ def remove_hit(hit_id):
                    {"id": str(hit_id)})
     hitsdb.commit()
 
-
+def seen_hits(hit_ids):
+    cursor = hitsdb.cursor()
+    cursor.execute('UPDATE hits SET hit_status=(?) WHERE hit_id IN (?)',
+        (HIT_STATUS_SEEN, hit_ids))
+    hitsdb.commit()
+    
 def set_hit_status(hit_id, status):
     
     if status not in [HIT_STATUS_REVIEW, HIT_STATUS_MISC, HIT_STATUS_SEEN,
@@ -230,19 +238,17 @@ def set_hit_status(hit_id, status):
     return True
 
 
-def all_hits(with_status=None, cutoff_id=None):
+def all_hits(with_status=None, cutoff_id=MAX_HIT_ID):
     _checkit()
     cursor = hitsdb.cursor()
     if not with_status:
-        cursor.execute("SELECT * FROM hits")
+        cursor.execute("SELECT * FROM hits WHERE hit_id < (?)",
+            (cutoff_id,))
     else:
-        cursor.execute("SELECT * FROM hits WHERE hit_status = (?)", (with_status,))
-    results = cursor.fetchall()
-    hits = []
-    for item in results:
-        hits.append(hit_from_sql(item))
-    if cutoff_id:
-        hits = [h for h in hits if h['id'] < cutoff_id]
+        cursor.execute(
+            'SELECT * FROM hits WHERE hit_status = (?) AND hit_id < (?)', 
+            (HIT_STATUS_REVIEW, cutoff_id))
+    return [hit_from_sql[h] for h in cursor.fetchall()] 
     return hits
 
 
