@@ -218,8 +218,9 @@ def remove_hit(hit_id):
 
 def seen_hits(hit_ids):
     cursor = hitsdb.cursor()
-    cursor.execute('UPDATE hits SET hit_status=(?) WHERE hit_id IN (?)',
-        (HIT_STATUS_SEEN, hit_ids))
+    placeholder = ', '.join('?' for h in hit_ids)
+    query = 'UPDATE hits SET hit_status=(?) WHERE hit_id IN (%s)' % placeholder
+    cursor.execute(query, (HIT_STATUS_SEEN, hit_ids))
     hitsdb.commit()
     
 def set_hit_status(hit_id, status):
