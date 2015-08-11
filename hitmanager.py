@@ -232,11 +232,13 @@ def set_hit_status(hit_id, status):
         print('invalid status')
         return False
     # get the hit, delete the hit, add it again with new status.
-    hit = get_hit(hit_id)
-    hit['status'] = status
-    remove_hit(hit_id)
-    _add_hit(hit)
-    # assert(get_hit(hit_id)['status'] == status)
+    cursor = hitsdb.cursor() 
+    cursor.execute("UPDATE hits SET hit_status = :status WHERE hit_id = :hit_id",
+        {
+        'status': status,
+        'hit_id': str(hit_id)
+        })
+    hitsdb.commit()
     return True
 
 
