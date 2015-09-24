@@ -369,15 +369,14 @@ def review_hits(to_post=False):
 
 def dump_json(filename):
     """exports all hits as json"""
-        import json
-        outfile = os.path.join(STORAGE_DIRECTORY_PATH, filename)
-        if os.path.exists(outfile):
-            print('%s exists, please move it before exporting again' % filename)
-            sys.exit(1)
+    import json
+    if os.path.exists(filename):
+        print('%s exists, please move it before exporting again' % filename)
+        sys.exit(1)
 
 
-        hits = all_hits()
-        json.dump(hits, open(outfile, 'wb'))
+    hits = all_hits()
+    json.dump(hits, open(filename, 'wb'))
 
 
 
