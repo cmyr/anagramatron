@@ -367,11 +367,36 @@ def review_hits(to_post=False):
 
 
 
+def dump_json(filename):
+    """exports all hits as json"""
+        import json
+        outfile = os.path.join(STORAGE_DIRECTORY_PATH, filename)
+        if os.path.exists(outfile):
+            print('%s exists, please move it before exporting again' % filename)
+            sys.exit(1)
+
+
+        hits = all_hits()
+        json.dump(hits, open(outfile, 'wb'))
+
+
+
+def main():
+    import argparse
+    parser = argparse.ArgumentParser(description="manages hit storage and access")
+    parser.add_argument('-r', '--review', help='run the hit review command line tool', action="store_true")
+    parser.add_argument('-p', '--post', help='with -r, review approved hits for posting', action="store_true")
+    parser.add_argument('--json', help='export hits to json', type=str)
+    args = parser.parse_args()
+
+    if args.review:
+        review_hits(args.post)
+
+    if args.json:
+        dump_json(args.json)
+
+
+
 if __name__ == "__main__":
-    args = sys.argv[1:]
-    if "-r" in args:
-        review_hits(True)
-
-
-    review_hits()
+    main()
 
