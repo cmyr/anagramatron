@@ -10,8 +10,6 @@ import constants
 import requests
 
 
-
-
 class Daemon(object):
 
     """
@@ -22,7 +20,8 @@ class Daemon(object):
         super(Daemon, self).__init__()
         self.datasource = None
         self._debug = debug
-        self.post_interval = post_interval
+        self.post_interval = int(
+            (post_interval or constants.ANAGRAM_POST_INTERVAL) * 60)
 
     def run(self):
         try:
@@ -40,11 +39,11 @@ class Daemon(object):
         last_post = hitmanager.last_post_time() or 0
         print('last post at %s' % str(last_post))
         temps_perdu = time.time() - last_post
-        if last_post and temps_perdu < (self.post_interval or constants.ANAGRAM_POST_INTERVAL) / 2:
+        if last_post and temps_perdu < (self.post_interval / 2):
             print('skipping post. %d elapsed, post_interval %d' %
                   (temps_perdu, self.post_interval))
 
-            self.sleep()
+            self.sleep(self.post_interval)
 
     def entertain_the_huddled_masses(self):
 
@@ -69,13 +68,7 @@ class Daemon(object):
         else:
             print('posted hit')
 
-    def sleep(self, interval=0, debug=False):
-        interval = int(interval)
-        
-        if not interval:
-            reload(constants)
-            interval = constants.ANAGRAM_POST_INTERVAL * 60
-
+    def sleep(self, interval, debug=False):
         print('base interval is %d' % (interval / 60))
 
         randfactor = random.randrange(0, interval)
