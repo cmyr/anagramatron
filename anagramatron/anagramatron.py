@@ -1,28 +1,11 @@
-from __future__ import print_function
 
-import logging
 import sys
 from datetime import datetime
-
-from twitterhandler import TwitterHandler
-from streamhandler import StreamHandler
-from anagramfinder import (AnagramFinder, NeedsMaintenance)
-import anagramstats as stats
-import hit_server
 import multiprocessing
 
-
-LOG_FILE_NAME = 'data/anagramer.log'
-
+from . import twitterhandler, streamhandler, anagramfinder, hit_server
 
 def run(server_only=False):
-    # set up logging:
-    logging.basicConfig(
-        filename=LOG_FILE_NAME,
-        format='%(asctime)s - %(levelname)s:%(message)s',
-        level=logging.DEBUG
-    )
-
     try:
         import setproctitle
         setproctitle.setproctitle('anagramatron')
@@ -33,26 +16,21 @@ def run(server_only=False):
     if server_only:
         hit_server.start_hit_server()
     else:
-
         hitserver = multiprocessing.Process(target=hit_server.start_hit_server)
         hitserver.daemon = True
         hitserver.start()
 
-        anagram_finder = AnagramFinder()
-        stats.clear_stats()
-
+        anagram_finder = anagramfinder.AnagramFinder()
         while 1:
-            print('top of run loop')
-            logging.debug('top of run loop')
             try:
                 print('starting stream handler')
-                stream_handler = StreamHandler()
+                stream_handler = stream.StreamHandler()
                 stream_handler.start()
                 for processed_tweet in stream_handler:
                     anagram_finder.handle_input(processed_tweet)
                     stats.update_console()
 
-            except NeedsMaintenance:
+            except anagramfinder.NeedsMaintenance:
                 logging.debug('caught NeedsMaintenance exception')
                 print('performing maintenance')
                 stream_handler.close()
@@ -64,10 +42,9 @@ def run(server_only=False):
                 return 0
 
             except Exception as err:
-                logging.error(sys.exc_info())
                 stream_handler.close()
                 anagram_finder.close()
-                TwitterHandler().send_message(str(err) +
+                twitterhandler.TwitterHandler().send_message(str(err) +
                                               "\n" +
                                               datetime.today().isoformat())
                 raise
