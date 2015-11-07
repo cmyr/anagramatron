@@ -4,21 +4,19 @@ from __future__ import print_function
 import os
 import re
 import sys
-import logging
+# import logging
 import time
 import cPickle as pickle
 import multiprocessing
 from operator import itemgetter
 
 
-import multidbm
+from . import multidbm, anagramfunctions, hitmanager, constants
 from simpledatastore import AnagramSimpleStore
-import anagramfunctions
-import hitmanager
-import anagramstats as stats
+# import anagramstats as stats
 
-from constants import (ANAGRAM_CACHE_SIZE, STORAGE_DIRECTORY_PATH,
-                       ANAGRAM_STREAM_BUFFER_SIZE)
+# from .constants import (ANAGRAM_CACHE_SIZE, STORAGE_DIRECTORY_PATH,
+                       # ANAGRAM_STREAM_BUFFER_SIZE)
 
 
 DATA_PATH_COMPONENT = 'anagrammdbm'
@@ -41,30 +39,39 @@ class AnagramFinder(object):
     of anagram candidates.
     It caches newly returned or requested candidates to memory,
     and maintains & manages a persistent database of older candidates.
+
+    :languages: a list of language identifiers. In future, multiple languages
+    might be supported. NOT IMPLEMENTED.
+    :storage: type of backing store. currently accepts None or 'mdbm'.
+    :hit_callback: a function to be called when an anagram is found.
+    :test_func: a function called when an anagram is found. 
+    Should implement some heuristic and return True if the passed anagram is 'interesting'.
     """
 
     def __init__(self, languages=['en'],
-                 noload=False,
-                 storage_location=STORAGE_DIRECTORY_PATH,
-                 hit_handler=hitmanager.new_hit,
-                 anagram_test=anagramfunctions.test_anagram):
+                 storage=None,
+                 hit_callback=hitmanager.new_hit,
+                 test_func=anagramfunctions.test_anagram):
         """
         language selection is not currently implemented
         """
+        if languages != ['en']:
+            raise NotImplementedError(
+                'languages other then \'en\' are not currently expected')
         self.languages = languages
         self._should_trim_cache = False
         self._write_process = None
         self._lock = multiprocessing.Lock()
         self._is_writing = multiprocessing.Event()
-        self.dbpath = (storage_location +
-                       DATA_PATH_COMPONENT +
-                       '_'.join(self.languages) + '.db')
-        self.cachepath = (storage_location +
-                          CACHE_PATH_COMPONENT +
-                          '_'.join(self.languages) + '.p')
+        self.dbpath = os.path.join(
+            constants.ANAGRAM_DATA_DIR, 
+            '%s_%s.db' % (DATA_PATH_COMPONENT, '_'.join(languages)))
+        self.cachepath = os.path.join(
+            constants.ANAGRAM_DATA_DIR, 
+            '%s_%s.db' % (CACHE_PATH_COMPONENT, '_'.join(languages)))
 
-        self.hit_handler = hit_handler
-        self.anagram_test = anagram_test
+        self.hit_callback = hit_callback
+        self.test_func = test_func
 
         if noload:
             self.cache = AnagramSimpleStore()
@@ -76,18 +83,18 @@ class AnagramFinder(object):
     def handle_input(self, inp, text_key="text"):
         """
         takes either a string or a dict, and compares it against
-        all previous input. if an anagram is found, runs self.anagram_test
-        and then self.hit_handler if test passes.
+        all previous input. if an anagram is found, runs self.test_func
+        and then self.hit_callback if test passes.
         """
         text = self._text_from_input(inp, text_key)
         key = anagramfunctions.improved_hash(text)
         if key in self.cache:
-            stats.cache_hit()
+            # stats.cache_hit()
             match = self.cache[key]
             match_text = self._text_from_input(match, key)
-            if self.anagram_test(text, match_text):
+            if self.test_func(text, match_text):
                 del self.cache[key]
-                self.hit_handler(inp, match)
+                self.hit_callback(inp, match)
             else:
                 # anagram, but fails tests (too similar)
                 self.cache[key] = inp
@@ -98,14 +105,14 @@ class AnagramFinder(object):
             else:
                 # not in datastore. add to cache
                 self.cache[key] = inp
-                stats.set_cache_size(len(self.cache))
+                # stats.set_cache_size(len(self.cache))
 
                 if len(self.cache) > ANAGRAM_CACHE_SIZE:
                     self._trim_cache()
 
     def _process_hit(self, inp, key, text_key):
         try:
-            hit = _tweet_from_dbm(self.datastore[key])
+            hit = anagramfunctions.decode_tweet(self.datastore[key])
             hit_text = self._text_from_input(hit, text_key)
             text = self._text_from_input(inp, text_key)
         except (UnicodeDecodeError, ValueError) as err:
@@ -113,8 +120,8 @@ class AnagramFinder(object):
             self.cache[key] = inp
             return
         stats.possible_hit()
-        if self.anagram_test(text, hit_text):
-            self.hit_handler(inp, hit)
+        if self.test_func(text, hit_text):
+            self.hit_callback(inp, hit)
         else:
             self.cache[key] = inp
 
@@ -168,21 +175,21 @@ class AnagramFinder(object):
         self.datastore.close()
 
 
-def _tweet_from_dbm(dbm_tweet):
-    tweet_values = re.split(unichr(0017), dbm_tweet.decode('utf-8'))
-    t = dict()
-    t['tweet_id'] = int(tweet_values[0])
-    t['tweet_hash'] = tweet_values[1]
-    t['tweet_text'] = tweet_values[2]
-    return t
+# def _tweet_from_dbm(dbm_tweet):
+#     tweet_values = re.split(unichr(0017), dbm_tweet.decode('utf-8'))
+#     t = dict()
+#     t['tweet_id'] = int(tweet_values[0])
+#     t['tweet_hash'] = tweet_values[1]
+#     t['tweet_text'] = tweet_values[2]
+#     return t
 
 
-# I turn my tweet objects into strings by joining them with the u0017 char,
-# because when I wrote this I didn't know about __repr__. o_Ô
+# # I turn my tweet objects into strings by joining them with the u0017 char,
+# # because when I wrote this I didn't know about __repr__. o_Ô
 
-def _dbm_from_tweet(tweet):
-    dbm_string = unichr(0017).join([unicode(i) for i in tweet.values()])
-    return dbm_string.encode('utf-8')
+# def _dbm_from_tweet(tweet):
+#     dbm_string = unichr(0017).join([unicode(i) for i in tweet.values()])
+#     return dbm_string.encode('utf-8')
 
 
 def dbm_iter(dbm_path):
@@ -191,7 +198,7 @@ def dbm_iter(dbm_path):
     key = db.firstkey()
     while key is not None:
         try:
-            yield _tweet_from_dbm(db[key])
+            yield anagramfunctions.decode_tweet(db[key])
         # value isn't a tweet; should be metadata (filepath)
         except ValueError:
             pass

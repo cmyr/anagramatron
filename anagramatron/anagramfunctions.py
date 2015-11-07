@@ -1,7 +1,8 @@
 import re
 import unicodedata
+import json
 
-from constants import (ANAGRAM_LOW_CHAR_CUTOFF, ANAGRAM_LOW_UNIQUE_CHAR_CUTOFF,
+from .common import (ANAGRAM_LOW_CHAR_CUTOFF, ANAGRAM_LOW_UNIQUE_CHAR_CUTOFF,
     ANAGRAM_ALPHA_RATIO_CUTOFF, ENGLISH_LETTER_FREQUENCIES)
 
 ENGLISH_LETTER_LIST = sorted(ENGLISH_LETTER_FREQUENCIES.keys(),
@@ -76,14 +77,14 @@ def _strip_accents(s):
 
 
 def _text_contains_tricky_chars(text):
-    if re.search(ur'[\u0080-\u024F]', text):
+    if re.search(r'[\u0080-\u024F]', text):
         return True
     return False
 
 
 def _text_decodes_to_ascii(text):
     try:
-        text.decode('ascii')
+        text.encode('ascii')
     except UnicodeEncodeError:
         return False
     return True
@@ -136,11 +137,10 @@ def filter_tweet(tweet):
     if _low_letter_ratio(tweet_text, ANAGRAM_ALPHA_RATIO_CUTOFF):
         return False
 
-    return {'tweet_hash': improved_hash(tweet_text),
-            'tweet_id': long(tweet['id_str']),
-            'tweet_text': tweet_text
+    return {'anagram_hash': improved_hash(tweet_text),
+            'tweet_id': int(tweet['id_str']),
+            'text': tweet_text
             }
-
 
 
 def test_anagram(one, two):
@@ -286,14 +286,14 @@ def format_seconds(seconds):
     return time_string
 
 
-def show_anagram(one, two):
-    print one
-    print two
-    print stripped_string(one, spaces=True)
-    print stripped_string(two, spaces=True)
-    print stripped_string(one)
-    print stripped_string(two)
-    print ''.join(sorted(stripped_string(two), key=str.lower))
+# def show_anagram(one, two):
+#     print one
+#     print two
+#     print stripped_string(one, spaces=True)
+#     print stripped_string(two, spaces=True)
+#     print stripped_string(one)
+#     print stripped_string(two)
+#     print ''.join(sorted(stripped_string(two), key=str.lower))
 
 
 def stripped_string(text, spaces=False):
@@ -305,6 +305,13 @@ def stripped_string(text, spaces=False):
         return re.sub(r'[^a-zA-Z ]', '', text).lower()
     return re.sub(r'[^a-zA-Z]', '', text).lower()
 
+def encode_tweet(tweet_dict):
+    assert isinstance(tweet_dict, dict)
+    return json.dumps(tweet_dict)
+
+def decode_tweet(tweet_str):
+    assert isinstance(tweet_str, str)
+    return json.loads(tweet_str)
 
 if __name__ == "__main__":
     pass

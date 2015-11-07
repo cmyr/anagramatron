@@ -1,32 +1,34 @@
 from __future__ import print_function
 
-import httplib
-from urllib2 import URLError
-import logging
-import Queue
-import multiprocessing
-import time
+try:
+    import httplib
+except ImportError:
+     import http.client as httplib
 
-from collections import deque
+try:
+    from urllib2 import URLError
+except ImportError:
+    from urllib.error import URLError
+
+
+import logging
+
+import time
 
 from twitter.oauth import OAuth
 from twitter.stream import TwitterStream
 from twitter.api import Twitter, TwitterError, TwitterHTTPError
 import tumblpy
-import json
 import requests
 
-import anagramfunctions
-import anagramstats as stats
-from anagramstream import AnagramStream
-
+from . import anagramfunctions
 
 # my twitter OAuth key:
-from twittercreds import (CONSUMER_KEY, CONSUMER_SECRET,
+from .twittercreds import (CONSUMER_KEY, CONSUMER_SECRET,
                           ACCESS_KEY, ACCESS_SECRET, 
                           BOSS_USERNAME, PRIVATE_POST_URL)
 # my tumblr OAuth key:
-from tumblrcreds import (TUMBLR_KEY, TUMBLR_SECRET,
+from .tumblrcreds import (TUMBLR_KEY, TUMBLR_SECRET,
                          TOKEN_KEY, TOKEN_SECRET, TUMBLR_BLOG_URL)
 
 

@@ -1,0 +1,75 @@
+
+from anagramatron import common, anagramfunctions
+
+test_tweet = {'contributors': None,
+ 'coordinates': None,
+ 'created_at': 'Fri Nov 06 20:16:24 +0000 2015',
+ 'entities': {'hashtags': [], 'symbols': [], 'urls': [], 'user_mentions': []},
+ 'favorite_count': 0,
+ 'favorited': False,
+ 'filter_level': 'low',
+ 'geo': None,
+ 'id': 662725239776800768,
+ 'id_str': '662725239776800768',
+ 'in_reply_to_screen_name': None,
+ 'in_reply_to_status_id': None,
+ 'in_reply_to_status_id_str': None,
+ 'in_reply_to_user_id': None,
+ 'in_reply_to_user_id_str': None,
+ 'is_quote_status': False,
+ 'lang': 'en',
+ 'place': None,
+ 'retweet_count': 0,
+ 'retweeted': False,
+ 'source': '<a href="http://twitter.com/download/iphone" rel="nofollow">Twitter for iPhone</a>',
+ 'text': 'missing you x case is this long enough amazingface tell bzvty',
+ 'timestamp_ms': '1446840984659',
+ 'truncated': False,
+ 'user': {'contributors_enabled': False,
+  'created_at': 'Wed Jun 08 23:04:03 +0000 2011',
+  'default_profile': False,
+  'default_profile_image': False,
+  'description': '+vibes, classof2015 #UWG19',
+  'favourites_count': 2443,
+  'follow_request_sent': None,
+  'followers_count': 782,
+  'following': None,
+  'friends_count': 721,
+  'geo_enabled': True,
+  'id': 313614374,
+  'id_str': '313614374',
+  'is_translator': False,
+  'lang': 'en',
+  'listed_count': 3,
+  'location': 'NJ ✈️ ATL',
+  'name': 'benani',
+  'notifications': None,
+  'profile_background_color': 'DBE9ED',
+  'profile_background_image_url': 'http://pbs.twimg.com/profile_background_images/714079502/3dab72cdae959cdc3111d672b524562f.jpeg',
+  'profile_background_image_url_https': 'https://pbs.twimg.com/profile_background_images/714079502/3dab72cdae959cdc3111d672b524562f.jpeg',
+  'profile_background_tile': True,
+  'profile_banner_url': 'https://pbs.twimg.com/profile_banners/313614374/1441549792',
+  'profile_image_url': 'http://pbs.twimg.com/profile_images/653336090032664576/vLCx1TOC_normal.jpg',
+  'profile_image_url_https': 'https://pbs.twimg.com/profile_images/653336090032664576/vLCx1TOC_normal.jpg',
+  'profile_link_color': 'CC3366',
+  'profile_sidebar_border_color': 'FFFFFF',
+  'profile_sidebar_fill_color': 'E01245',
+  'profile_text_color': 'DAE036',
+  'profile_use_background_image': True,
+  'protected': False,
+  'screen_name': 'BreoniXO',
+  'statuses_count': 27440,
+  'time_zone': 'Quito',
+  'url': None,
+  'utc_offset': -18000,
+  'verified': False}}
+
+def test_basic_filters():
+    assert anagramfunctions._basic_filters(test_tweet) == True
+
+def test_filter_tweet():
+    result = anagramfunctions.filter_tweet(test_tweet)
+    assert result
+    rt = result['text']
+    assert rt == test_tweet['text']
+
