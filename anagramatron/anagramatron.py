@@ -20,7 +20,13 @@ def run(server_only=False):
         hitserver.daemon = True
         hitserver.start()
 
-        anagram_finder = anagramfinder.AnagramFinder()
+        hit_manager = hitmanager.HitDBManager('hitdata2en.db')
+        
+        def handle_hit(p1, p2):
+            hit_manager.new_hit(p1, p2)
+
+        anagram_finder = anagramfinder.AnagramFinder(hit_callback=handle_hit)
+        
         while 1:
             try:
                 print('starting stream handler')

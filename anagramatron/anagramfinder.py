@@ -6,17 +6,13 @@ import re
 import sys
 # import logging
 import time
-import cPickle as pickle
+import pickle
 import multiprocessing
 from operator import itemgetter
 
 
-from . import multidbm, anagramfunctions, hitmanager, constants
-from simpledatastore import AnagramSimpleStore
+from . import multidbm, anagramfunctions, hitmanager, common, simpledatastore
 # import anagramstats as stats
-
-# from .constants import (ANAGRAM_CACHE_SIZE, STORAGE_DIRECTORY_PATH,
-                       # ANAGRAM_STREAM_BUFFER_SIZE)
 
 
 DATA_PATH_COMPONENT = 'anagrammdbm'
@@ -50,7 +46,8 @@ class AnagramFinder(object):
 
     def __init__(self, languages=['en'],
                  storage=None,
-                 hit_callback=hitmanager.new_hit,
+                 path=None,
+                 hit_callback=print,
                  test_func=anagramfunctions.test_anagram):
         """
         language selection is not currently implemented
@@ -63,22 +60,27 @@ class AnagramFinder(object):
         self._write_process = None
         self._lock = multiprocessing.Lock()
         self._is_writing = multiprocessing.Event()
-        self.dbpath = os.path.join(
-            constants.ANAGRAM_DATA_DIR, 
+        self.store_path = path or os.path.join(
+            common.ANAGRAM_DATA_DIR, 
             '%s_%s.db' % (DATA_PATH_COMPONENT, '_'.join(languages)))
         self.cachepath = os.path.join(
-            constants.ANAGRAM_DATA_DIR, 
-            '%s_%s.db' % (CACHE_PATH_COMPONENT, '_'.join(languages)))
+            common.ANAGRAM_DATA_DIR, 
+        '%s_%s.db' % (CACHE_PATH_COMPONENT, '_'.join(languages)))
 
         self.hit_callback = hit_callback
         self.test_func = test_func
+        self.cache, self.datastore = self.setup_storage(storage)
 
-        if noload:
-            self.cache = AnagramSimpleStore()
-            self.datastore = None
-        else:
-            self.cache = AnagramSimpleStore(self.cachepath, ANAGRAM_CACHE_SIZE)
-            self.datastore = multidbm.MultiDBM(self.dbpath)
+
+    def setup_storage(self, storage_name):
+        cache = simpledatastore.AnagramSimpleStore(self.cachepath if storage_name else None)
+        storage = None
+        if storage_name == 'mdbm':
+            storage = multidbm.MultiDBM(self.store_path)
+        elif storage_name:
+            raise Exception('no storage model named %s' % storage)
+        return cache, storage
+
 
     def handle_input(self, inp, text_key="text"):
         """
@@ -107,7 +109,7 @@ class AnagramFinder(object):
                 self.cache[key] = inp
                 # stats.set_cache_size(len(self.cache))
 
-                if len(self.cache) > ANAGRAM_CACHE_SIZE:
+                if len(self.cache) > common.ANAGRAM_CACHE_SIZE:
                     self._trim_cache()
 
     def _process_hit(self, inp, key, text_key):
@@ -127,7 +129,7 @@ class AnagramFinder(object):
 
     def _text_from_input(self, inp, key=None):
         LEGACY_KEY = 'tweet_text'
-        if isinstance(inp, unicode):
+        if isinstance(inp, str):
             return inp
         else:
             text = inp.get(key) or inp.get(LEGACY_KEY)
@@ -142,7 +144,7 @@ class AnagramFinder(object):
         self._should_trim_cache = False
 
         if not to_trim:
-            to_trim = min(10000, (ANAGRAM_CACHE_SIZE / 10))
+            to_trim = min(10000, (common.ANAGRAM_CACHE_SIZE / 10))
 
         to_store = self.cache.least_used(to_trim)
         # write those caches to disk, delete from cache, add to hashes
@@ -151,7 +153,7 @@ class AnagramFinder(object):
             del self.cache[x]
 
         buffer_size = stats.buffer_size()
-        if buffer_size > ANAGRAM_STREAM_BUFFER_SIZE:
+        if buffer_size > common.ANAGRAM_STREAM_BUFFER_SIZE:
             print('raised needs maintenance')
             raise NeedsMaintenance
 
@@ -173,24 +175,6 @@ class AnagramFinder(object):
 
         self.cache.save()
         self.datastore.close()
-
-
-# def _tweet_from_dbm(dbm_tweet):
-#     tweet_values = re.split(unichr(0017), dbm_tweet.decode('utf-8'))
-#     t = dict()
-#     t['tweet_id'] = int(tweet_values[0])
-#     t['tweet_hash'] = tweet_values[1]
-#     t['tweet_text'] = tweet_values[2]
-#     return t
-
-
-# # I turn my tweet objects into strings by joining them with the u0017 char,
-# # because when I wrote this I didn't know about __repr__. o_Ô
-
-# def _dbm_from_tweet(tweet):
-#     dbm_string = unichr(0017).join([unicode(i) for i in tweet.values()])
-#     return dbm_string.encode('utf-8')
-
 
 def dbm_iter(dbm_path):
     import gdbm

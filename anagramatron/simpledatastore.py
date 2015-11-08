@@ -3,7 +3,7 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 from operator import itemgetter
-import cPickle as pickle
+import pickle
 import logging
 
 ITEM_KEY = 'tweet'
@@ -13,7 +13,7 @@ class AnagramSimpleStore(object):
     """AnagramSimpleStore is a simple data store implemented
     using standard library data structures. It is intended for use as
     a cache, or for smaller, static input sources."""
-    def __init__(self, path=None, maxsize=None):
+    def __init__(self, path=None):
         super(AnagramSimpleStore, self).__init__()
         self.path = path
         self.datastore = self.load()

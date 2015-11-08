@@ -1,6 +1,6 @@
 from __future__ import print_function
-import gdbm
-import cPickle as pickle
+import dbm.gnu as gdbm
+import pickle
 import os
 import time
 import re
@@ -67,7 +67,7 @@ class MultiDBM(object):
         all non-current chunks are at capacity.
         In reality some keys will likely get deleted.
         """
-        return (self._section_size * len(self._data-1)
+        return (self._section_size * len(self._data)-1
             + self._metadata['cursize'])
 
 
