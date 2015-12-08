@@ -6,7 +6,7 @@ import os
 import multiprocessing
 
 from . import multidbm, anagramfunctions, common, simpledatastore
-# import anagramstats as stats
+from .anagramstats import StatTracker
 
 
 DATA_PATH_COMPONENT = 'anagrammdbm'
@@ -59,11 +59,12 @@ class AnagramFinder(object):
             '%s_%s.db' % (DATA_PATH_COMPONENT, '_'.join(languages)))
         self.cachepath = os.path.join(
             common.ANAGRAM_DATA_DIR, 
-        '%s_%s.cache' % (CACHE_PATH_COMPONENT, '_'.join(languages)))
+            '%s_%s.cache' % (CACHE_PATH_COMPONENT, '_'.join(languages)))
 
         self.hit_callback = hit_callback
         self.test_func = test_func
         self.cache, self.datastore = self.setup_storage(storage)
+        self.stats = StatTracker()
 
     def setup_storage(self, storage_name):
         cache = simpledatastore.AnagramSimpleStore(self.cachepath if storage_name else None)
@@ -83,9 +84,10 @@ class AnagramFinder(object):
         text = self._text_from_input(inp, text_key)
         key = anagramfunctions.improved_hash(text)
         if key in self.cache:
-            # stats.cache_hit()
+
+            self.stats['cache_hits'] += 1
             match = self.cache[key]
-            match_text = self._text_from_input(match, key)
+            match_text = self._text_from_input(match, text_key)
             if self.test_func(text, match_text):
                 del self.cache[key]
                 self.hit_callback(inp, match)
@@ -99,8 +101,7 @@ class AnagramFinder(object):
             else:
                 # not in datastore. add to cache
                 self.cache[key] = inp
-                # stats.set_cache_size(len(self.cache))
-
+                self.stats['cache_size'] = len(self.cache)
                 if len(self.cache) > common.ANAGRAM_CACHE_SIZE:
                     self._trim_cache()
 
@@ -113,7 +114,7 @@ class AnagramFinder(object):
             print('error decoding hit for key %s' % key)
             self.cache[key] = inp
             return
-        # stats.possible_hit()
+        self.stats['possible_hits'] += 1
         if self.test_func(text, hit_text):
             self.hit_callback(inp, hit)
         else:
@@ -126,7 +127,7 @@ class AnagramFinder(object):
         else:
             text = inp.get(key) or inp.get(LEGACY_KEY)
             if not text:
-                raise TypeError('expected string or dict')
+                raise TypeError('expected string or dict, got %s (%s)' % (type(inp), inp))
             return text
 
     def _trim_cache(self, to_trim=None):
@@ -144,10 +145,10 @@ class AnagramFinder(object):
             self.datastore[x] = anagramfunctions.encode_tweet(self.cache[x])
             del self.cache[x]
 
-        # buffer_size = stats.buffer_size()
-        # if buffer_size > common.ANAGRAM_STREAM_BUFFER_SIZE:
-        #     print('raised needs maintenance')
-        #     raise NeedsMaintenance
+        buffer_size = self.stats['buffer']
+        if buffer_size > common.ANAGRAM_STREAM_BUFFER_SIZE:
+            print('raised needs maintenance')
+            raise NeedsMaintenance
 
     def perform_maintenance(self):
         """
@@ -166,7 +167,8 @@ class AnagramFinder(object):
             self._write_process.join()
 
         self.cache.save()
-        self.datastore.close()
+        if self.datastore:
+            self.datastore.close()
 
 # def dbm_iter(dbm_path):
 #     import gdbm

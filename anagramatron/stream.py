@@ -1,19 +1,19 @@
 from __future__ import print_function
 
 import logging
-import Queue
+import queue
 import multiprocessing
 import time
 
 from collections import deque
 
 
-import anagramfunctions
-import anagramstats as stats
-from twitterhandler import TwitterHandler
+from . import anagramfunctions, twitterhandler
+from .anagramstats import StatTracker
+# from twitterhandler import TwitterHandler
 from zmqstream.consumer import zmq_iter
 
-from constants import (ANAGRAM_STREAM_BUFFER_SIZE)
+from .common import (ANAGRAM_STREAM_BUFFER_SIZE)
 
 SECONDS_SINCE_LAUNCH_TO_IGNORE_BUFFER = 60 * 60 * 2
 
@@ -35,6 +35,9 @@ class StreamHandler(object):
         self.buffersize = buffersize
         self.timeout = timeout
         self.languages = languages
+        self.host = host
+        self.port = port
+        print(host, port)
         self.stream_process = None
         self.queue = multiprocessing.Queue()
         self._buffer = deque()
@@ -45,16 +48,17 @@ class StreamHandler(object):
         self._lock = multiprocessing.Lock()
         self._start_time = time.time()
         self._last_message_check = self._start_time
+        self.stats = StatTracker()
 
     def update_stats(self):
         with self._lock:
             if self._tweets_seen.value:
-                stats.tweets_seen(self._tweets_seen.value)
+                self.stats['tweets_seen'] += self._tweets_seen.value
                 self._tweets_seen.value = 0
             if self._passed_filter.value:
-                stats.passed_filter(self._passed_filter.value)
+                self.stats['passed_filter'] += self._passed_filter.value
                 self._passed_filter.value = 0
-        stats.set_buffer(self.bufferlength())
+        self.stats['buffer'] = self.bufferlength()
 
     def __iter__(self):
         """
@@ -71,7 +75,7 @@ class StreamHandler(object):
                 # add all new items from the queue to the buffer
                 try:
                     self._buffer.append(self.queue.get_nowait())
-                except Queue.Empty:
+                except queue.Empty:
                     break
             try:
                 # after launch we don't have any keys in memory, so processing is slow.
@@ -86,7 +90,7 @@ class StreamHandler(object):
                 # 5 minutes
                 if time.time() - self._last_message_check > (5 * 60):
                     self._last_message_check = time.time()
-                    TwitterHandler().handle_directs()
+                    twitterhandler.TwitterHandler().handle_directs()
 
                 if len(self._buffer):
                     # if there's a buffer element return it
@@ -94,7 +98,7 @@ class StreamHandler(object):
                 else:
                     yield self.queue.get(True, self.timeout)
                     continue
-            except Queue.Empty:
+            except queue.Empty:
                 print('queue timeout')
         print('exiting iter loop')
 

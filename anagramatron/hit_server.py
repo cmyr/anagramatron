@@ -1,26 +1,27 @@
 from __future__ import print_function
+
+import os
+
 from bottle import (Bottle, run, request, server_names,
                     ServerAdapter, abort)
 
-import hitmanager
-import anagramstats as stats
-import os
+from . import hitmanager, anagramstats
 
-from hitmanager import (HIT_STATUS_REVIEW, HIT_STATUS_SEEN, HIT_STATUS_MISC,
-    HIT_STATUS_REJECTED, HIT_STATUS_POSTED, HIT_STATUS_APPROVED)
+from .hitmanager import (HIT_STATUS_REVIEW, HIT_STATUS_SEEN,
+                         HIT_STATUS_POSTED, HIT_STATUS_APPROVED)
 # SSL subclass of bottle cribbed from:
 # http://dgtool.blogspot.com.au/2011/12/ssl-encryption-in-python-bottle.html
 
 # Declaration of new class that inherits from ServerAdapter
 # It's almost equal to the supported cherrypy class CherryPyServer
 
-from serverauth import AUTH_TOKEN, TEST_PORT
+from .serverauth import AUTH_TOKEN, TEST_PORT
 
 
 class MySSLCherryPy(ServerAdapter):
     def run(self, handler):
         import cherrypy
-        # from cherrypy import wsgiserver
+        from cherrypy import wsgiserver
         server = cherrypy.wsgiserver.CherryPyWSGIServer(
                                                         (self.host, self.port),
                                                         handler,
@@ -158,7 +159,7 @@ def info():
     auth = request.get_header('Authorization')
     if not authenticate(auth):
         return
-    stats_dict = stats.stats_dict()
+    stats_dict = anagramstats.StatTracker().stats_dict()
     new_hits = hitmanager.new_hits_count()
     last_post = hitmanager.last_post_time()
     return {'stats': stats_dict, 'new_hits': new_hits, 'last_post': last_post}

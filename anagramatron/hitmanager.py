@@ -6,7 +6,7 @@ import sqlite3 as lite
 import os
 import time
 import sys
-# import logging
+from .anagramstats import StatTracker
 
 from twitter.api import TwitterError
 
@@ -35,6 +35,7 @@ class HitDBManager(object):
         self.twitter_handler = twitterhandler.TwitterHandler()
         self.hits_counter = 0
         self._testing = _testing
+        self.stats = StatTracker()
 
     def _setup(self):
         if os.path.exists(self.dbpath):
@@ -59,7 +60,7 @@ class HitDBManager(object):
 
         if self._hit_collides_with_previous_hit(hit):
             return
-        # stats.hit() 
+        self.stats['hits'] += 1
         try:
             if not self._testing:
                 hit = self._fetch_hit_tweets(hit)

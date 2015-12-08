@@ -2,6 +2,7 @@
 import sys
 import os
 
+
 def __setup_data_dir():
     """sets up the directory where prepared training data is stored."""
     basedir = os.environ.get('ANAGRAMATRON_DATA_DIR')
@@ -24,7 +25,7 @@ ANAGRAM_LOW_CHAR_CUTOFF = 16
 ANAGRAM_LOW_UNIQUE_CHAR_CUTOFF = 11
 ANAGRAM_ALPHA_RATIO_CUTOFF = 0.85
 
-ANAGRAM_POST_INTERVAL = 150 #  minutes
+ANAGRAM_POST_INTERVAL = 150  # minutes
 
 # STORAGE_DIRECTORY_PATH = 'data/'
 
