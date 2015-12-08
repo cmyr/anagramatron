@@ -8,9 +8,10 @@ import logging
 import sys
 from stat import S_ISREG, ST_CTIME, ST_MODE
 
+from . import anagramfunctions
 
 _METADATA_FILE = 'meta.p'
-_PATHKEY = 'X43q2smxlkFJ28h$@3xGN' # gurrenteed unlikely!!
+_PATHKEY = 'X43q2smxlkFJ28h$@3xGN'  # gurrenteed unlikely!!
 
 
 class MultiDBM(object):
@@ -35,7 +36,7 @@ class MultiDBM(object):
     def __getitem__(self, key):
         for db in self._data:
             if key in db:
-                return db[key]
+                return anagramfunctions.decodetweet(db[key])
         raise KeyError
 
     def __setitem__(self, key, value):
@@ -49,7 +50,7 @@ class MultiDBM(object):
                     self._metadata['totsize'] += 1
                     self._metadata['cursize'] += 1
                 # logging.debug('adding key to file # %i' % i)
-                db[key] = value
+                db[key] = anagramfunctions.encode(value)
                 return
             i += 1
 
@@ -68,8 +69,7 @@ class MultiDBM(object):
         In reality some keys will likely get deleted.
         """
         return (self._section_size * len(self._data)-1
-            + self._metadata['cursize'])
-
+                + self._metadata['cursize'])
 
     def _setup(self):
         if os.path.exists(self._path):
@@ -140,7 +140,6 @@ class MultiDBM(object):
         for db in self._data:
             db.close()
 
-
     def perform_maintenance(self):
         import whichdb
         try:
@@ -178,6 +177,7 @@ def check_integrity_for_chunk(db_chunk):
         sys.stdout.flush()
     print("\nno next key found. total keys: %i" % len(seen))
 
+
 def _load_paths(mdbm_path):
     """returns a creation-date sorted list of chunks in our path"""
     ls = (os.path.join(mdbm_path, i) for i in os.listdir(mdbm_path)
@@ -185,7 +185,8 @@ def _load_paths(mdbm_path):
     ls = ((os.stat(path), path) for path in ls)
     ls = ((stat[ST_CTIME], path) for stat, path in ls)
     return [path for stat, path in sorted(ls)]
-            
+
+
 def verify_database(dbpath):
     db_files = _load_paths(dbpath)
     print("verifying %i mdbm chunks" % len(db_files))

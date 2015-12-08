@@ -1,9 +1,9 @@
 
-import sys
 from datetime import datetime
 import multiprocessing
 
-from . import twitterhandler, streamhandler, anagramfinder, hit_server
+from . import twitterhandler, stream, anagramfinder, hit_server, hitmanager
+
 
 def run(server_only=False):
     try:
@@ -21,12 +21,12 @@ def run(server_only=False):
         hitserver.start()
 
         hit_manager = hitmanager.HitDBManager('hitdata2en.db')
-        
+
         def handle_hit(p1, p2):
             hit_manager.new_hit(p1, p2)
 
         anagram_finder = anagramfinder.AnagramFinder(hit_callback=handle_hit)
-        
+
         while 1:
             try:
                 print('starting stream handler')
@@ -34,10 +34,10 @@ def run(server_only=False):
                 stream_handler.start()
                 for processed_tweet in stream_handler:
                     anagram_finder.handle_input(processed_tweet)
-                    stats.update_console()
+                    # stats.update_console()
 
             except anagramfinder.NeedsMaintenance:
-                logging.debug('caught NeedsMaintenance exception')
+                # logging.debug('caught NeedsMaintenance exception')
                 print('performing maintenance')
                 stream_handler.close()
                 anagram_finder.perform_maintenance()
@@ -50,9 +50,8 @@ def run(server_only=False):
             except Exception as err:
                 stream_handler.close()
                 anagram_finder.close()
-                twitterhandler.TwitterHandler().send_message(str(err) +
-                                              "\n" +
-                                              datetime.today().isoformat())
+                twitterhandler.TwitterHandler().send_message(
+                    "%s\n%s" % (err, datetime.today().isoformat()))
                 raise
 
 

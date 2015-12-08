@@ -7,18 +7,11 @@ import time
 
 from collections import deque
 
-from twitter.stream import TwitterStream
-from twitter.api import TwitterError, TwitterHTTPError
-import json
 
 import anagramfunctions
 import anagramstats as stats
 from twitterhandler import TwitterHandler
 from zmqstream.consumer import zmq_iter
-# my twitter OAuth key:
-from twittercreds import (CONSUMER_KEY, CONSUMER_SECRET,
-                          ACCESS_KEY, ACCESS_SECRET,
-                          BOSS_USERNAME, PRIVATE_POST_URL)
 
 from constants import (ANAGRAM_STREAM_BUFFER_SIZE)
 
@@ -35,7 +28,9 @@ class StreamHandler(object):
     def __init__(self,
                  buffersize=ANAGRAM_STREAM_BUFFER_SIZE,
                  timeout=90,
-                 languages=['en']
+                 languages=['en'],
+                 host="127.0.0.1", 
+                 port="8069"
                  ):
         self.buffersize = buffersize
         self.timeout = timeout
@@ -159,7 +154,7 @@ class StreamHandler(object):
         errors is a queue we use to transmit exceptions to parent process.
         """
 
-        stream_iter = zmq_iter()
+        stream_iter = zmq_iter(host=self.host, port=self.port)
         logging.debug('stream begun')
         for tweet in stream_iter:
             if not isinstance(tweet, dict):

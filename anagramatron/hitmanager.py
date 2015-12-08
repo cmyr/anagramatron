@@ -5,7 +5,8 @@ from __future__ import unicode_literals
 import sqlite3 as lite
 import os
 import time
-import logging
+import sys
+# import logging
 
 from twitter.api import TwitterError
 
@@ -64,7 +65,7 @@ class HitDBManager(object):
                 hit = self._fetch_hit_tweets(hit)
             self.hits_counter += 1
             self._add_hit(hit)
-        except TwitterError as err:
+        except TwitterError:
             print('tweet missing, will pass')
 
     def all_hits(self, with_status=None, max_id=MAX_HIT_ID, result_count=None):
@@ -282,7 +283,7 @@ def main():
 
     hm = HitDBManager()
     if args.json:
-        dump_json(args.json)
+        hm.dump_json(args.json)
 
 
 if __name__ == "__main__":

@@ -2,16 +2,10 @@
 
 from __future__ import print_function
 import os
-import re
-import sys
 # import logging
-import time
-import pickle
 import multiprocessing
-from operator import itemgetter
 
-
-from . import multidbm, anagramfunctions, hitmanager, common, simpledatastore
+from . import multidbm, anagramfunctions, common, simpledatastore
 # import anagramstats as stats
 
 
@@ -65,12 +59,11 @@ class AnagramFinder(object):
             '%s_%s.db' % (DATA_PATH_COMPONENT, '_'.join(languages)))
         self.cachepath = os.path.join(
             common.ANAGRAM_DATA_DIR, 
-        '%s_%s.db' % (CACHE_PATH_COMPONENT, '_'.join(languages)))
+        '%s_%s.cache' % (CACHE_PATH_COMPONENT, '_'.join(languages)))
 
         self.hit_callback = hit_callback
         self.test_func = test_func
         self.cache, self.datastore = self.setup_storage(storage)
-
 
     def setup_storage(self, storage_name):
         cache = simpledatastore.AnagramSimpleStore(self.cachepath if storage_name else None)
@@ -80,7 +73,6 @@ class AnagramFinder(object):
         elif storage_name:
             raise Exception('no storage model named %s' % storage)
         return cache, storage
-
 
     def handle_input(self, inp, text_key="text"):
         """
@@ -102,7 +94,7 @@ class AnagramFinder(object):
                 self.cache[key] = inp
         else:
             # not in cache. in datastore?
-            if key in self.datastore:
+            if self.datastore and key in self.datastore:
                 self._process_hit(inp, key, text_key)
             else:
                 # not in datastore. add to cache
@@ -114,14 +106,14 @@ class AnagramFinder(object):
 
     def _process_hit(self, inp, key, text_key):
         try:
-            hit = anagramfunctions.decode_tweet(self.datastore[key])
+            hit = self.datastore[key]
             hit_text = self._text_from_input(hit, text_key)
             text = self._text_from_input(inp, text_key)
-        except (UnicodeDecodeError, ValueError) as err:
+        except (UnicodeDecodeError, ValueError):
             print('error decoding hit for key %s' % key)
             self.cache[key] = inp
             return
-        stats.possible_hit()
+        # stats.possible_hit()
         if self.test_func(text, hit_text):
             self.hit_callback(inp, hit)
         else:
@@ -149,13 +141,13 @@ class AnagramFinder(object):
         to_store = self.cache.least_used(to_trim)
         # write those caches to disk, delete from cache, add to hashes
         for x in to_store:
-            self.datastore[x] = _dbm_from_tweet(self.cache[x])
+            self.datastore[x] = anagramfunctions.encode_tweet(self.cache[x])
             del self.cache[x]
 
-        buffer_size = stats.buffer_size()
-        if buffer_size > common.ANAGRAM_STREAM_BUFFER_SIZE:
-            print('raised needs maintenance')
-            raise NeedsMaintenance
+        # buffer_size = stats.buffer_size()
+        # if buffer_size > common.ANAGRAM_STREAM_BUFFER_SIZE:
+        #     print('raised needs maintenance')
+        #     raise NeedsMaintenance
 
     def perform_maintenance(self):
         """
@@ -176,40 +168,42 @@ class AnagramFinder(object):
         self.cache.save()
         self.datastore.close()
 
-def dbm_iter(dbm_path):
-    import gdbm
-    db = gdbm.open(dbm_path)
-    key = db.firstkey()
-    while key is not None:
-        try:
-            yield anagramfunctions.decode_tweet(db[key])
-        # value isn't a tweet; should be metadata (filepath)
-        except ValueError:
-            pass
-        key = db.nextkey(key)
-    raise StopIteration()
+# def dbm_iter(dbm_path):
+#     import gdbm
+#     db = gdbm.open(dbm_path)
+#     key = db.firstkey()
+#     while key is not None:
+#         try:
+#             yield anagramfunctions.decode_tweet(db[key])
+#         # value isn't a tweet; should be metadata (filepath)
+#         except ValueError:
+#             pass
+#         key = db.nextkey(key)
+#     raise StopIteration()
 
 
-def repair_database():
-    db = AnagramFinder()
-    db.datastore.perform_maintenance()
+# def repair_database():
+#     db = AnagramFinder()
+#     db.datastore.perform_maintenance()
 
 
 def main():
-    import argparse
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        '-r', '--repair', help='repair target database', action="store_true")
-    parser.add_argument('db', type=str, help="source database file")
-    parser.add_argument(
-        '-t', '--trim', type=int, help="trim low length values")
-    parser.add_argument(
-        '-d', '--destination', type=str, help="destination database file")
-    parser.add_argument('-s', '--start', type=int, help='skip-to position')
-    args = parser.parse_args()
+    pass
+    # import argparse
+    # parser = argparse.ArgumentParser()
+    # parser.add_argument(
+    #     '-r', '--repair', help='repair target database', action="store_true")
+    # parser.add_argument('db', type=str, help="source database file")
+    # # parser.add_argument(
+    #     # '-t', '--trim', type=int, help="trim low length values")
+    # # parser.add_argument(
+    # #     '-d', '--destination', type=str, help="destination database file")
+    # # parser.add_argument('-s', '--start', type=int, help='skip-to position')
+    # args = parser.parse_args()
 
-    if args.repair:
-        return repair_database()
+    # if args.repair:
+    #     raise NotImplementedError('took this out, sorry bud')
+    #     # return repair_database()
 
 
 if __name__ == "__main__":

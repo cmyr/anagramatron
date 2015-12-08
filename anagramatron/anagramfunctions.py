@@ -7,6 +7,7 @@ from .common import (ANAGRAM_LOW_CHAR_CUTOFF, ANAGRAM_LOW_UNIQUE_CHAR_CUTOFF,
 
 ENGLISH_LETTER_LIST = sorted(ENGLISH_LETTER_FREQUENCIES.keys(),
                              key=lambda t: ENGLISH_LETTER_FREQUENCIES[t])
+
 # This contains the various functions for filtering tweets, comparing
 # potential anagrams, as well as some shared helper utilities.
 
@@ -15,6 +16,13 @@ freqsort = ENGLISH_LETTER_FREQUENCIES
 # just to keep line_lengths sane
 
 
+def simple_hash(text, debug=False):
+    text = stripped_string(text)
+    t_hash = re.sub(
+        r'([a-z])\1{1,}', 
+        lambda m: '%s%d' % (m.group(1), len(m.group())-1),
+        ''.join(sorted(text)))
+    return t_hash
 
 def improved_hash(text, debug=False):
     """
@@ -305,9 +313,11 @@ def stripped_string(text, spaces=False):
         return re.sub(r'[^a-zA-Z ]', '', text).lower()
     return re.sub(r'[^a-zA-Z]', '', text).lower()
 
+
 def encode_tweet(tweet_dict):
     assert isinstance(tweet_dict, dict)
     return json.dumps(tweet_dict)
+
 
 def decode_tweet(tweet_str):
     assert isinstance(tweet_str, str)

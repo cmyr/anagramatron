@@ -1,10 +1,9 @@
 from __future__ import print_function
 from bottle import (Bottle, run, request, server_names,
                     ServerAdapter, abort)
-import time
+
 import hitmanager
 import anagramstats as stats
-import daemon
 import os
 
 from hitmanager import (HIT_STATUS_REVIEW, HIT_STATUS_SEEN, HIT_STATUS_MISC,
@@ -21,7 +20,7 @@ from serverauth import AUTH_TOKEN, TEST_PORT
 class MySSLCherryPy(ServerAdapter):
     def run(self, handler):
         import cherrypy
-        from cherrypy import wsgiserver
+        # from cherrypy import wsgiserver
         server = cherrypy.wsgiserver.CherryPyWSGIServer(
                                                         (self.host, self.port),
                                                         handler,
@@ -47,6 +46,7 @@ class MySSLCherryPy(ServerAdapter):
 
 server_names['sslbottle'] = MySSLCherryPy
 app = Bottle()
+
 
 def authenticate(auth):
     return True
@@ -76,8 +76,8 @@ def get_hits():
     if (request.query.count):
         count = int(request.query.count)
 
-    print('client requested %i hits with %s status, from %i' % 
-        (count, status, cutoff))    
+    print('client requested %i hits with %s status, from %i' %
+          (count, status, cutoff))
     hits = hitmanager.all_hits(status, cutoff)
     total_hits = len(hits)
     print('hitmanager returned %i hits' % total_hits)
@@ -102,8 +102,9 @@ def modify_hit():
     success_flag = hitmanager.set_hit_status(hit_id, action)
     success_string = 'succeeded' if success_flag else 'FAILED'
     print('modification of hit %i to status %s %s'
-        % (hit_id, action, success_string))
+          % (hit_id, action, success_string))
     return {'action': action, 'hit': hit_id, 'success': success_flag}
+
 
 @app.route('/seen')
 def mark_seen():
@@ -174,12 +175,12 @@ def start_hit_server(debug=False):
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser()
-    parser.add_argument('-d', '--daemonize',
-                        help='run as daemon', action="store_true")
+    # parser.add_argument('-d', '--daemonize',
+    #                     help='run as daemon', action="store_true")
     parser.add_argument('--debug',
                         help='run locally', action="store_true")
     args = parser.parse_args()
-    if args.daemonize:
-        start_hit_daemon(args.debug)
-    else:
-        start_hit_server(args.debug)
+    # if args.daemonize:
+    #     start_hit_daemon(args.debug)
+    # else:
+    start_hit_server(args.debug)
