@@ -43,9 +43,9 @@ class AnagramSimpleStore(object):
         print('loading cache')
         cache = dict()
         try:
-            loaded = pickle.load(open(self.path, 'r'))
+            loaded = pickle.load(open(self.path, 'rb'))
             for t in loaded:
-                cache[t['tweet_hash']] = {'tweet': t, 'hit_count': 0}
+                cache[t['anagram_hash']] = {'tweet': t, 'hit_count': 0}
             print('loaded %i items to cache' % len(cache))
             return cache
         except IOError:

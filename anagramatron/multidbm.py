@@ -36,7 +36,7 @@ class MultiDBM(object):
     def __getitem__(self, key):
         for db in self._data:
             if key in db:
-                return anagramfunctions.decodetweet(db[key])
+                return anagramfunctions.decodetweet(db[key].decode('utf-8'))
         raise KeyError
 
     def __setitem__(self, key, value):
@@ -50,7 +50,7 @@ class MultiDBM(object):
                     self._metadata['totsize'] += 1
                     self._metadata['cursize'] += 1
                 # logging.debug('adding key to file # %i' % i)
-                db[key] = anagramfunctions.encode(value)
+                db[key] = anagramfunctions.encode_tweet(value)
                 return
             i += 1
 
@@ -74,7 +74,7 @@ class MultiDBM(object):
     def _setup(self):
         if os.path.exists(self._path):
             try:
-                self._metadata = pickle.load(open('%s/%s' % (self._path, _METADATA_FILE), 'r'))
+                self._metadata = pickle.load(open('%s/%s' % (self._path, _METADATA_FILE), 'rb'))
                 print('loaded metadata: %s' % repr(self._metadata))
                 logging.debug('loaded metadata %s' % repr(self._metadata))
             except IOError:

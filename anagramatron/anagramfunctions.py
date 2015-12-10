@@ -248,8 +248,8 @@ def one_test_to_rule_them(one, two, cutoff=0.8, stop=False):
     repeats in the opposite order on pass.
     """
     s1 = sorted(stripped_string(one, spaces=True).split(),
-        key=len,
-        reverse=True)
+                key=len,
+                reverse=True)
     s2 = stripped_string(two, spaces=True)
     for word in s1:
         if len(word) > 2 and re.search(word, s2):
@@ -315,12 +315,12 @@ def stripped_string(text, spaces=False):
 
 
 def encode_tweet(tweet_dict):
-    assert isinstance(tweet_dict, dict)
+    assert isinstance(tweet_dict, dict), "%s %s" % (type(tweet_dict), tweet_dict)
     return json.dumps(tweet_dict)
 
 
 def decode_tweet(tweet_str):
-    assert isinstance(tweet_str, str)
+    assert isinstance(tweet_str, str), "%s %s" % (type(tweet_str), tweet_str)
     return json.loads(tweet_str)
 
 if __name__ == "__main__":

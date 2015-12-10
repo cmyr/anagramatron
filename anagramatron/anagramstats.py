@@ -29,8 +29,7 @@ class StatTracker(object):
         seen_perc = self.stats['passed_filter']/(self.stats['tweets_seen'] or 1)
         seen_perc *= 100
         runtime = time.time() - self.start_time
-        cache_hit_perc = ((self['possible_hits'] + self['fetch_pool_size'] + self['cache_hits'])
-            /(self['cache_hits'] or 1)) * 100
+        cache_hit_perc = (self['cache_hits'] / (self['possible_hits'] + self['fetch_pool_size'] + self['cache_hits'])) * 100
         status = "seen %d, used %d (%0.1f%%), hits(/in cache) %d/%d (%0.1f%%), \
 agrams %d, cachesize %d, buffered %d, runtime %s" % (
             self['tweets_seen'], self['passed_filter'], seen_perc,

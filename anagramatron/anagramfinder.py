@@ -142,7 +142,7 @@ class AnagramFinder(object):
         to_store = self.cache.least_used(to_trim)
         # write those caches to disk, delete from cache, add to hashes
         for x in to_store:
-            self.datastore[x] = anagramfunctions.encode_tweet(self.cache[x])
+            self.datastore[x] = self.cache[x]
             del self.cache[x]
 
         buffer_size = self.stats['buffer']
