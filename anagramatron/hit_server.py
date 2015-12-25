@@ -53,7 +53,16 @@ class MySSLCherryPy(ServerAdapter):
 server_names['sslbottle'] = MySSLCherryPy
 app = Bottle()
 
-manager = None
+manager_path = None
+__hitmanager = None
+
+
+def get_manager():
+    global __hitmanager
+    if __hitmanager is None:
+        __hitmanager = hitmanager.HitDBManager(manager_path)
+
+    return __hitmanager
 
 
 def authenticate(auth):
@@ -86,7 +95,7 @@ def get_hits():
 
     print('client requested %i hits with %s status, from %i' %
           (count, status, cutoff))
-    hits = manager.all_hits(status, cutoff)
+    hits = get_manager().all_hits(status, cutoff)
     total_hits = len(hits)
     print('hitmanager returned %i hits' % total_hits)
     hits = sorted(hits, key=lambda k: k['id'], reverse=True)
@@ -107,7 +116,7 @@ def modify_hit():
     if not hit_id or not action:
         abort(400, 'v0_0v')
         
-    success_flag = manager.set_hit_status(hit_id, action)
+    success_flag = get_manager().set_hit_status(hit_id, action)
     success_string = 'succeeded' if success_flag else 'FAILED'
     print('modification of hit %i to status %s %s'
           % (hit_id, action, success_string))
@@ -124,10 +133,10 @@ def mark_seen():
     print('clearing %d hits' % len(hit_ids))
 
     if len(hit_ids) == 1:
-        itwerked = manager.set_hit_status(hit_ids[0], HIT_STATUS_SEEN)
+        itwerked = get_manager().set_hit_status(hit_ids[0], HIT_STATUS_SEEN)
         print('status changed? %s' % str(itwerked))
     else:
-        manager.seen_hits(hit_ids)
+        get_manager().seen_hits(hit_ids)
 
     return {'action': HIT_STATUS_SEEN, 'count': len(hit_ids)}
 
@@ -143,11 +152,11 @@ def approve_hit():
     print(hit_id, post_now)
     flag = None
     if (post_now):
-        flag = manager.post_hit(hit_id)
+        flag = get_manager().post_hit(hit_id)
         if flag:
             print('posting hit: %i' % hit_id)
     else:
-        flag = manager.approve_hit(hit_id)
+        flag = get_manager().approve_hit(hit_id)
         if flag:
             print('approved hit: %i' % hit_id)
 
@@ -167,14 +176,14 @@ def info():
     if not authenticate(auth):
         return
     stats_dict = anagramstats.StatTracker().stats_dict()
-    new_hits = manager.new_hits_count()
-    last_post = manager.last_post_time()
+    new_hits = get_manager().new_hits_count()
+    last_post = get_manager().last_post_time()
     return {'stats': stats_dict, 'new_hits': new_hits, 'last_post': last_post}
 
 
 def start_hit_server(db_path, debug=False):
-    global manager
-    manager = hitmanager.HitDBManager(db_path)
+    global manager_path
+    manager_path = db_path
     if debug:
         run(app, host='127.0.0.1', port=TEST_PORT, debug=True)
     else:
