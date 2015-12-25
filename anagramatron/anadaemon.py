@@ -4,10 +4,10 @@ from __future__ import print_function
 import time
 import sys
 import random
-import hitmanager
-import anagramfunctions
-import constants
+
 import requests
+
+from . import hitmanager, anagramfunctions, common
 
 
 class Daemon(object):
@@ -16,12 +16,12 @@ class Daemon(object):
     A stand alone tool for automatic posting of approved anagrams
     """
 
-    def __init__(self, post_interval=0, debug=False):
+    def __init__(self, dbpath, post_interval=0, debug=False):
         super(Daemon, self).__init__()
-        self.datasource = None
         self._debug = debug
         self.post_interval = int(
-            (post_interval or constants.ANAGRAM_POST_INTERVAL) * 60)
+            (post_interval or common.ANAGRAM_POST_INTERVAL) * 60)
+        self.hitmanager = hitmanager.HitDBManager(dbpath)
 
     def run(self):
         try:
@@ -36,7 +36,7 @@ class Daemon(object):
 
     def _check_post_time(self):
         print('checking last post time')
-        last_post = hitmanager.last_post_time() or 0
+        last_post = self.hitmanager.last_post_time() or 0
         print('last post at %s' % str(last_post))
         temps_perdu = time.time() - last_post
         if last_post and temps_perdu < (self.post_interval / 2):
@@ -55,13 +55,13 @@ class Daemon(object):
             return
 
         # get most recent hit:
-        hit = hitmanager.next_approved_hit()
+        hit = self.hitmanager.next_approved_hit()
         if not hit:
             print('no postable hit found')
             return
 
         print(hit['tweet_one']['tweet_text'], hit['tweet_two']['tweet_text'])
-        if not hitmanager.post_hit(hit['id']):
+        if not self.hitmanager.post_hit(hit['id']):
             print('failed to post hit')
             # on failed post attempt again
             self.entertain_the_huddled_masses()
@@ -128,20 +128,15 @@ class Daemon(object):
 def main():
     import argparse
     parser = argparse.ArgumentParser()
-    parser.add_argument('-p', '--post-interval', type=int,
+    parser.add_argument('dbpath', type=str, help='location of hits database')
+    parser.add_argument('-p', '--post-interval', type=int, default=0,
                         help='interval (in minutes) between posts')
     parser.add_argument('-d', '--debug',
                         help='run with debug flag', action="store_true")
     args = parser.parse_args()
+    print(vars(args))
 
-    kwargs = {}
-    kwargs['debug'] = args.debug
-    kwargs['post_interval'] = args.post_interval or 0
-
-    print(kwargs)
-    print(type(kwargs['post_interval']))
-
-    daemon = Daemon(**kwargs)
+    daemon = Daemon(**vars(args))
     return daemon.run()
 
 
