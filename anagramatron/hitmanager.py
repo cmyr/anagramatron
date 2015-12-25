@@ -53,7 +53,7 @@ class HitDBManager(object):
         hit = {
             "id": int(time.time()*1000),
             "status": HIT_STATUS_REVIEW,
-            "hash": first['tweet_hash'],
+            "hash": first['anagram_hash'],
             "tweet_one": first,
             "tweet_two": second
         }

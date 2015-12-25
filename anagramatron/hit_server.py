@@ -5,7 +5,7 @@ import os
 from bottle import (Bottle, run, request, server_names,
                     ServerAdapter, abort)
 
-from . import hitmanager, anagramstats
+from . import hitmanager, anagramstats, common
 
 from .hitmanager import (HIT_STATUS_REVIEW, HIT_STATUS_SEEN,
                          HIT_STATUS_POSTED, HIT_STATUS_APPROVED)
@@ -27,16 +27,21 @@ class MySSLCherryPy(ServerAdapter):
                                                         handler,
                                                         numthreads=1,
                                                         max=1)
-        # If cert variable is has a valid path, SSL will be used
+        # If cert path exists SSL will be used
         # You can set it to None to disable SSL
-        cert_path = 'data/server.pem'  # certificate path
-        if os.path.exists(cert_path):
-            cert = cert_path
+        # cert_path = 'data/server.pem'  # certificate path
+        if os.path.exists(common.ANAGRAM_SEC_DIR):
+            cert = os.path.join(common.ANAGRAM_SEC_DIR, 'cert.pem')
+            priv = os.path.join(common.ANAGRAM_SEC_DIR, 'privkey.pem')
+            assert os.path.exists(cert) and os.path.exists(priv), 'missing SSL credential'
+
+            server.ssl_certificate = cert
+            server.ssl_private_key = cert
+            server.ssl_module = 'builtin'
+
+            print('running with ssl')
         else:
-            cert = None
-            print('WARNING: no cert found, running without SSL')
-        server.ssl_certificate = cert
-        server.ssl_private_key = cert
+            print('no cert found, running without ssl')
         try:
             server.start()
         finally:

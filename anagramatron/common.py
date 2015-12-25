@@ -18,6 +18,9 @@ ANAGRAM_DATA_DIR = __setup_data_dir()
 if not os.path.exists(ANAGRAM_DATA_DIR):
     os.mkdir(ANAGRAM_DATA_DIR)
 
+ANAGRAM_BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
+ANAGRAM_SEC_DIR = os.path.join(ANAGRAM_BASE_DIR, 'sec')
+
 ANAGRAM_CACHE_SIZE = 200000
 ANAGRAM_STREAM_BUFFER_SIZE = 20000
 

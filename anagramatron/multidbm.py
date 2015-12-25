@@ -36,7 +36,7 @@ class MultiDBM(object):
     def __getitem__(self, key):
         for db in self._data:
             if key in db:
-                return anagramfunctions.decodetweet(db[key].decode('utf-8'))
+                return anagramfunctions.decode_tweet(db[key].decode('utf-8'))
         raise KeyError
 
     def __setitem__(self, key, value):
