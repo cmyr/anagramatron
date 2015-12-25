@@ -14,14 +14,15 @@ def run(server_only=False, **kwargs):
         print("missing module: setproctitle")
         pass
 
+    dbpath = 'hitdata3en.db'
     if server_only:
-        hit_server.start_hit_server()
+        hit_server.start_hit_server(dbpath)
     else:
-        hitserver = multiprocessing.Process(target=hit_server.start_hit_server)
+        hitserver = multiprocessing.Process(target=hit_server.start_hit_server, args=[dbpath])
         hitserver.daemon = True
         hitserver.start()
 
-        hit_manager = hitmanager.HitDBManager('hitdata3en.db')
+        hit_manager = hitmanager.HitDBManager(dbpath)
 
         def handle_hit(p1, p2):
             hit_manager.new_hit(p1, p2)
