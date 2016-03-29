@@ -6,7 +6,7 @@ import time
 import re
 import logging
 import sys
-from stat import S_ISREG, ST_CTIME, ST_MODE
+from stat import ST_CTIME
 
 from . import anagramfunctions
 
@@ -68,8 +68,8 @@ class MultiDBM(object):
         all non-current chunks are at capacity.
         In reality some keys will likely get deleted.
         """
-        return (self._section_size * len(self._data)-1
-                + self._metadata['cursize'])
+        return (self._section_size * len(self._data)-1 +
+                self._metadata['cursize'])
 
     def _setup(self):
         if os.path.exists(self._path):
@@ -80,7 +80,7 @@ class MultiDBM(object):
             except IOError:
                 print("IO error loading metadata?")
                 self._setup_metadata()
-            
+
             dbses = _load_paths(self._path)
             for db in dbses:
                 try:
@@ -181,7 +181,7 @@ def check_integrity_for_chunk(db_chunk):
 def _load_paths(mdbm_path):
     """returns a creation-date sorted list of chunks in our path"""
     ls = (os.path.join(mdbm_path, i) for i in os.listdir(mdbm_path)
-            if re.findall('mdbm', i))
+          if re.findall('mdbm', i))
     ls = ((os.stat(path), path) for path in ls)
     ls = ((stat[ST_CTIME], path) for stat, path in ls)
     return [path for stat, path in sorted(ls)]

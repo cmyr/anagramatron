@@ -9,6 +9,7 @@ import logging
 ITEM_KEY = 'tweet'
 COUNT_KEY = 'hit_count'
 
+
 class AnagramSimpleStore(object):
     """AnagramSimpleStore is a simple data store implemented
     using standard library data structures. It is intended for use as
@@ -17,12 +18,12 @@ class AnagramSimpleStore(object):
         super(AnagramSimpleStore, self).__init__()
         self.path = path
         self.datastore = self.load()
-    
+
     def __len__(self):
         return len(self.datastore)
 
     def __contains__(self, item):
-        return self.datastore.get(item) != None
+        return self.datastore.get(item) is not None
 
     def __getitem__(self, key):
         return self.datastore[key][ITEM_KEY]
@@ -36,7 +37,7 @@ class AnagramSimpleStore(object):
 
     def __delitem__(self, instance):
         del self.datastore[instance]
-        
+
     def load(self):
         if not self.path:
             return dict()
@@ -68,13 +69,12 @@ class AnagramSimpleStore(object):
 
     def least_used(self, count):
         items = [(key, value[ITEM_KEY], value[COUNT_KEY])
-        for key, value in self.datastore.items()]
+                 for key, value in self.datastore.items()]
 
         items = sorted(items, key=itemgetter(2))
         least_used_keys = [x for (x, y, z) in items[:count]]
         return least_used_keys
-        # print('returning %d least used keys: %s' % 
-        #     (len(least_used_keys), "\n".join(least_used_keys[:10])))
+
 
 def main():
     pass

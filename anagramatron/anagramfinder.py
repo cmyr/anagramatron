@@ -34,7 +34,7 @@ class AnagramFinder(object):
     might be supported. NOT IMPLEMENTED.
     :storage: type of backing store. currently accepts None or 'mdbm'.
     :hit_callback: a function to be called when an anagram is found.
-    :test_func: a function called when an anagram is found. 
+    :test_func: a function called when an anagram is found.
     Should implement some heuristic and return True if the passed anagram is 'interesting'.
     """
 
@@ -55,10 +55,10 @@ class AnagramFinder(object):
         self._lock = multiprocessing.Lock()
         self._is_writing = multiprocessing.Event()
         self.store_path = path or os.path.join(
-            common.ANAGRAM_DATA_DIR, 
+            common.ANAGRAM_DATA_DIR,
             '%s_%s.db' % (DATA_PATH_COMPONENT, '_'.join(languages)))
         self.cachepath = os.path.join(
-            common.ANAGRAM_DATA_DIR, 
+            common.ANAGRAM_DATA_DIR,
             '%s_%s.cache' % (CACHE_PATH_COMPONENT, '_'.join(languages)))
 
         self.hit_callback = hit_callback
@@ -170,42 +170,9 @@ class AnagramFinder(object):
         if self.datastore:
             self.datastore.close()
 
-# def dbm_iter(dbm_path):
-#     import gdbm
-#     db = gdbm.open(dbm_path)
-#     key = db.firstkey()
-#     while key is not None:
-#         try:
-#             yield anagramfunctions.decode_tweet(db[key])
-#         # value isn't a tweet; should be metadata (filepath)
-#         except ValueError:
-#             pass
-#         key = db.nextkey(key)
-#     raise StopIteration()
-
-
-# def repair_database():
-#     db = AnagramFinder()
-#     db.datastore.perform_maintenance()
-
 
 def main():
     pass
-    # import argparse
-    # parser = argparse.ArgumentParser()
-    # parser.add_argument(
-    #     '-r', '--repair', help='repair target database', action="store_true")
-    # parser.add_argument('db', type=str, help="source database file")
-    # # parser.add_argument(
-    #     # '-t', '--trim', type=int, help="trim low length values")
-    # # parser.add_argument(
-    # #     '-d', '--destination', type=str, help="destination database file")
-    # # parser.add_argument('-s', '--start', type=int, help='skip-to position')
-    # args = parser.parse_args()
-
-    # if args.repair:
-    #     raise NotImplementedError('took this out, sorry bud')
-    #     # return repair_database()
 
 
 if __name__ == "__main__":

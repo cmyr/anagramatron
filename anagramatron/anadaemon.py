@@ -60,7 +60,7 @@ class Daemon(object):
             print('no postable hit found')
             return
 
-        print(hit['tweet_one']['tweet_text'], hit['tweet_two']['tweet_text'])
+        print(hit['tweet_one']['text'], hit['tweet_two']['text'])
         if not self.hitmanager.post_hit(hit['id']):
             print('failed to post hit')
             # on failed post attempt again

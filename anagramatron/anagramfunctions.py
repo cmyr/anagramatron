@@ -19,10 +19,11 @@ freqsort = ENGLISH_LETTER_FREQUENCIES
 def simple_hash(text, debug=False):
     text = stripped_string(text)
     t_hash = re.sub(
-        r'([a-z])\1{1,}', 
+        r'([a-z])\1{1,}',
         lambda m: '%s%d' % (m.group(1), len(m.group())-1),
         ''.join(sorted(text)))
     return t_hash
+
 
 def improved_hash(text, debug=False):
     """
@@ -55,7 +56,7 @@ def improved_hash(text, debug=False):
         print('hash length is zero?')
         return '@@'
     return compressed_hash
-    # return t_hash
+
 
 def length_from_hash(in_hash):
     """
@@ -103,7 +104,7 @@ def _basic_filters(tweet):
         return False
     if len(tweet.get('entities').get('user_mentions')) is not 0:
         return False
-    #check for retweets
+    # check for retweets
     if tweet.get('retweeted_status'):
         return False
     # check for links:
@@ -212,6 +213,7 @@ def _word_diff_test(one, two, cutoff=0.3):
     else:
         return False
 
+
 def _combined_words_test(one, two, cutoff=0.5):
     """
     looks for tweets where the same words have been #CombinedWithoutSpaces
@@ -223,7 +225,7 @@ def _combined_words_test(one, two, cutoff=0.5):
     if len(words_one) == len(words_two):
         return True
     # print(words_one, words_two)
-    more_words = words_one if len(words_one) > len(words_two) else words_two;
+    more_words = words_one if len(words_one) > len(words_two) else words_two
     fewer_words = words_one if words_two == more_words else words_two
     # rejoin fewer words into a string:
     fewer_words = ' '.join(fewer_words)
@@ -271,7 +273,6 @@ def grade_anagram(hit):
     potential 'interestingness'.
     """
     t1 = hit['tweet_one']['tweet_text']
-    t2 = hit['tweet_two']['tweet_text']
 
     letter_count = len(stripped_string(t1))
     unique_letters = len(set(stripped_string(t1)))
@@ -292,16 +293,6 @@ def format_seconds(seconds):
     if d:
         time_string = "%id %s" % (d, time_string)
     return time_string
-
-
-# def show_anagram(one, two):
-#     print one
-#     print two
-#     print stripped_string(one, spaces=True)
-#     print stripped_string(two, spaces=True)
-#     print stripped_string(one)
-#     print stripped_string(two)
-#     print ''.join(sorted(stripped_string(two), key=str.lower))
 
 
 def stripped_string(text, spaces=False):

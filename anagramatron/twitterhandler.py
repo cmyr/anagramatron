@@ -3,7 +3,7 @@ from __future__ import print_function
 try:
     import httplib
 except ImportError:
-     import http.client as httplib
+    import http.client as httplib
 
 try:
     from urllib2 import URLError
@@ -13,23 +13,19 @@ except ImportError:
 
 import logging
 
-import time
-
 from twitter.oauth import OAuth
 from twitter.stream import TwitterStream
 from twitter.api import Twitter, TwitterError, TwitterHTTPError
 import tumblpy
 import requests
 
-from . import anagramfunctions
-
 # my twitter OAuth key:
 from .twittercreds import (CONSUMER_KEY, CONSUMER_SECRET,
-                          ACCESS_KEY, ACCESS_SECRET, 
-                          BOSS_USERNAME, PRIVATE_POST_URL)
+                           ACCESS_KEY, ACCESS_SECRET,
+                           BOSS_USERNAME, PRIVATE_POST_URL)
 # my tumblr OAuth key:
 from .tumblrcreds import (TUMBLR_KEY, TUMBLR_SECRET,
-                         TOKEN_KEY, TOKEN_SECRET, TUMBLR_BLOG_URL)
+                          TOKEN_KEY, TOKEN_SECRET, TUMBLR_BLOG_URL)
 
 
 class TwitterHandler(object):
@@ -206,7 +202,6 @@ class TwitterHandler(object):
                     self.twitter.direct_messages.destroy(id=d.get("id_str"))
         except URLError as err:
             logging.error(str(err))
-
 
     # this is a silly way for me to update my ddns server
     def _private_update_function(self):

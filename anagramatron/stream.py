@@ -1,7 +1,7 @@
 from __future__ import print_function
 
 import logging
-import queue
+import queue as Queue
 import multiprocessing
 import time
 
@@ -10,7 +10,6 @@ from collections import deque
 
 from . import anagramfunctions, twitterhandler
 from .anagramstats import StatTracker
-# from twitterhandler import TwitterHandler
 from zmqstream.consumer import zmq_iter
 
 from .common import (ANAGRAM_STREAM_BUFFER_SIZE)
@@ -29,7 +28,7 @@ class StreamHandler(object):
                  buffersize=ANAGRAM_STREAM_BUFFER_SIZE,
                  timeout=90,
                  languages=['en'],
-                 host="127.0.0.1", 
+                 host="127.0.0.1",
                  port="8069"
                  ):
         self.buffersize = buffersize
@@ -75,7 +74,7 @@ class StreamHandler(object):
                 # add all new items from the queue to the buffer
                 try:
                     self._buffer.append(self.queue.get_nowait())
-                except queue.Empty:
+                except Queue.Empty:
                     break
             try:
                 # after launch we don't have any keys in memory, so processing is slow.
@@ -98,7 +97,7 @@ class StreamHandler(object):
                 else:
                     yield self.queue.get(True, self.timeout)
                     continue
-            except queue.Empty:
+            except Queue.Empty:
                 print('queue timeout')
         print('exiting iter loop')
 
