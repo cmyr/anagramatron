@@ -1,6 +1,7 @@
 
-from datetime import datetime
+import time
 import multiprocessing
+from datetime import datetime
 
 from . import twitterhandler, stream, anagramfinder, hit_server, hitmanager
 from .anagramstats import StatTracker
@@ -48,13 +49,16 @@ def run(server_only=False, **kwargs):
                 stream_handler.close()
                 anagram_finder.close()
                 return 0
-
-            except Exception as err:
+            except Exception as err:    
                 stream_handler.close()
                 anagram_finder.close()
-                twitterhandler.TwitterHandler().send_message(
-                    "%s\n%s" % (err, datetime.today().isoformat()))
-                raise
+                if hasattr(err, 'code') and err.code == 503:
+                    time.sleep(60*5)
+                    continue
+                else:
+                    twitterhandler.TwitterHandler().send_message(
+                        "%s\n%s" % (err, datetime.today().isoformat()))
+                    raise
 
 
 def main():
