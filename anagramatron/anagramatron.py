@@ -1,4 +1,7 @@
+# coding: utf-8
+from __future__ import print_function
 
+import sys
 import time
 import multiprocessing
 from datetime import datetime
@@ -12,7 +15,7 @@ def run(server_only=False, **kwargs):
         import setproctitle
         setproctitle.setproctitle('anagramatron')
     except ImportError:
-        print("missing module: setproctitle")
+        print("missing module: setproctitle", file=sys.stderr)
         pass
 
     dbpath = 'hitdata3en.db'
@@ -32,7 +35,7 @@ def run(server_only=False, **kwargs):
         stats = StatTracker()
         while 1:
             try:
-                print('starting stream handler')
+                print('starting stream handler', file=sys.stderr)
                 stream_handler = stream.StreamHandler(**kwargs)
                 stream_handler.start()
                 for processed_tweet in stream_handler:
@@ -40,8 +43,7 @@ def run(server_only=False, **kwargs):
                     stats.print_stats()
 
             except anagramfinder.NeedsMaintenance:
-                # logging.debug('caught NeedsMaintenance exception')
-                print('performing maintenance')
+                print('performing maintenance', file=sys.stderr)
                 stream_handler.close()
                 anagram_finder.perform_maintenance()
 
@@ -49,7 +51,7 @@ def run(server_only=False, **kwargs):
                 stream_handler.close()
                 anagram_finder.close()
                 return 0
-            except Exception as err:    
+            except Exception as err:
                 stream_handler.close()
                 anagram_finder.close()
                 if hasattr(err, 'code') and err.code == 503:

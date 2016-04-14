@@ -146,7 +146,8 @@ class TwitterHandler(object):
         oembed1 = self.oembed_for_tweet(tweetone.get('id_str'))
         oembed2 = self.oembed_for_tweet(tweettwo.get('id_str'))
         post_title = "@%s vs @%s" % (sn1, sn2)
-        post_content = '<div class="tweet-pair">%s<br /><br />%s</div>' % (oembed1['html'], oembed2['html'])
+        post_content = '<div class="tweet-pair">%s<br /><br />%s</div>' % (
+            oembed1['html'], oembed2['html'])
         post = self.tmblr.post('post',
                                blog_url=TUMBLR_BLOG_URL,
                                params={'type': 'text',
