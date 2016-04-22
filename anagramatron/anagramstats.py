@@ -33,11 +33,11 @@ class StatTracker(object):
             self['cache_hits'] /
             ((self['possible_hits'] + self['fetch_pool_size'] + self['cache_hits']) or 1)
             ) * 100
-        status = "seen %d, used %d (%0.1f%%), hits(/in cache) %d/%d (%0.1f%%), \
-agrams %d, cachesize %d, buffered %d, runtime %s" % (
-            self['tweets_seen'], self['passed_filter'], seen_perc,
-            self['possible_hits'] + self['fetch_pool_size'], self['cache_hits'],
-            cache_hit_perc, self['hits'], self['cache_size'], self['buffer'],
+        status = "seen %s, used (%0.1f%%), hits %s, cache hits (%0.1f%%), \
+agrams %d, cachesize %s, buffer %d, runtime %s" % (
+            format_number(self['tweets_seen']), seen_perc,
+            format_number(self['possible_hits'] + self['fetch_pool_size']),
+            cache_hit_perc, self['hits'], format_number(self['cache_size']), self['buffer'],
             anagramfunctions.format_seconds(runtime)
             )
         return status
@@ -54,3 +54,10 @@ agrams %d, cachesize %d, buffered %d, runtime %s" % (
             'hits': self['hits'],
             'start_time': self.start_time
         }
+
+
+def format_number(value):
+    if len(str(value)) > 6:
+        value = str(value)
+        return "%s.%sm" % (value[:-6], value[-6])
+    return "{:,}".format(int(value))
