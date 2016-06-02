@@ -58,6 +58,7 @@ def run(server_only=False, **kwargs):
                     time.sleep(60*5)
                     continue
                 else:
+                    print('sending twitter notification for err:', err)
                     twitterhandler.TwitterHandler().send_message(
                         "%s\n%s" % (err, datetime.today().isoformat()))
                     raise
