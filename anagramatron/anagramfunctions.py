@@ -177,17 +177,14 @@ def _char_diff_test(one, two, cutoff=0.3):
     total_chars = len(stripped_two)
     same_chars = 0
 
-    if len(stripped_one) != len(stripped_two):
+    if not total_chars or len(stripped_one) != len(stripped_two):
         return False
 
     for i in range(total_chars):
         if stripped_one[i] == stripped_two[i]:
             same_chars += 1
-    try:
-        if (float(same_chars) / total_chars) < cutoff:
-            return True
-    except ZeroDivisionError:
-        print(one, two)
+    if (float(same_chars) / total_chars) < cutoff:
+        return True
     return False
 
 
@@ -272,7 +269,7 @@ def grade_anagram(hit):
     an attempt to come up with a numerical value that expresses an anagrams
     potential 'interestingness'.
     """
-    t1 = hit['tweet_one']['tweet_text']
+    t1 = hit['tweet_one']['text']
 
     letter_count = len(stripped_string(t1))
     unique_letters = len(set(stripped_string(t1)))
