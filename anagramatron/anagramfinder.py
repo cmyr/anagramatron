@@ -102,7 +102,7 @@ class AnagramFinder(object):
                 # not in datastore. add to cache
                 self.cache[key] = inp
                 self.stats['cache_size'] = len(self.cache)
-                if len(self.cache) > common.ANAGRAM_CACHE_SIZE:
+                if self.datastore and len(self.cache) > common.ANAGRAM_CACHE_SIZE:
                     self._trim_cache()
 
     def _process_hit(self, inp, key, text_key):
