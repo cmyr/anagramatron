@@ -36,7 +36,13 @@ class MultiDBM(object):
     def __getitem__(self, key):
         for db in self._data:
             if key in db:
-                return anagramfunctions.decode_tweet(db[key].decode('utf-8'))
+                val = db[key].decode('utf-8')
+                # this is kinda gross
+                try:
+                    val = anagramfunctions.decode_tweet(val)
+                except:
+                    pass
+                return val
         raise KeyError
 
     def __setitem__(self, key, value):
@@ -50,7 +56,9 @@ class MultiDBM(object):
                     self._metadata['totsize'] += 1
                     self._metadata['cursize'] += 1
                 # logging.debug('adding key to file # %i' % i)
-                db[key] = anagramfunctions.encode_tweet(value)
+                if isinstance(value, dict):
+                    value = anagramfunctions.encode_tweet(value)
+                db[key] = value
                 return
             i += 1
 

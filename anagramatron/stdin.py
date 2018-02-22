@@ -3,6 +3,7 @@
 
 '''A simple tool for profiling over stdin'''
 import sys
+import tempfile
 from . import anagramfinder
 
 
@@ -18,14 +19,17 @@ class Stats(object):
 
 def main():
     stats = Stats()
-    finder = anagramfinder.AnagramFinder(hit_callback=stats)
+    tempdir = tempfile.TemporaryDirectory()
+    print("storing in temp dir %s" % tempdir, file=sys.stderr)
+
+    finder = anagramfinder.AnagramFinder(storage='mdbm', hit_callback=stats, path=tempdir.name)
     for line in sys.stdin:
         stats.seen += 1
         finder.handle_input(line)
 
-    print("seen {}, hits {}".format(stats.seen, len(stats.hits)))
     for one, two in stats.hits:
-        print("---------\n{}--↕︎--{}".format(one, two));
+        print("---------\n{}--↕︎--\n{}".format(one, two));
+    print("seen {}, hits {}".format(stats.seen, len(stats.hits)))
 
 
 if __name__ == "__main__":
